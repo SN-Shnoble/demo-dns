@@ -1,0 +1,30 @@
+node:
+    node_uid: node_b2synjbh2thmul8q
+    name: dev-local-01
+    version: 1.0.0
+    region: ap-northeast-1
+    country: JP
+    provider: local
+    public_ipv4: 127.0.0.1
+listen:
+    doh: 8444
+    udp: 5355
+control_plane:
+    endpoint: http://localhost:8081
+    api_key: 6DBcFlA095HCfKyz8lE4HgLgQhZIcrr5
+    secret: sk_d5029b742297c15220063c12ce71186e86df5d0d9bedc16084e9c48ae126f627
+    node_id: node_b2synjbh2thmul8q
+    heartbeat_interval: 30
+    config_poll_interval: 30
+upstream:
+    - 1.1.1.1
+    - 8.8.8.8
+logging:
+    level: debug
+    buffer_path: /tmp/dns-logs
+nats:
+    enabled: false
+redis:
+    enabled: false
+geodns:
+    enabled: false

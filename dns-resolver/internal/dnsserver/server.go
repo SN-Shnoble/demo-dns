@@ -1,0 +1,328 @@
+package dnsserver
+
+import (
+	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"ocer-dns/dns-resolver/internal/blockresponse"
+	"ocer-dns/dns-resolver/internal/cache"
+	"ocer-dns/dns-resolver/internal/config"
+	"ocer-dns/dns-resolver/internal/dnscache"
+	"ocer-dns/dns-resolver/internal/logging"
+	"ocer-dns/dns-resolver/internal/metrics"
+	"ocer-dns/dns-resolver/internal/profile"
+	"ocer-dns/dns-resolver/internal/resolver"
+
+	"github.com/miekg/dns"
+)
+
+type Server struct {
+	cfg             *config.Config
+	resolutionLayer *resolver.ProfileResolutionLayer
+	logBuffer       *logging.Buffer
+	metrics         *metrics.Metrics
+	cache           *cache.Cache
+	dnsCache        *dnscache.DNSCache
+	client          *dns.Client
+	udpServer       *dns.Server
+	tcpServer       *dns.Server
+	dedupTTL        time.Duration
+}
+
+type activeConfig struct {
+	Profiles []struct {
+		ProfileID     string `json:"profile_id"`
+		BlockResponse string `json:"block_response"`
+		Devices       []struct {
+			DeviceID string `json:"device_id"`
+			SourceIP string `json:"source_ip"`
+		} `json:"devices"`
+	} `json:"profiles"`
+}
+
+func New(
+	cfg *config.Config,
+	resolutionLayer *resolver.ProfileResolutionLayer,
+	logBuffer *logging.Buffer,
+	collector *metrics.Metrics,
+	cacheClient *cache.Cache,
+	dnsCache *dnscache.DNSCache,
+) *Server {
+	handler := &Server{
+		cfg:             cfg,
+		resolutionLayer: resolutionLayer,
+		logBuffer:       logBuffer,
+		metrics:         collector,
+		cache:           cacheClient,
+		dnsCache:        dnsCache,
+		client: &dns.Client{
+			Net:     "udp",
+			Timeout: 5 * time.Second,
+		},
+		dedupTTL: 5 * time.Second,
+	}
+
+	handler.udpServer = &dns.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.Listen.UDP),
+		Net:     "udp",
+		Handler: dns.HandlerFunc(handler.handleQuery),
+	}
+
+	tcpPort := cfg.Listen.TCP
+	if tcpPort == 0 {
+		tcpPort = cfg.Listen.UDP
+	}
+	handler.tcpServer = &dns.Server{
+		Addr:    fmt.Sprintf(":%d", tcpPort),
+		Net:     "tcp",
+		Handler: dns.HandlerFunc(handler.handleQuery),
+	}
+
+	return handler
+}
+
+func (s *Server) Run(ctx context.Context) error {
+	errCh := make(chan error, 2)
+
+	go func() {
+		log.Printf("Starting UDP DNS server on %s", s.udpServer.Addr)
+		if err := s.udpServer.ListenAndServe(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	go func() {
+		log.Printf("Starting TCP DNS server on %s", s.tcpServer.Addr)
+		if err := s.tcpServer.ListenAndServe(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		_ = s.udpServer.Shutdown()
+		_ = s.tcpServer.Shutdown()
+		return nil
+	case err := <-errCh:
+		_ = s.udpServer.Shutdown()
+		_ = s.tcpServer.Shutdown()
+		return err
+	}
+}
+
+func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
+	s.metrics.IncQueries()
+
+	reply := new(dns.Msg)
+	reply.SetReply(req)
+
+	if len(req.Question) == 0 {
+		reply.Rcode = dns.RcodeFormatError
+		_ = w.WriteMsg(reply)
+		s.metrics.IncErrors()
+		return
+	}
+
+	question := req.Question[0]
+	domain := strings.TrimSuffix(question.Name, ".")
+	queryType := dns.TypeToString[question.Qtype]
+	startedAt := time.Now()
+	clientIP := remoteHost(w.RemoteAddr().String())
+
+	// Query-count deduplication: skip the cache hit on the *log* path so we
+	// don't burn log bandwidth on the same client asking for the same name
+	// repeatedly. The DNS response itself is still served so the client
+	// experience is identical. The dedup window is intentionally short
+	// (default 5s) — long enough to collapse retransmits, short enough
+	// not to hide traffic spikes.
+	dedupKey := dedupFingerprint(clientIP, domain, queryType)
+	dedupCtx, dedupCancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	firstSeen, dedupErr := s.cache.MarkSeen(dedupCtx, dedupKey, s.dedupTTL)
+	dedupCancel()
+	if dedupErr != nil {
+		// On cache transport errors we still resolve and log the query —
+		// the dedup is a best-effort optimization, never a correctness gate.
+		log.Printf("dedup: cache error for key %s: %v (treating as first-seen)", dedupKey, dedupErr)
+		firstSeen = true
+	}
+
+	profileID, blockResponse, deviceID := s.resolveRuntimeProfile(w.RemoteAddr())
+	decision := s.resolutionLayer.Resolve(&resolver.ResolutionContext{
+		ProfileUID: profileID,
+		DeviceUID:  deviceID,
+		ClientIP:   remoteIP(w.RemoteAddr()),
+		Domain:     domain,
+		QueryType:  queryType,
+		Protocol:   w.LocalAddr().Network(),
+	})
+
+	if decision.Action == "BLOCK" {
+		s.metrics.IncBlocked()
+		s.applyBlockResponse(reply, question, blockResponse)
+		_ = w.WriteMsg(reply)
+		if firstSeen {
+			s.appendLog(profileID, deviceID, domain, "BLOCK", decision.Reason, decision.Category, w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+		}
+		return
+	}
+
+	// Check DNS cache first
+	cacheKey := dnscache.MakeKey(domain, question.Qtype, profileID)
+	if cached, ok := s.dnsCache.Get(context.Background(), cacheKey); ok {
+		// Cache hit! Return cached response
+		s.metrics.IncAllowed()
+		_ = w.WriteMsg(cached)
+		if firstSeen {
+			s.appendLog(profileID, deviceID, domain, "ALLOW", "cache_hit", "", w.RemoteAddr().String(), queryType, cached.Rcode, startedAt)
+		}
+		return
+	}
+
+	// Cache miss - query upstream
+	upstreamReply, _, err := s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[0]))
+	if err != nil && len(s.cfg.Upstream) > 1 {
+		upstreamReply, _, err = s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[1]))
+	}
+	if err != nil {
+		reply.Rcode = dns.RcodeServerFailure
+		_ = w.WriteMsg(reply)
+		s.metrics.IncErrors()
+		if firstSeen {
+			s.appendLog(profileID, deviceID, domain, "ERROR", "upstream_timeout", "", w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+		}
+		return
+	}
+
+	// Store in cache
+	s.dnsCache.Set(context.Background(), cacheKey, upstreamReply)
+
+	s.metrics.IncAllowed()
+	_ = w.WriteMsg(upstreamReply)
+	if firstSeen {
+		s.appendLog(profileID, deviceID, domain, "ALLOW", "default", "", w.RemoteAddr().String(), queryType, upstreamReply.Rcode, startedAt)
+	}
+}
+
+func (s *Server) resolveRuntimeProfile(addr net.Addr) (profileID string, blockResponse string, deviceID string) {
+	cfg, err := s.loadActiveConfig()
+	if err != nil || len(cfg.Profiles) == 0 {
+		return "default", "nxdomain", ""
+	}
+
+	sourceMap := make(map[string]string)
+	deviceMap := make(map[string]string)
+	blockMap := make(map[string]string)
+	defaultProfile := cfg.Profiles[0].ProfileID
+
+	for _, profileConfig := range cfg.Profiles {
+		if profileConfig.ProfileID == "" {
+			continue
+		}
+		blockMap[profileConfig.ProfileID] = firstNonEmpty(profileConfig.BlockResponse, "nxdomain")
+		for _, device := range profileConfig.Devices {
+			if device.SourceIP == "" {
+				continue
+			}
+			sourceMap[device.SourceIP] = profileConfig.ProfileID
+			deviceMap[device.SourceIP] = device.DeviceID
+		}
+	}
+
+	resolver := profile.New(sourceMap)
+	profileID, err = resolver.ResolveSourceIP(addr.String())
+	if err != nil || profileID == "" {
+		profileID = defaultProfile
+	}
+
+	host := remoteHost(addr.String())
+	return profileID, firstNonEmpty(blockMap[profileID], "nxdomain"), deviceMap[host]
+}
+
+func (s *Server) loadActiveConfig() (*activeConfig, error) {
+	path := filepath.Join(s.cfg.ControlPlane.ProfilesPath, "active.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg activeConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func (s *Server) appendLog(profileID, deviceID, domain, action, reason, category, clientIP, queryType string, rcode int, startedAt time.Time) {
+	if s.logBuffer == nil {
+		return
+	}
+
+	s.logBuffer.Append(logging.LogEntry{
+		ProfileUID:     profileID,
+		DeviceUID:      deviceID,
+		Domain:         domain,
+		Action:         strings.ToUpper(action),
+		Reason:         reason,
+		Category:       category,
+		ClientIP:       clientIP,
+		QueryType:      queryType,
+		ResponseCode:   rcode,
+		ResponseTimeMs: time.Since(startedAt).Milliseconds(),
+		QueriedAt:      time.Now().Unix(),
+	})
+}
+
+func (s *Server) applyBlockResponse(reply *dns.Msg, question dns.Question, blockResponse string) {
+	blockresponse.ApplyTo(reply, question, blockResponse)
+}
+
+func upstreamAddr(addr string) string {
+	if strings.Contains(addr, ":") {
+		return addr
+	}
+	return addr + ":53"
+}
+
+func remoteIP(addr net.Addr) net.IP {
+	return net.ParseIP(remoteHost(addr.String()))
+}
+
+func remoteHost(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+// dedupFingerprint returns a stable per-(client,qname,qtype) fingerprint used
+// as the cache key. SHA-1 is sufficient here — this is a 5-second dedup
+// signal, not a security identifier, and SHA-1 keeps the key short.
+func dedupFingerprint(clientIP, domain, qtype string) string {
+	h := sha1.New()
+	h.Write([]byte(clientIP))
+	h.Write([]byte{0})
+	h.Write([]byte(domain))
+	h.Write([]byte{0})
+	h.Write([]byte(qtype))
+	return hex.EncodeToString(h.Sum(nil))
+}

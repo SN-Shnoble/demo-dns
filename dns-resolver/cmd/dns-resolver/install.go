@@ -1,0 +1,283 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+
+	"ocer-dns/dns-resolver/internal/config"
+)
+
+// installOptions 保存 `resolver install` 子命令的入参
+type installOptions struct {
+	Console    string
+	NodeID     string
+	Token      string
+	APIKey     string
+	Secret     string
+	ConfigPath string
+	// 以下为可选覆盖项，便于在同一控制台下批量安装同构节点
+	Region     string
+	Country    string
+	City       string
+	Provider   string
+	Name       string
+	Force      bool
+}
+
+// runInstall 实现 `resolver install` 子命令：
+//
+//	resolver install \
+//	    --server=http://console.example.com \
+//	    --token=ak_xxx \
+//	    --node-id=hk-01
+//
+// 或者直接指定凭据（旧方式兼容）：
+//
+//	resolver install \
+//	    --server=http://console.example.com \
+//	    --node-id=hk-01 \
+//	    --api-key=ak_xxx \
+//	    --secret=sk_xxx
+//
+// 行为：把 console 端预签发的 APIKey + Secret 写入控制面配置，
+// resolver 启动后将跳过自助注册，直接使用预发凭据鉴权。
+// 如果传了 --token，会自动调用控制面 verify 接口换取 api_key + secret。
+func runInstall(args []string) error {
+	fs := flag.NewFlagSet("install", flag.ExitOnError)
+
+	var opts installOptions
+	fs.StringVar(&opts.Console, "server", "", "portal-web admin Base URL, e.g. https://console.ocerlink.com (alias: --console)")
+	fs.StringVar(&opts.Console, "console", "", "")
+	fs.StringVar(&opts.NodeID, "node-id", "", "Node ID assigned by console, e.g. hk-01")
+	fs.StringVar(&opts.Token, "token", "", "Node token issued by console (ak_xxx); exchanged for api_key+secret via verify API")
+	fs.StringVar(&opts.APIKey, "api-key", "", "Node API key issued by console (ak_xxx); used when --token is not provided")
+	fs.StringVar(&opts.Secret, "secret", "", "Node secret issued by console (sk_xxx); used when --token is not provided")
+	fs.StringVar(&opts.ConfigPath, "config", "configs/server.yaml", "Output resolver config.yaml path")
+	fs.StringVar(&opts.Name, "name", "", "Optional human-friendly node name override")
+	fs.StringVar(&opts.Region, "region", "", "Optional region code, e.g. ap-northeast-1")
+	fs.StringVar(&opts.Country, "country", "", "Optional country code, e.g. JP")
+	fs.StringVar(&opts.City, "city", "", "Optional city, e.g. Tokyo")
+	fs.StringVar(&opts.Provider, "provider", "", "Optional provider tag, e.g. AWS")
+	fs.BoolVar(&opts.Force, "force", false, "Overwrite existing config file")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// 如果传了 --token，用 token 换取 api_key + secret
+	if strings.TrimSpace(opts.Token) != "" {
+		apiKey, secret, err := exchangeToken(opts.Console, opts.Token)
+		if err != nil {
+			return fmt.Errorf("token exchange failed: %w", err)
+		}
+		opts.APIKey = apiKey
+		opts.Secret = secret
+	}
+
+	if err := validateInstallOptions(&opts); err != nil {
+		fs.Usage()
+		return err
+	}
+
+	cfg := buildInstalledConfig(&opts)
+
+	if err := writeConfigAtomic(opts.ConfigPath, cfg, opts.Force); err != nil {
+		return fmt.Errorf("write config failed: %w", err)
+	}
+
+	fmt.Printf("✔ config written to %s\n", opts.ConfigPath)
+	fmt.Printf("  console   = %s\n", cfg.ControlPlane.Endpoint)
+	fmt.Printf("  node_id   = %s\n", cfg.ControlPlane.NodeID)
+	fmt.Printf("  api_key   = %s\n", maskCredential(cfg.ControlPlane.APIKey))
+	fmt.Printf("  secret    = %s\n", maskCredential(cfg.ControlPlane.Secret))
+	fmt.Println("Next: run `resolver` to start the node.")
+	return nil
+}
+
+func validateInstallOptions(opts *installOptions) error {
+	missing := make([]string, 0, 4)
+	if strings.TrimSpace(opts.Console) == "" {
+		missing = append(missing, "--server")
+	}
+	if strings.TrimSpace(opts.NodeID) == "" {
+		missing = append(missing, "--node-id")
+	}
+	// token 或 api-key+secret 二选一
+	hasToken := strings.TrimSpace(opts.Token) != ""
+	hasAPIKey := strings.TrimSpace(opts.APIKey) != ""
+	hasSecret := strings.TrimSpace(opts.Secret) != ""
+	if !hasToken && !hasAPIKey {
+		missing = append(missing, "--token or --api-key")
+	}
+	if !hasToken && !hasSecret {
+		missing = append(missing, "--token or --secret")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required flags: %s", strings.Join(missing, ", "))
+	}
+
+	// Endpoint 必须是 http(s) URL
+	lower := strings.ToLower(strings.TrimSpace(opts.Console))
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		return fmt.Errorf("--server must be a http(s) URL, got %q", opts.Console)
+	}
+	return nil
+}
+
+// exchangeToken 使用 --token 调用控制面 verify API 换取 api_key + secret
+func exchangeToken(server, token string) (apiKey, secret string, err error) {
+	server = strings.TrimRight(server, "/")
+	url := server + "/api/v1/agent/tokens/verify"
+
+	reqBody := fmt.Sprintf(`{"token":"%s"}`, token)
+	resp, err := http.Post(url, "application/json", strings.NewReader(reqBody))
+	if err != nil {
+		return "", "", fmt.Errorf("request verify API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return "", "", fmt.Errorf("verify API returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Data struct {
+			NodeID string `json:"node_id"`
+			APIKey string `json:"api_key"`
+			Secret string `json:"secret"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", "", fmt.Errorf("parse verify response: %w", err)
+	}
+	if result.Data.APIKey == "" || result.Data.Secret == "" {
+		return "", "", fmt.Errorf("verify API returned empty credentials")
+	}
+	return result.Data.APIKey, result.Data.Secret, nil
+}
+
+// buildInstalledConfig 在 config.Default() 的基础上覆盖控制面凭据和节点标识
+func buildInstalledConfig(opts *installOptions) *config.Config {
+	cfg := config.Default()
+
+	cfg.ControlPlane.Endpoint = strings.TrimRight(opts.Console, "/")
+	cfg.ControlPlane.APIKey = strings.TrimSpace(opts.APIKey)
+	cfg.ControlPlane.Secret = strings.TrimSpace(opts.Secret)
+	cfg.ControlPlane.NodeID = strings.TrimSpace(opts.NodeID)
+
+	// 同步节点标识，便于 console 在 Node 表上做匹配
+	cfg.Node.NodeUID = cfg.ControlPlane.NodeID
+	if name := strings.TrimSpace(opts.Name); name != "" {
+		cfg.Node.Name = name
+	} else {
+		cfg.Node.Name = "node-" + cfg.ControlPlane.NodeID
+	}
+	if v := strings.TrimSpace(opts.Region); v != "" {
+		cfg.Node.Region = v
+		cfg.Region.Code = v
+	}
+	if v := strings.TrimSpace(opts.Country); v != "" {
+		cfg.Node.Country = v
+	}
+	if v := strings.TrimSpace(opts.City); v != "" {
+		cfg.Node.City = v
+	}
+	if v := strings.TrimSpace(opts.Provider); v != "" {
+		cfg.Node.Provider = v
+	}
+
+	// 启动前立即校验：缺少任何凭据直接报错，不允许写入残缺配置
+	if err := cfg.Validate(); err != nil {
+		panic(fmt.Sprintf("internal: install built invalid config: %v", err))
+	}
+	return cfg
+}
+
+// writeConfigAtomic 原子写入配置文件，避免半写导致 resolver 启动读坏文件
+func writeConfigAtomic(path string, cfg *config.Config, force bool) error {
+	// 已有配置且未传 --force 时直接拒绝，避免误覆盖
+	if !force {
+		if _, err := os.Stat(path); err == nil {
+			return fmt.Errorf("config already exists at %s; pass --force to overwrite", path)
+		}
+	}
+
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+		return fmt.Errorf("write temp config: %w", err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("activate config: %w", err)
+	}
+	return nil
+}
+
+func maskCredential(v string) string {
+	v = strings.TrimSpace(v)
+	if len(v) <= 8 {
+		return "***"
+	}
+	return v[:4] + "***" + v[len(v)-4:]
+}
+
+func printUsage() {
+	fmt.Println(`Usage:
+  resolver [--config PATH]            Start the dns-resolver daemon
+  resolver run [--config PATH]        Same as above
+  resolver install [flags]            Write a config.yaml with pre-issued console credentials
+
+Run flags:
+  --config PATH    Path to server.yaml (default: configs/server.yaml).
+                   Overrides $RESOLVER_CONFIG if both are set.
+
+Environment:
+  RESOLVER_CONFIG  Equivalent to --config; used when no flag is given.
+                   Useful for Docker / Kubernetes / systemd where flags are awkward.
+
+install flags:
+  --console URL   portal-web admin Base URL, e.g. https://console.ocerlink.com
+  --node-id ID    Node ID assigned by console, e.g. hk-01
+  --api-key KEY   Node API key issued by console (ak_xxx)
+  --secret KEY    Node secret issued by console (sk_xxx)
+  --config PATH   Output config path (default: configs/server.yaml)
+  --name NAME     Optional human-friendly node name
+  --region CODE   Optional region, e.g. ap-northeast-1
+  --country CODE  Optional country code, e.g. JP
+  --city NAME     Optional city
+  --provider TAG  Optional provider tag, e.g. AWS
+  --force         Overwrite existing config file
+
+Example:
+  # Use a custom config path
+  resolver --config=/etc/dns-resolver/server.yaml
+
+  # Or via env var
+  RESOLVER_CONFIG=/etc/dns-resolver/server.yaml resolver
+
+  # Provision a node
+  resolver install \
+    --console=https://console.ocerlink.com \
+    --node-id=hk-01 \
+    --api-key=ak_xxx \
+    --secret=sk_xxx`)
+}

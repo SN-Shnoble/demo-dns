@@ -1,0 +1,517 @@
+/* NovaDNS Design System — Global Theme */
+:root {
+    /* Colors */
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-primary-gradient: linear-gradient(135deg, #2563eb, #7c3aed);
+    --color-bg: #ffffff;
+    --color-bg-secondary: #f8fafc;
+    --color-surface: #ffffff;
+    --color-text: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
+    --color-border: #e2e8f0;
+    --color-border-light: #dbe3ef;
+    --color-success: #16a34a;
+    --color-success-bg: #f0fdf4;
+    --color-danger: #dc2626;
+    --color-danger-bg: #fef2f2;
+    --color-warn-bg: #fffbeb;
+    --color-info-bg: #eff6ff;
+    --color-info-text: #2563eb;
+
+    /* Typography */
+    --font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+    /* Shadows */
+    --shadow-card: 0 16px 40px rgba(15, 23, 42, 0.05);
+    --shadow-card-hover: 0 24px 60px rgba(15, 23, 42, 0.09);
+    --shadow-primary: 0 20px 45px rgba(37, 99, 235, 0.25);
+    --shadow-primary-hover: 0 24px 60px rgba(37, 99, 235, 0.32);
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 6px;
+    --radius-2xl: 16px;
+    --radius-full: 999px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ================================================================
+   Element Plus Overrides — Global form & table theming
+   ================================================================ */
+
+/* ---- Forms: uniform 40px height, modern SaaS style ---- */
+
+/* Inputs */
+.el-input {
+    --el-input-height: 40px;
+}
+.el-input.el-input--large {
+    --el-input-height: 44px;
+}
+.el-input__wrapper {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 0 0 1px var(--color-border) inset !important;
+    padding: 4px 14px !important;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.el-input__wrapper:hover {
+    box-shadow: 0 0 0 1px var(--color-primary) inset !important;
+}
+.el-input__wrapper.is-focus {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.20) inset !important;
+    border-color: var(--color-primary);
+}
+.el-input__inner {
+    font-size: 14px !important;
+    color: var(--color-text) !important;
+}
+
+/* Textareas */
+.el-textarea__inner {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 0 0 1px var(--color-border) inset !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+    min-height: 100px !important;
+    transition: box-shadow 0.2s;
+}
+.el-textarea__inner:hover {
+    box-shadow: 0 0 0 1px var(--color-primary) inset !important;
+}
+.el-textarea__inner:focus {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.20) inset !important;
+}
+
+/* Selects */
+.el-select {
+    --el-component-size: 40px;
+}
+.el-select .el-input__wrapper {
+    border-radius: var(--radius-md) !important;
+}
+
+/* DatePicker */
+.el-date-editor.el-input {
+    --el-input-height: 40px;
+}
+.el-date-editor .el-input__wrapper {
+    border-radius: var(--radius-md) !important;
+}
+
+/* Form labels */
+.el-form-item__label {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: var(--color-text) !important;
+    padding-bottom: 6px !important;
+}
+.el-form-item {
+    margin-bottom: 22px !important;
+}
+
+/* ---- Tables: elegant, spacious ---- */
+
+/* Element Plus el-table */
+.el-table {
+    border-radius: var(--radius-lg) !important;
+    overflow: hidden;
+    font-size: 14px;
+}
+.el-table th.el-table__cell {
+    background-color: #F8FAFC !important;
+    color: var(--color-text-secondary) !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 0 16px !important;
+    height: 48px !important;
+    border-bottom: 1px solid var(--color-border) !important;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.el-table .el-table__cell {
+    padding: 0 16px !important;
+    height: 52px !important;
+    border-bottom: 1px solid #edf2f7 !important;
+    color: var(--color-text-secondary) !important;
+    word-break: break-word;
+}
+.el-table .el-table__row:hover > .el-table__cell {
+    background-color: #f8fafc !important;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+    background-color: #fafbfc;
+}
+
+/* Custom .profile-table (Dashboard) */
+.profile-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.profile-table th {
+    background: var(--color-bg-secondary, #f8fafc);
+    color: var(--color-text-secondary, #475569);
+    text-align: left;
+    padding: 0 20px;
+    height: 48px;
+    font-weight: 700;
+    font-size: 13px;
+    border-bottom: 1px solid #e5e7eb;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-table td {
+    padding: 0 20px;
+    height: 52px;
+    border-bottom: 1px solid #edf2f7;
+    color: var(--color-text-secondary, #334155);
+    word-break: break-word;
+}
+.profile-table tr:last-child td {
+    border-bottom: none;
+}
+.profile-table tr:hover td {
+    background-color: #f8fafc;
+}
+.profile-table .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    color: var(--color-text-muted, #64748b);
+}
+.profile-table .empty-row {
+    text-align: center;
+    color: var(--color-text-muted, #909399);
+    padding: 40px 20px;
+}
+
+/* ---- Cards ---- */
+.el-card {
+    border-radius: var(--radius-lg) !important;
+    border: 1px solid var(--color-border) !important;
+    box-shadow: var(--shadow-card) !important;
+}
+.el-card__header {
+    border-bottom: 1px solid var(--color-border) !important;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--color-text);
+    padding: 20px 24px !important;
+}
+.el-card__body {
+    padding: 24px !important;
+}
+
+/* ---- Buttons ---- */
+.el-button--primary {
+    background: var(--color-primary);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    letter-spacing: 0.3px;
+    box-shadow: var(--shadow-primary);
+    transition: all 0.15s ease;
+}
+.el-button--primary:hover {
+    background: var(--color-primary-hover);
+    box-shadow: var(--shadow-primary-hover);
+}
+.el-button--default {
+    height: 40px;
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+}
+/* Small buttons for table action columns */
+.el-button--small {
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1;
+}
+.el-button--small.el-button--primary,
+.el-button--small.el-button--default,
+.el-button--small.el-button--success,
+.el-button--small.el-button--warning,
+.el-button--small.el-button--danger {
+    height: 30px;
+    padding: 0 10px;
+    line-height: 1;
+}
+/* Text buttons in table action columns */
+.el-button.is-text {
+    height: auto !important;
+    padding: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    border: none !important;
+    color: var(--color-primary) !important;
+}
+.el-button.is-text:hover {
+    color: var(--color-primary-hover) !important;
+    background: transparent !important;
+}
+
+/* ---- Tags ---- */
+.el-tag--success {
+    --el-tag-bg-color: #f0fdf4;
+    --el-tag-border-color: #bbf7d0;
+    --el-tag-text-color: var(--color-success);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+.el-tag--danger {
+    --el-tag-bg-color: #fef2f2;
+    --el-tag-border-color: #fecaca;
+    --el-tag-text-color: var(--color-danger);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+.el-tag--warning {
+    --el-tag-bg-color: #fffbeb;
+    --el-tag-border-color: #fde68a;
+    --el-tag-text-color: #d97706;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+
+/* ---- Dialog ---- */
+.el-dialog {
+    border-radius: var(--radius-xl) !important;
+    padding: 8px !important;
+}
+.el-dialog__header {
+    font-weight: 700;
+    font-size: 18px;
+    padding: 20px 24px 0 !important;
+}
+.el-dialog__body {
+    padding: 24px !important;
+}
+.el-dialog__footer {
+    padding: 0 24px 20px !important;
+}
+
+/* ---- Pagination ---- */
+.el-pagination {
+    padding: 16px 0 !important;
+}
+.el-pagination button,
+.el-pagination .el-pager li {
+    height: 32px !important;
+    min-width: 32px !important;
+    line-height: 32px !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 13px !important;
+}
+.el-pagination .el-select .el-input__wrapper {
+    height: 32px !important;
+    border-radius: var(--radius-sm) !important;
+}
+.el-pagination .el-select {
+    --el-component-size: 32px;
+}
+.el-pagination .el-input__wrapper {
+    height: 32px !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+/* ---- Menu (already present) ---- */
+.el-menu--horizontal {
+    border-bottom: 1px solid var(--color-border) !important;
+}
+
+.el-menu-item.is-active {
+    color: var(--color-primary) !important;
+    border-bottom-color: var(--color-primary) !important;
+}
+
+.el-sub-menu__title:hover,
+.el-menu-item:hover {
+    color: var(--color-primary) !important;
+    background-color: transparent !important;
+}
+
+/* ---- Switch ---- */
+.el-switch.is-checked .el-switch__core {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+}
+
+/* ---- Shared page primitives ---- */
+.page-title,
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-title h1,
+.page-header h1,
+.page-header h2,
+.page-header-left h2 {
+    margin: 0;
+    color: var(--color-text);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+}
+
+.page-title h1 {
+    font-size: clamp(28px, 3vw, 36px);
+    font-weight: 800;
+}
+
+.page-header h1,
+.page-header h2,
+.page-header-left h2 {
+    font-size: clamp(24px, 2.6vw, 30px);
+    font-weight: 800;
+}
+
+.page-title p,
+.page-header p,
+.page-desc {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+}
+
+.card,
+.content-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.06);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.92);
+}
+
+.card-header h2,
+.card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.section-gap {
+    margin-top: 24px;
+}
+
+.badge-active,
+.badge-on,
+.badge-allow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.badge-off,
+.badge-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn,
+.small-btn,
+.copy-btn {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.07);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    color: #fff;
+    border-color: transparent;
+}
+
+.small-btn,
+.copy-btn {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.small-btn:hover,
+.copy-btn:hover {
+    background: #dbeafe;
+}

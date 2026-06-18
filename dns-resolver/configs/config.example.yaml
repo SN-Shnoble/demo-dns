@@ -1,0 +1,12 @@
+server:
+  node_id: ""
+  # 2026-06-15: dns-console-web was merged into portal-web. Resolver
+  # now talks to the same image that serves the admin UI.
+  api_base_url: "http://127.0.0.1:8081"
+  heartbeat_interval: "30s"
+  log_flush_interval: "15s"
+  udp_listen_addr: ":5353"
+  doh_listen_addr: ":8053"
+storage:
+  active_config_path: "./data/active-config.json"
+  buffer_dir: "./data/buffer"

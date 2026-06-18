@@ -1,0 +1,181 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Admin;
+
+use App\Models\Admin;
+use App\Models\AdminRole;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Admin RBAC management controller.
+ * Manages roles, permissions, and admin-role assignments.
+ */
+final class AdminRbacController
+{
+    public function roles(): JsonResponse
+    {
+        $roles = DB::table('admin_roles')
+            ->select(['id', 'code', 'name', 'description', 'is_system', 'status', 'created_at'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $roles]);
+    }
+
+    public function permissions(): JsonResponse
+    {
+        $permissions = DB::table('admin_permissions')
+            ->select(['id', 'code', 'resource', 'action', 'description', 'created_at'])
+            ->orderBy('resource')
+            ->orderBy('action')
+            ->get();
+
+        return response()->json(['data' => $permissions]);
+    }
+
+    public function rolePermissions(string $id): JsonResponse
+    {
+        $role = AdminRole::find($id);
+        if (! $role) {
+            return response()->json(['message' => 'Role not found.'], 404);
+        }
+
+        $permissions = DB::table('admin_role_permissions as rp')
+            ->join('admin_permissions as p', 'p.id', '=', 'rp.permission_id')
+            ->where('rp.role_id', $id)
+            ->select(['p.id', 'p.code', 'p.resource', 'p.action', 'p.description'])
+            ->get();
+
+        return response()->json(['data' => $permissions]);
+    }
+
+    public function admins(): JsonResponse
+    {
+        $admins = DB::table('admins')
+            ->select(['id', 'username', 'email', 'role', 'status', 'is_super_admin', 'last_login_at'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['data' => $admins]);
+    }
+
+    public function updateRole(Request $request, string $id): JsonResponse
+    {
+        $role = AdminRole::find($id);
+        if (! $role) {
+            return response()->json(['message' => 'Role not found.'], 404);
+        }
+
+        if ($role->is_system) {
+            return response()->json(['message' => 'Cannot modify system role.'], 422);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:100',
+            'description' => 'sometimes|nullable|string|max:255',
+            'status' => 'sometimes|in:active,inactive',
+        ]);
+
+        $role->update(array_filter($validated));
+
+        return response()->json(['data' => $role]);
+    }
+
+    public function createRole(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'code' => 'required|string|max:50|unique:admin_roles,code',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $role = AdminRole::create([
+            'id' => \Illuminate\Support\Str::uuid()->toString(),
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'is_system' => false,
+            'status' => 'active',
+        ]);
+
+        return response()->json(['data' => $role], 201);
+    }
+
+    public function deleteRole(string $id): JsonResponse
+    {
+        $role = AdminRole::find($id);
+        if (! $role) {
+            return response()->json(['message' => 'Role not found.'], 404);
+        }
+
+        if ($role->is_system) {
+            return response()->json(['message' => 'Cannot delete system role.'], 422);
+        }
+
+        DB::table('admin_role_permissions')->where('role_id', $id)->delete();
+        DB::table('admin_role_nav_rules')->where('role_id', $id)->delete();
+        DB::table('admin_user_roles')->where('role_id', $id)->delete();
+        $role->delete();
+
+        return response()->json(['message' => 'Role deleted.']);
+    }
+
+    public function setRolePermissions(Request $request, string $id): JsonResponse
+    {
+        $role = AdminRole::find($id);
+        if (! $role) {
+            return response()->json(['message' => 'Role not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'permission_ids' => 'required|array',
+            'permission_ids.*' => 'string',
+        ]);
+
+        DB::transaction(function () use ($id, $validated): void {
+            DB::table('admin_role_permissions')->where('role_id', $id)->delete();
+            foreach ($validated['permission_ids'] as $permissionId) {
+                DB::table('admin_role_permissions')->insert([
+                    'id' => \Illuminate\Support\Str::uuid()->toString(),
+                    'role_id' => $id,
+                    'permission_id' => $permissionId,
+                ]);
+            }
+        });
+
+        return response()->json(['message' => 'Permissions updated.']);
+    }
+
+    public function setAdminRoles(Request $request, string $adminId): JsonResponse
+    {
+        $admin = Admin::find($adminId);
+        if (! $admin) {
+            return response()->json(['message' => 'Admin not found.'], 404);
+        }
+
+        if ($admin->is_super_admin) {
+            return response()->json(['message' => 'Cannot modify super admin roles.'], 422);
+        }
+
+        $validated = $request->validate([
+            'role_ids' => 'required|array',
+            'role_ids.*' => 'string',
+        ]);
+
+        DB::transaction(function () use ($adminId, $validated, $request): void {
+            DB::table('admin_user_roles')->where('admin_id', $adminId)->delete();
+            foreach ($validated['role_ids'] as $roleId) {
+                DB::table('admin_user_roles')->insert([
+                    'admin_id' => $adminId,
+                    'role_id' => $roleId,
+                    'assigned_by' => $request->user()?->id,
+                    'assigned_at' => now(),
+                ]);
+            }
+        });
+
+        return response()->json(['message' => 'Admin roles updated.']);
+    }
+}

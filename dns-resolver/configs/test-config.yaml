@@ -1,0 +1,56 @@
+node:
+    node_uid: test-node-01
+    name: test-node-01
+    version: 1.0.0
+    region: ap-northeast-1
+    country: JP
+    city: Tokyo
+    provider: local
+    public_ip: ""
+    public_ipv4: 127.0.0.1
+    public_ipv6: ""
+    supported_protocols:
+        - udp
+        - doh
+listen:
+    doh: 18053
+    dot: 853
+    tcp: 15353
+    udp: 15353
+control_plane:
+    endpoint: http://127.0.0.1:8081
+    api_key: ak_test_key
+    secret: sk_test_secret
+    node_id: test-node-01
+    heartbeat_interval: 30
+    config_poll_interval: 30
+    request_timeout_seconds: 5
+    profiles_path: ./data/profiles
+nats:
+    endpoints:
+        - nats://localhost:4222
+    enabled: false
+redis:
+    addr: localhost:6379
+    password: ""
+    db: 0
+    enabled: false
+cache:
+    enabled: true
+    max_size: 10000
+    max_ttl: 300
+logging:
+    level: info
+    buffer_path: /tmp/dns-logs-test
+    max_buffer_size_mb: 512
+upstream:
+    - 1.1.1.1
+    - 8.8.8.8
+region:
+    code: ap-northeast-1
+    latitude: 0
+    longitude: 0
+    tags: []
+geodns:
+    endpoint: http://127.0.0.1:5354
+    request_timeout_seconds: 3

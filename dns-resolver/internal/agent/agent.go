@@ -1,0 +1,577 @@
+// Package agent 实现 dns-resolver 节点生命周期管理：
+//   - 心跳上报到 portal-web admin（2026-06-15: dns-console-web 已合并入 portal-web）
+//   - config bundle 拉取、checksum 校验、原子写盘、热加载
+//   - config ACK
+//
+// 鉴权完全基于 console 预签发的 APIKey / Secret，不存在任何自助注册、
+// identity 落盘、token 续签、bootstrap 兜底等分支路径。
+package agent
+
+import (
+	"bytes"
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"ocer-dns/dns-resolver/internal/config"
+	"ocer-dns/dns-resolver/internal/matching"
+	"ocer-dns/dns-resolver/internal/metrics"
+)
+
+// Credentials 是 console 预签发凭据的内存表示，来源于 configs/server.yaml
+// 中 control_plane.api_key / control_plane.secret / control_plane.node_id。
+type Credentials struct {
+	NodeID string
+	APIKey string
+	Secret string
+}
+
+type Agent struct {
+	cfg     *config.Config
+	engine  *matching.Engine
+	metrics *metrics.Metrics
+	client  *http.Client
+
+	mu                   sync.RWMutex
+	cred                 Credentials
+	localProfiles        map[string]int64
+	currentConfigVersion int64
+	currentChecksum      string
+	lastConfigPullAt     string
+	lastLogFlushAt       string
+}
+
+type heartbeatRequest struct {
+	NodeID               string `json:"node_id"`
+	Status               string `json:"status"`
+	UptimeSeconds        int64  `json:"uptime_seconds"`
+	Version              string `json:"version"`
+	CurrentConfigVersion int64  `json:"current_config_version"`
+	ProfilesLoaded       int    `json:"profiles_loaded"`
+	LastConfigPullAt     string `json:"last_config_pull_at,omitempty"`
+	LastLogFlushAt       string `json:"last_log_flush_at,omitempty"`
+}
+
+type heartbeatEnvelope struct {
+	Data struct {
+		OK                        bool   `json:"ok"`
+		ServerTime                string `json:"server_time"`
+		NodeStatus                string `json:"node_status"`
+		LatestConfigVersion       int64  `json:"latest_config_version"`
+		ShouldPullConfig          bool   `json:"should_pull_config"`
+		ConfigEndpoint            string `json:"config_endpoint"`
+		NextHeartbeatAfterSeconds int    `json:"next_heartbeat_after_seconds"`
+	} `json:"data"`
+}
+
+type resolverConfigBundle struct {
+	Version     int64                   `json:"version"`
+	Checksum    string                  `json:"checksum"`
+	GeneratedAt string                  `json:"generated_at"`
+	ExpiresAt   string                  `json:"expires_at"`
+	Profiles    []resolverProfileConfig `json:"profiles"`
+	Rulesets    []map[string]any        `json:"rulesets"`
+	Upstreams   []map[string]any        `json:"upstreams"`
+	Runtime     map[string]any          `json:"runtime"`
+	Signature   any                     `json:"signature"`
+}
+
+type resolverProfileConfig struct {
+	ProfileID     string           `json:"profile_id"`
+	UserID        string           `json:"user_id"`
+	Version       int64            `json:"version"`
+	DefaultAction string           `json:"default_action"`
+	BlockResponse string           `json:"block_response"`
+	Security      map[string]any   `json:"security"`
+	Adblock       map[string]any   `json:"adblock"`
+	Privacy       map[string]any   `json:"privacy"`
+	Parental      map[string]any   `json:"parental"`
+	Devices       []map[string]any `json:"devices"`
+	Rules         []resolverRule   `json:"rules"`
+	Quota         map[string]any   `json:"quota"`
+}
+
+type resolverRule struct {
+	RuleID           string `json:"rule_id"`
+	ListType         string `json:"list_type"`
+	MatchType        string `json:"match_type"`
+	Domain           string `json:"domain"`
+	NormalizedDomain string `json:"normalized_domain"`
+	Action           string `json:"action"`
+	Category         string `json:"category"`
+	Enabled          bool   `json:"enabled"`
+}
+
+// New 使用 console 预签发的 APIKey / Secret 构造 Agent。
+// 调用方必须先确保 cfg 已通过 config.Validate() 校验。
+func New(cfg *config.Config, engine *matching.Engine, collector *metrics.Metrics) *Agent {
+	timeout := 5 * time.Second
+	if cfg.ControlPlane.RequestTimeoutSec > 0 {
+		timeout = time.Duration(cfg.ControlPlane.RequestTimeoutSec) * time.Second
+	}
+
+	return &Agent{
+		cfg:     cfg,
+		engine:  engine,
+		metrics: collector,
+		cred: Credentials{
+			NodeID: strings.TrimSpace(cfg.ControlPlane.NodeID),
+			APIKey: strings.TrimSpace(cfg.ControlPlane.APIKey),
+			Secret: strings.TrimSpace(cfg.ControlPlane.Secret),
+		},
+		localProfiles: make(map[string]int64),
+		client: &http.Client{
+			Timeout: timeout,
+		},
+	}
+}
+
+func (a *Agent) StartHeartbeat(ctx context.Context) {
+	ticker := time.NewTicker(time.Duration(a.heartbeatInterval()) * time.Second)
+	defer ticker.Stop()
+
+	a.sendHeartbeat()
+
+	for {
+		select {
+		case <-ticker.C:
+			a.sendHeartbeat()
+		case <-ctx.Done():
+			log.Println("Heartbeat stopped")
+			return
+		}
+	}
+}
+
+func (a *Agent) StartConfigSync(ctx context.Context, interval time.Duration) {
+	if a.cfg.ControlPlane.ConfigPollInterval > 0 {
+		interval = time.Duration(a.cfg.ControlPlane.ConfigPollInterval) * time.Second
+	}
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	a.pullLatestConfig()
+
+	for {
+		select {
+		case <-ticker.C:
+			a.pullLatestConfig()
+		case <-ctx.Done():
+			log.Println("Config sync stopped")
+			return
+		}
+	}
+}
+
+func (a *Agent) sendHeartbeat() {
+	// 心跳只表达"节点是否在岗 + 持有配置版本"
+	// 不再带 qps/cpu/mem/disk/error 任何"健康"信息：
+	//   节点是否健康由控制面在 (now - last_heartbeat_at) <= 阈值 的简单超时判断
+	reqBody := heartbeatRequest{
+		NodeID:               a.cred.NodeID,
+		Status:               "online",
+		UptimeSeconds:        0,
+		Version:              a.cfg.Node.Version,
+		CurrentConfigVersion: a.currentVersion(),
+		ProfilesLoaded:       len(a.profileVersions()),
+		LastConfigPullAt:     a.lastConfigPull(),
+		LastLogFlushAt:       a.lastLogFlush(),
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Printf("Failed to marshal heartbeat: %v", err)
+		return
+	}
+
+	resp, err := a.doNodeRequest(http.MethodPost, "/api/v1/agent/nodes/heartbeat", bytes.NewReader(body))
+	if err != nil {
+		log.Printf("Heartbeat failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		log.Printf("Heartbeat returned status %d: %s", resp.StatusCode, string(payload))
+		return
+	}
+
+	var envelope heartbeatEnvelope
+	if err := json.NewDecoder(resp.Body).Decode(&envelope); err != nil {
+		log.Printf("Failed to decode heartbeat response: %v", err)
+		return
+	}
+
+	if envelope.Data.ShouldPullConfig {
+		a.pullLatestConfig()
+	}
+}
+
+func (a *Agent) pullLatestConfig() {
+	path := fmt.Sprintf("/api/v1/agent/resolver/config?node_id=%s&current_version=%d",
+		a.cred.NodeID, a.currentVersion())
+	resp, err := a.doNodeRequest(http.MethodGet, path, nil)
+	if err != nil {
+		log.Printf("Config pull failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNoContent {
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		payload, _ := io.ReadAll(resp.Body)
+		log.Printf("Config pull returned status %d: %s", resp.StatusCode, string(payload))
+		return
+	}
+
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Read config response failed: %v", err)
+		return
+	}
+
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(rawBody, &envelope); err != nil {
+		log.Printf("Decode config envelope failed: %v", err)
+		return
+	}
+
+	var bundle resolverConfigBundle
+	if err := json.Unmarshal(envelope.Data, &bundle); err != nil {
+		log.Printf("Decode config bundle failed: %v", err)
+		return
+	}
+
+	if err := verifyBundleChecksum(envelope.Data, bundle.Checksum); err != nil {
+		log.Printf("Config checksum mismatch for version %d: %v", bundle.Version, err)
+		a.sendConfigAck(bundle.Version, bundle.Checksum, "failed", "CHECKSUM_MISMATCH", err.Error())
+		return
+	}
+
+	if err := a.storeBundle(bundle.Version, bundle.Checksum, envelope.Data); err != nil {
+		log.Printf("Persist config bundle failed: %v", err)
+		a.sendConfigAck(bundle.Version, bundle.Checksum, "failed", "STORE_FAILED", err.Error())
+		return
+	}
+
+	if err := a.loadBundleIntoEngine(bundle); err != nil {
+		log.Printf("Load config bundle failed: %v", err)
+		a.sendConfigAck(bundle.Version, bundle.Checksum, "failed", "LOAD_FAILED", err.Error())
+		return
+	}
+
+	a.mu.Lock()
+	a.currentConfigVersion = bundle.Version
+	a.currentChecksum = bundle.Checksum
+	a.lastConfigPullAt = time.Now().UTC().Format(time.RFC3339)
+	a.mu.Unlock()
+
+	a.sendConfigAck(bundle.Version, bundle.Checksum, "applied", "", "")
+	log.Printf("Config bundle applied version=%d checksum=%s", bundle.Version, bundle.Checksum)
+}
+
+func (a *Agent) sendConfigAck(version int64, checksum, status, errorCode, errorMessage string) {
+	payload := map[string]any{
+		"node_id":        a.cred.NodeID,
+		"config_version": version,
+		"checksum":       checksum,
+		"status":         status,
+		"applied_at":     time.Now().UTC().Format(time.RFC3339),
+		"error_code":     nil,
+		"error_message":  nil,
+	}
+	if errorCode != "" {
+		payload["error_code"] = errorCode
+		payload["error_message"] = errorMessage
+	}
+
+	body, _ := json.Marshal(payload)
+	resp, err := a.doNodeRequest(http.MethodPost, "/api/v1/agent/resolver/config/ack", bytes.NewReader(body))
+	if err != nil {
+		log.Printf("Config ACK failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+}
+
+func (a *Agent) loadBundleIntoEngine(bundle resolverConfigBundle) error {
+	if len(bundle.Profiles) == 0 {
+		return fmt.Errorf("bundle contains no profiles")
+	}
+
+	profile := bundle.Profiles[0]
+	var allowExact []string
+	var allowWildcard []string
+	var denyExact []string
+	var denyWildcard []string
+	var adblockExact []string
+	var adblockWildcard []string
+
+	for _, rule := range profile.Rules {
+		if !rule.Enabled {
+			continue
+		}
+
+		domain := normalizeRuleDomain(rule)
+		if domain == "" {
+			continue
+		}
+
+		target := &allowExact
+		wildTarget := &allowWildcard
+		if strings.EqualFold(rule.ListType, "deny") || strings.EqualFold(rule.Action, "block") {
+			target = &denyExact
+			wildTarget = &denyWildcard
+		}
+
+		if strings.EqualFold(rule.Category, "ads") || strings.EqualFold(rule.Category, "adblock") {
+			target = &adblockExact
+			wildTarget = &adblockWildcard
+		}
+
+		switch strings.ToLower(rule.MatchType) {
+		case "suffix", "wildcard":
+			*wildTarget = append(*wildTarget, domain)
+		default:
+			*target = append(*target, domain)
+		}
+	}
+
+	a.engine.LoadAllowRules(allowExact, allowWildcard)
+	a.engine.LoadDenyRules(denyExact, denyWildcard)
+	a.engine.LoadAdBlockDomains(adblockExact, adblockWildcard)
+	a.engine.LoadSecurityCategory("malware", nil)
+	a.engine.LoadSecurityCategory("phishing", nil)
+	a.engine.LoadParentalCategory("adult", nil)
+
+	a.mu.Lock()
+	a.localProfiles = map[string]int64{
+		profile.ProfileID: profile.Version,
+	}
+	a.mu.Unlock()
+
+	if a.metrics != nil {
+		a.metrics.SetActiveProfiles(int64(len(bundle.Profiles)))
+	}
+
+	return nil
+}
+
+func (a *Agent) storeBundle(version int64, checksum string, rawJSON []byte) error {
+	configDir := a.profilesPath()
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return fmt.Errorf("create profiles dir: %w", err)
+	}
+
+	tmpPath := filepath.Join(configDir, fmt.Sprintf("active.v%d.tmp", version))
+	finalPath := filepath.Join(configDir, "active.json")
+	previousPath := filepath.Join(configDir, "previous.json")
+	checksumPath := filepath.Join(configDir, "active.json.sha256")
+
+	if _, err := os.Stat(finalPath); err == nil {
+		_ = os.Rename(finalPath, previousPath)
+	}
+
+	if err := os.WriteFile(tmpPath, rawJSON, 0o644); err != nil {
+		return fmt.Errorf("write temp config: %w", err)
+	}
+	if err := os.Rename(tmpPath, finalPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("activate config: %w", err)
+	}
+
+	if err := os.WriteFile(checksumPath, []byte(checksum+"\n"), 0o644); err != nil {
+		return fmt.Errorf("write checksum file: %w", err)
+	}
+
+	return nil
+}
+
+func (a *Agent) profilesPath() string {
+	if p := strings.TrimSpace(a.cfg.ControlPlane.ProfilesPath); p != "" {
+		return p
+	}
+	return "./data/profiles"
+}
+
+func (a *Agent) doNodeRequest(method, path string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, a.controlPlaneURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+
+	// 读取 body 一次以便同时做 HMAC 签名与转发；GET 请求 body 为 nil
+	var bodyBytes []byte
+	if body != nil {
+		bodyBytes, err = io.ReadAll(body)
+		if err != nil {
+			return nil, fmt.Errorf("read body for signing: %w", err)
+		}
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+		req.ContentLength = int64(len(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	req.Header.Set("Authorization", "Bearer "+a.cred.APIKey)
+	req.Header.Set("X-Hmac-Key", a.cred.Secret)
+
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	bodyHash := sha256.Sum256(bodyBytes)
+	canonical := ts + "\n" + strings.ToUpper(req.Method) + "\n" + req.URL.Path + "\n" + hex.EncodeToString(bodyHash[:])
+	mac := hmac.New(sha256.New, []byte(a.cred.Secret))
+	mac.Write([]byte(canonical))
+	req.Header.Set("X-Signature", hex.EncodeToString(mac.Sum(nil)))
+	req.Header.Set("X-Timestamp", ts)
+
+	nonce := make([]byte, 16)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("read nonce: %w", err)
+	}
+	req.Header.Set("X-Nonce", hex.EncodeToString(nonce))
+
+	return a.client.Do(req)
+}
+
+func (a *Agent) controlPlaneURL(path string) string {
+	base := strings.TrimRight(a.cfg.ControlPlane.Endpoint, "/")
+	return base + path
+}
+
+func (a *Agent) heartbeatInterval() int {
+	if a.cfg.ControlPlane.HeartbeatInterval > 0 {
+		return a.cfg.ControlPlane.HeartbeatInterval
+	}
+	return 30
+}
+
+func (a *Agent) currentVersion() int64 {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.currentConfigVersion
+}
+
+func (a *Agent) profileVersions() map[string]int64 {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	out := make(map[string]int64, len(a.localProfiles))
+	for key, value := range a.localProfiles {
+		out[key] = value
+	}
+	return out
+}
+
+func (a *Agent) lastConfigPull() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.lastConfigPullAt
+}
+
+func (a *Agent) lastLogFlush() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.lastLogFlushAt
+}
+
+func (a *Agent) MarkLogFlush(ts time.Time) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.lastLogFlushAt = ts.UTC().Format(time.RFC3339)
+}
+
+func verifyBundleChecksum(rawData []byte, expected string) error {
+	if !strings.HasPrefix(expected, "sha256:") {
+		return fmt.Errorf("unexpected checksum format: %s", expected)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(rawData, &payload); err != nil {
+		return fmt.Errorf("decode bundle for checksum: %w", err)
+	}
+
+	delete(payload, "checksum")
+	canonical, err := marshalCanonical(payload)
+	if err != nil {
+		return err
+	}
+
+	actual := fmt.Sprintf("sha256:%x", sha256.Sum256(canonical))
+	if actual != expected {
+		return fmt.Errorf("expected %s but got %s", expected, actual)
+	}
+
+	return nil
+}
+
+func marshalCanonical(value any) ([]byte, error) {
+	normalized := normalizeCanonical(value)
+	return json.Marshal(normalized)
+}
+
+func normalizeCanonical(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		sortStrings(keys)
+
+		normalized := make(map[string]any, len(typed))
+		for _, key := range keys {
+			normalized[key] = normalizeCanonical(typed[key])
+		}
+		return normalized
+	case []any:
+		out := make([]any, 0, len(typed))
+		for _, item := range typed {
+			out = append(out, normalizeCanonical(item))
+		}
+		return out
+	default:
+		return typed
+	}
+}
+
+func sortStrings(values []string) {
+	for i := 0; i < len(values); i++ {
+		for j := i + 1; j < len(values); j++ {
+			if values[j] < values[i] {
+				values[i], values[j] = values[j], values[i]
+			}
+		}
+	}
+}
+
+func normalizeRuleDomain(rule resolverRule) string {
+	domain := strings.TrimSpace(rule.NormalizedDomain)
+	if domain == "" {
+		domain = strings.TrimSpace(rule.Domain)
+	}
+	domain = strings.TrimSuffix(strings.ToLower(domain), ".")
+	domain = strings.TrimPrefix(domain, "*.")
+	return domain
+}
