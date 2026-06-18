@@ -156,7 +156,22 @@
         </el-dialog>
 
         <!-- 订阅套餐弹窗 -->
-        <el-dialog v-model="showSubscribeDialog" :title="$t('account.subscription.subscribeTitle') || '选择套餐'" width="600px">
+        <el-dialog v-model="showSubscribeDialog" :title="$t('account.subscription.subscribeTitle') || '选择套餐'" width="800px" top="6vh">
+            <div v-if="selectedPlan" class="subscribe-summary">
+                <div class="summary-row">
+                    <span class="summary-label">{{ $t('account.subscription.summaryPlan') || '套餐' }}</span>
+                    <span class="summary-value">{{ selectedPlan.name }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">{{ $t('account.subscription.summaryCycle') || '计费周期' }}</span>
+                    <span class="summary-value">{{ billingCycleLabel(selectedBillingCycle) }}</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">{{ $t('account.subscription.summaryTotal') || '应付总额' }}</span>
+                    <span class="summary-value summary-amount">{{ summaryAmount }}</span>
+                </div>
+            </div>
+
             <div class="subscribe-plans">
                 <div
                     v-for="plan in plans"
@@ -204,6 +219,35 @@
                     @click="handleSubscribe"
                 >
                     {{ $t('account.subscription.confirmSubscribe') || '确认订阅' }}
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- 在线支付弹窗 (Stripe Checkout) -->
+        <el-dialog v-model="showPayDialog" :title="$t('account.pay.title') || '在线支付'" width="520px" top="8vh" :close-on-click-modal="false">
+            <div v-if="pendingOrder" class="pay-summary">
+                <p class="pay-tip">{{ $t('account.pay.tip') || '请选择支付方式完成订阅，支付成功后将自动激活套餐。' }}</p>
+                <div class="pay-row">
+                    <span class="pay-label">{{ $t('account.pay.orderNo') || '订单号' }}</span>
+                    <span class="pay-value">{{ pendingOrder.order_no }}</span>
+                </div>
+                <div class="pay-row">
+                    <span class="pay-label">{{ $t('account.pay.amount') || '应付金额' }}</span>
+                    <span class="pay-value pay-amount">{{ pendingOrder.amount_label }}</span>
+                </div>
+                <div class="pay-methods">
+                    <el-radio-group v-model="selectedPayMethod" class="pay-method-group">
+                        <el-radio value="stripe" border class="pay-method-option">
+                            <span class="pay-method-label">Stripe</span>
+                            <span class="pay-method-desc">{{ $t('account.pay.stripeDesc') || '信用卡 / Apple Pay / Google Pay' }}</span>
+                        </el-radio>
+                    </el-radio-group>
+                </div>
+            </div>
+            <template #footer>
+                <el-button @click="cancelPay">{{ $t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="paying" @click="confirmPay">
+                    {{ $t('account.pay.goPay') || '前往支付' }}
                 </el-button>
             </template>
         </el-dialog>
@@ -293,10 +337,16 @@ const showRechargeDialog = ref(false)
 const showEmailDialog = ref(false)
 const showPasswordDialog = ref(false)
 const showSubscribeDialog = ref(false)
+const showPayDialog = ref(false)
 const recharging = ref(false)
 const updatingEmail = ref(false)
 const updatingPassword = ref(false)
 const subscribing = ref(false)
+const paying = ref(false)
+
+// 支付相关
+const pendingOrder = ref(null)
+const selectedPayMethod = ref('stripe')
 
 // 套餐相关
 const currentPlanCode = ref('free')
@@ -423,6 +473,16 @@ const billingCycleLabel = (cycle) => {
     return cycle === 'yearly' ? t('account.subscription.yearly') || '年付' : t('account.subscription.monthly') || '月付'
 }
 
+// 应付金额（按当前选择计费周期）
+const summaryAmount = computed(() => {
+    if (!selectedPlan.value) return ''
+    const price = (activePrices(selectedPlan.value) || []).find(
+        (p) => p.billing_cycle === selectedBillingCycle.value
+    ) || (activePrices(selectedPlan.value) || [])[0]
+    if (!price) return ''
+    return money(price.amount_minor, price.currency)
+})
+
 // 格式化金额
 const money = (minor, currency = 'USD') => {
     const amount = Number(minor || 0) / 100
@@ -433,40 +493,121 @@ const money = (minor, currency = 'USD') => {
     }).format(amount)
 }
 
-// 处理订阅
+// 处理订阅：先创建订单，再弹出在线支付弹窗
 const handleSubscribe = async () => {
     if (!selectedPlan.value) return
-    
+
+    const price = (activePrices(selectedPlan.value) || []).find(
+        (p) => p.billing_cycle === selectedBillingCycle.value
+    ) || (activePrices(selectedPlan.value) || [])[0]
+
+    if (!price) {
+        ElMessage.error(t('account.subscription.subscribeFailed') || '订阅失败')
+        return
+    }
+
     subscribing.value = true
     try {
-        await client.post('/member/upgrade', {
-            plan_code: selectedPlan.value.code,
-            billing_cycle: selectedBillingCycle.value,
-        })
-        
-        ElMessage.success(t('account.subscription.subscribeSuccess') || '订阅成功')
+        // 1) 创建订单（带幂等 key，避免重复点击产生多笔订单）
+        const idempotencyKey = `sub-${selectedPlan.value.code}-${selectedBillingCycle.value}-${Date.now()}`
+        const { data: orderRes } = await client.post(
+            '/user/orders',
+            {
+                plan_code: selectedPlan.value.code,
+                payable_amount_minor: Number(price.amount_minor),
+                currency: price.currency,
+                description: `${selectedPlan.value.name} ${billingCycleLabel(selectedBillingCycle.value)}`,
+                meta: {
+                    billing_cycle: selectedBillingCycle.value,
+                    source: 'account_subscribe_dialog',
+                },
+            },
+            { headers: { 'Idempotency-Key': idempotencyKey } }
+        )
+
+        const order = orderRes.data || orderRes
+        const amountLabel = money(order.payable_amount_minor, order.currency)
+
+        // 2) 关闭订阅弹窗，打开在线支付弹窗
+        pendingOrder.value = { ...order, amount_label: amountLabel }
         showSubscribeDialog.value = false
-        
-        // 重新加载订阅信息
-        try {
-            const { data: subRes } = await client.get('/member/subscription')
-            if (subRes.data) {
-                currentSubscription.value = subRes.data
-            }
-        } catch {}
-        
-        // 重新加载使用量数据
-        try {
-            const { data: usageRes } = await client.get('/member/usage')
-            if (usageRes.data) {
-                usageData.value = usageRes.data
-            }
-        } catch {}
+        showPayDialog.value = true
     } catch (err) {
-        ElMessage.error(err.message || t('account.subscription.subscribeFailed') || '订阅失败')
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.subscription.subscribeFailed') || '订阅失败')
     } finally {
         subscribing.value = false
     }
+}
+
+// 确认支付：创建 Stripe Checkout Session，跳转到支付页
+const confirmPay = async () => {
+    if (!pendingOrder.value) return
+    if (selectedPayMethod.value !== 'stripe') {
+        ElMessage.warning(t('account.pay.unsupported') || '暂不支持该支付方式')
+        return
+    }
+
+    paying.value = true
+    try {
+        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/checkout`)
+        const redirectUrl = data?.data?.redirect_url
+
+        if (!redirectUrl) {
+            throw new Error('missing redirect_url')
+        }
+
+        // 模拟支付：若为占位 URL，弹窗提示并刷新订阅状态
+        if (redirectUrl.startsWith('https://checkout.stripe.com/') === false) {
+            // 占位/降级流程：保持当前会话，直接触发一次升级确认
+            await client.post('/member/upgrade', {
+                plan_code: pendingOrder.value.plan_code,
+                billing_cycle: selectedBillingCycle.value,
+            })
+            showPayDialog.value = false
+            pendingOrder.value = null
+            ElMessage.success(t('account.pay.simulatedSuccess') || '支付成功（测试模式）')
+            await refreshSubscriptionData()
+            return
+        }
+
+        // 真实 Stripe：跳转到支付页
+        window.open(redirectUrl, '_blank')
+        showPayDialog.value = false
+        ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
+        pendingOrder.value = null
+    } catch (err) {
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed') || '支付失败')
+    } finally {
+        paying.value = false
+    }
+}
+
+const cancelPay = () => {
+    showPayDialog.value = false
+    pendingOrder.value = null
+    ElMessage.info(t('account.pay.cancelled') || '已取消支付')
+}
+
+// 刷新订阅/使用量数据
+const refreshSubscriptionData = async () => {
+    try {
+        const { data: subRes } = await client.get('/member/subscription')
+        if (subRes.data) {
+            currentSubscription.value = subRes.data
+        }
+    } catch {}
+    try {
+        const { data: usageRes } = await client.get('/member/usage')
+        if (usageRes.data) {
+            usageData.value = usageRes.data
+        }
+    } catch {}
+    try {
+        const { data: planRes } = await client.get('/member/membership')
+        if (planRes.data?.plan) {
+            currentPlanCode.value = planRes.data.plan
+        }
+    } catch {}
 }
 
 // 复制推广链接
@@ -871,5 +1012,98 @@ onMounted(() => {
 .billing-price {
     color: #2563eb;
     font-weight: 700;
+}
+
+/* 订阅摘要 */
+.subscribe-summary {
+    background: rgba(37, 99, 235, 0.04);
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+.summary-label {
+    color: #64748b;
+}
+.summary-value {
+    color: #0f172a;
+    font-weight: 500;
+}
+.summary-amount {
+    color: #2563eb;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* 在线支付弹窗 */
+.pay-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.pay-tip {
+    margin: 0 0 4px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+}
+.pay-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.pay-row:last-of-type {
+    border-bottom: none;
+}
+.pay-label {
+    color: #64748b;
+    font-size: 14px;
+}
+.pay-value {
+    font-size: 14px;
+    color: #0f172a;
+    font-weight: 500;
+}
+.pay-amount {
+    color: #2563eb;
+    font-size: 18px;
+    font-weight: 700;
+}
+.pay-methods {
+    margin-top: 8px;
+}
+.pay-method-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pay-method-option {
+    width: 100%;
+    margin: 0 !important;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.pay-method-label {
+    font-weight: 600;
+    color: #0f172a;
+    margin-right: 8px;
+}
+.pay-method-desc {
+    color: #64748b;
+    font-size: 13px;
 }
 </style>

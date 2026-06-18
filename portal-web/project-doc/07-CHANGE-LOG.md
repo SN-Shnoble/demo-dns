@@ -45,3 +45,8 @@
 | 2026-06-18 | test | 会员工作区回归测试通过，前端生产构建通过 | tests/Feature/MemberWorkspaceTest.php, web | ok |
 | 2026-06-18 | test | 后端 API 全量回归通过，前端生产构建再次通过 | tests/Feature/ApiTest.php, web | ok |
 | 2026-06-18 | test | 套餐管理与会员中心动态套餐回归通过 | tests/Feature/ApiTest.php, web | ok |
+| 2026-06-18 | code | 修复 `/api/v1/member/upgrade` 500：`dns_subscriptions`/`dns_invoices`/`dns_wallet_transactions`/`dns_usage_records` 的 `user_id` 字段从 30 → 64（User::id 实为 32 字符，触发 PostgreSQL 22001） | database/migrations/2026_06_19_000011_extend_user_id_to_64.php | ok |
+| 2026-06-18 | code | 菜单 API 化：在 `DatabaseSeeder` 注册 `AdminMenuRuleSeeder`，`AdminLayout.vue` / `MenuConfig.vue` 后端数据优先 + localStorage fallback 修复 | database/seeders/DatabaseSeeder.php, web/src/components/AdminLayout.vue, web/src/views/admin/MenuConfig.vue | ok |
+| 2026-06-18 | code | `/user/account` 套餐弹窗 i18n + 宽度提升：弹窗 600→800px，新增订阅摘要（套餐/周期/应付金额），新增在线支付弹窗（Stripe Checkout）| web/src/views/user/Account.vue, web/src/locales/zh-CN.js, web/src/locales/en.js, web/src/locales/ko.js | ok |
+| 2026-06-18 | code | Stripe 支付闭环：注册 `/api/v1/user/orders` (GET/POST) + `/api/v1/user/orders/{id}/checkout`，Account.vue 走"创建订单 → Stripe Checkout → 跳转/降级同步"流程 | routes/v1/member.php, web/src/views/user/Account.vue | ok |
+| 2026-06-18 | code | 前端环境变量与打包：新增 `web/.env.development`/`web/.env.production`/`.env.example`，`vite.config.js` 注入 `__APP_ENV__` + `__API_BASE__`，`client.js` 支持 `VITE_API_BASE`，构建产物落 `dist/` | web/.env.example, web/.env.development, web/.env.production, web/vite.config.js, web/src/api/client.js | ok |

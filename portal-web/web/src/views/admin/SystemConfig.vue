@@ -10,6 +10,9 @@
                         <el-form-item :label="$t('admin.basicConfig.siteUrl') || '网站地址'">
                             <el-input v-model="config.basic.site_url" placeholder="https://example.com" />
                         </el-form-item>
+                        <el-form-item label="DNS 域名">
+                            <el-input v-model="config.basic.dns_domain" placeholder="dns.ocerdns.local" />
+                        </el-form-item>
                         <el-form-item :label="$t('admin.basicConfig.siteDescription') || '网站描述'">
                             <el-input v-model="config.basic.site_description" type="textarea" :rows="3" />
                         </el-form-item>
@@ -173,6 +176,7 @@ const defaultConfig = {
         site_name: 'OcerDNS',
         site_url: '',
         site_description: '',
+        dns_domain: 'dns.ocerdns.local',
     },
     dns: {
         default_upstream: '1.1.1.1:53',
@@ -244,6 +248,7 @@ onMounted(async () => {
                     site_name: data.data.site_name,
                     site_url: data.data.site_url,
                     site_description: data.data.site_description,
+                    dns_domain: data.data.dns_domain,
                 }) },
                 dns: { ...config.value.dns, ...(data.data.dns || {}) },
                 redis: { ...config.value.redis, ...(data.data.redis || {}) },

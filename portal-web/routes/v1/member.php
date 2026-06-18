@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Member\ProfileController;
 use App\Http\Controllers\Api\V1\Member\ProfilePublishController;
 use App\Http\Controllers\Api\V1\Member\ProfileRuleController;
 use App\Http\Controllers\Api\V1\Member\TeamController;
+use App\Http\Controllers\Api\V1\User\OrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -96,4 +97,12 @@ Route::prefix('member')->middleware('auth:api')->group(function (): void {
     Route::get('api-keys', [ApiKeyController::class, 'index']);
     Route::post('api-keys', [ApiKeyController::class, 'store']);
     Route::delete('api-keys/{key_id}', [ApiKeyController::class, 'destroy']);
+
+    // User Orders + Stripe Checkout (member-facing purchase loop)
+    Route::prefix('user/orders')->group(function (): void {
+        Route::get('', [OrderController::class, 'index']);
+        Route::post('', [OrderController::class, 'create']);
+        Route::get('{id}', [OrderController::class, 'show']);
+        Route::post('{id}/checkout', [OrderController::class, 'checkout']);
+    });
 });

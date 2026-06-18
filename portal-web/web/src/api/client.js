@@ -1,7 +1,14 @@
 import axios from 'axios'
 
+// Resolve API base URL from Vite env.
+// VITE_API_BASE is preferred (full URL, e.g. https://api.ocerdns.com/api/v1).
+// VITE_API_PROXY_PREFIX is used as a relative path fallback (e.g. /api/v1).
+const apiBase = import.meta.env.VITE_API_BASE
+    ? `${import.meta.env.VITE_API_BASE.replace(/\/+$/, '')}/${(import.meta.env.VITE_API_PREFIX || 'api/v1').replace(/^\/+|\/+$/g, '')}`
+    : `/${(import.meta.env.VITE_API_PREFIX || 'api/v1').replace(/^\/+|\/+$/g, '')}`
+
 const client = axios.create({
-    baseURL: '/api/v1',
+    baseURL: apiBase,
     headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',

@@ -38,24 +38,16 @@
                     </el-sub-menu>
 
                     <el-menu-item index="/user/denylist" @click="$router.push('/user/denylist')">
-                        <el-icon><Remove /></el-icon>
                         <span>{{ $t('nav.denylist') }}</span>
                     </el-menu-item>
                     <el-menu-item index="/user/allowlist" @click="$router.push('/user/allowlist')">
-                        <el-icon><CircleCheck /></el-icon>
                         <span>{{ $t('nav.allowlist') }}</span>
                     </el-menu-item>
                     <el-menu-item index="/user/analytics" @click="$router.push('/user/analytics')">
-                        <el-icon><DataAnalysis /></el-icon>
                         <span>{{ $t('nav.analytics') }}</span>
                     </el-menu-item>
                     <el-menu-item index="/user/logs" @click="$router.push('/user/logs')">
-                        <el-icon><Document /></el-icon>
                         <span>{{ $t('nav.logs') }}</span>
-                    </el-menu-item>
-                    <el-menu-item index="/user/settings" @click="$router.push('/user/settings')">
-                        <el-icon><Tools /></el-icon>
-                        <span>{{ $t('nav.settings') }}</span>
                     </el-menu-item>
                 </div>
 
@@ -109,10 +101,9 @@
                             <el-dropdown-menu>
                                 <el-dropdown-item command="account">{{ $t('nav.account') || '账户' }}</el-dropdown-item>
                                 <el-dropdown-item command="order">{{ $t('nav.order') || '订单' }}</el-dropdown-item>
+                                <el-dropdown-item command="settings">{{ $t('nav.settings') }}</el-dropdown-item>
                                 <el-dropdown-item command="profiles">{{ $t('nav.profiles') }}</el-dropdown-item>
                                 <el-dropdown-item command="teams">{{ $t('nav.teams') }}</el-dropdown-item>
-                                <el-dropdown-item command="membership">{{ $t('nav.membership') }}</el-dropdown-item>
-                                <el-dropdown-item command="settings">{{ $t('nav.settings') }}</el-dropdown-item>
                                 <el-dropdown-item command="logout" divided>{{ $t('nav.logout') }}</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -147,7 +138,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { ArrowRight, ArrowDown, Plus, Select, Monitor, Remove, CircleCheck, DataAnalysis, Document, Tools, Coin } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowDown, Plus, Select, Monitor } from '@element-plus/icons-vue'
 import client from '@/api/client'
 
 const route = useRoute()

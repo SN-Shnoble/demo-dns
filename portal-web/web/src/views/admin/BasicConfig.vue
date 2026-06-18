@@ -21,6 +21,10 @@
                     <el-form-item :label="$t('admin.basicConfig.siteUrl') || '网站地址'">
                         <el-input v-model="config.site_url" :placeholder="$t('admin.basicConfig.siteUrlPlaceholder') || '请输入网站地址'" />
                     </el-form-item>
+                    <el-form-item label="DNS 域名">
+                        <el-input v-model="config.dns_domain" placeholder="dns.ocerdns.local" />
+                        <div style="font-size:12px;color:#909399;margin-top:4px">DNS 解析节点域名，例如 dns.ocerdns.local</div>
+                    </el-form-item>
                     <el-form-item :label="$t('admin.basicConfig.siteDescription') || '网站描述'">
                         <el-input v-model="config.site_description" type="textarea" :rows="3" :placeholder="$t('admin.basicConfig.siteDescPlaceholder') || '请输入网站描述'" />
                     </el-form-item>
@@ -44,6 +48,7 @@ const defaultConfig = {
     site_name: 'OcerDNS',
     site_url: '',
     site_description: '',
+    dns_domain: 'dns.ocerdns.local',
 }
 
 const config = ref(JSON.parse(JSON.stringify(defaultConfig)))
@@ -56,6 +61,7 @@ const handleSave = async () => {
                 site_name: config.value.site_name,
                 site_url: config.value.site_url,
                 site_description: config.value.site_description,
+                dns_domain: config.value.dns_domain,
             },
         })
         ElMessage.success(t('admin.basicConfig.saved') || '保存成功')
@@ -78,6 +84,9 @@ onMounted(async () => {
             }
             if (data.data.site_url) {
                 config.value.site_url = data.data.site_url
+            }
+            if (data.data.dns_domain) {
+                config.value.dns_domain = data.data.dns_domain
             }
             if (data.data.site_description) {
                 config.value.site_description = data.data.site_description

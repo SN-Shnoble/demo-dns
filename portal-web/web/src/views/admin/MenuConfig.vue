@@ -309,25 +309,26 @@ const handleSave = async () => {
 }
 
 onMounted(async () => {
+    let loadedFromApi = false
     try {
         const response = await client.get('/admin/menu-config')
-        
-        if (response?.data?.data) {
+
+        if (response?.data?.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
             const dbData = response.data.data
             const mainMenu = []
             const subMenu = []
-            
+
             dbData.forEach(item => {
                 mainMenu.push({
                     id: item.menuKey || item.id,
                     labelKey: item.labelKey,
                     path: item.path,
                     icon: item.icon,
-                    visible: item.visible,
-                    sort: item.sort,
+                    visible: item.visible !== false,
+                    sort: item.sort || 0,
                     parentId: item.parentId,
                 })
-                
+
                 if (item.children && item.children.length > 0) {
                     item.children.forEach(child => {
                         subMenu.push({
@@ -335,19 +336,28 @@ onMounted(async () => {
                             labelKey: child.labelKey,
                             path: child.path,
                             icon: child.icon,
-                            visible: child.visible,
-                            sort: child.sort,
+                            visible: child.visible !== false,
+                            sort: child.sort || 0,
                             parentId: child.parentId,
                         })
                     })
                 }
             })
-            
-            mainMenuItems.value = mainMenu
-            subMenuItems.value = subMenu
+
+            if (mainMenu.length > 0) {
+                mainMenuItems.value = mainMenu
+                subMenuItems.value = subMenu
+                loadedFromApi = true
+            }
         }
     } catch (err) {
-        console.warn('Failed to load menu config from API, using defaults')
+        console.warn('Failed to load menu config from API, using defaults', err)
+    }
+
+    if (!loadedFromApi) {
+        // Fallback to hardcoded defaults when API is empty/unavailable
+        mainMenuItems.value = [...defaultMainMenuItems]
+        subMenuItems.value = [...defaultSubMenuItems]
     }
 })
 </script>

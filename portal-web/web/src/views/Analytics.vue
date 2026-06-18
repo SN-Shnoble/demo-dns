@@ -196,16 +196,6 @@
                 </el-card>
             </el-col>
         </el-row>
-
-        <!-- GAFAM info banner -->
-        <el-row :gutter="16" class="stat-row">
-            <el-col :span="24">
-                <el-card shadow="never" class="info-card">
-                    <div class="info-title">{{ $t('analytics.gafamTitle') }}</div>
-                    <div class="info-desc">{{ $t('analytics.gafamDesc') }}</div>
-                </el-card>
-            </el-col>
-        </el-row>
     </Layout>
 </template>
 
@@ -406,21 +396,5 @@ onMounted(async () => {
 .ratio-sub {
     font-size: 11px;
     color: var(--color-text-muted);
-}
-.info-card {
-    border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, #eff6ff, #f0fdf4);
-    border: 1px solid #dbeafe;
-}
-.info-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #1e40af;
-    margin-bottom: 6px;
-}
-.info-desc {
-    font-size: 13px;
-    color: #3b82f6;
-    line-height: 1.5;
 }
 </style>

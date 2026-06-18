@@ -2906,3 +2906,33 @@ AggregateError [ECONNREFUSED]:
 14:25:08 [vite] (client) hmr update /src/components/Layout.vue
 14:25:22 [vite] (client) hmr update /src/components/Layout.vue
 14:39:26 [vite] (client) hmr update /src/views/admin/AdminLogin.vue, /src/views/admin/AdminLogin.vue?vue&type=style&index=0&scoped=205d3567&lang.css
+15:02:04 [vite] (client) hmr update /src/components/Layout.vue
+15:02:59 [vite] (client) hmr update /src/components/Layout.vue
+15:03:30 [vite] (client) hmr update /src/views/Analytics.vue
+15:05:22 [vite] (client) hmr update /src/views/Settings.vue
+15:05:28 [vite] (client) hmr update /src/views/Settings.vue
+15:06:19 [vite] (client) hmr update /src/views/admin/BasicConfig.vue
+15:06:27 [vite] (client) hmr update /src/views/admin/BasicConfig.vue
+15:07:11 [vite] (client) hmr update /src/views/admin/BasicConfig.vue
+15:07:18 [vite] (client) hmr update /src/views/admin/BasicConfig.vue
+15:07:40 [vite] (client) hmr update /src/views/admin/SystemConfig.vue
+15:08:48 [vite] (client) hmr update /src/views/admin/SystemConfig.vue
+15:09:18 [vite] (client) hmr update /src/views/admin/SystemConfig.vue
+15:09:27 [vite] (client) hmr update /src/components/Layout.vue
+15:10:24 [vite] (client) hmr update /src/views/Analytics.vue?vue&type=style&index=0&scoped=cab07171&lang.css
+15:29:33 [vite] (client) hmr update /src/components/AdminLayout.vue
+15:29:45 [vite] (client) hmr update /src/views/admin/MenuConfig.vue
+15:31:43 [vite] (client) hmr update /src/views/Login.vue, /src/views/Dashboard.vue, /src/views/Register.vue, /src/views/ProfileList.vue, /src/views/Home.vue, /src/views/ParentalControl.vue, /src/views/Denylist.vue, /src/views/Logs.vue, /src/views/Devices.vue, /src/views/ProfileDetail.vue, /src/views/Analytics.vue, /src/views/Privacy.vue, /src/views/TeamList.vue, /src/views/Allowlist.vue, /src/views/TeamCreate.vue, /src/views/Security.vue, /src/views/TeamInvitations.vue, /src/views/Settings.vue, /src/views/admin/Dashboard.vue, /src/views/admin/AuditLogs.vue, /src/views/admin/GeoDNS.vue, /src/views/admin/RuleLibrary.vue, /src/views/admin/SystemConfig.vue, /src/views/TeamDetail.vue, /src/views/APIKeys.vue, /src/views/admin/Nodes.vue, /src/views/admin/Alerts.vue, /src/views/admin/Billing.vue, /src/views/admin/Recharge.vue, /src/views/admin/Users.vue, /src/views/admin/Bill.vue, /src/views/admin/AdminLogin.vue, /src/views/admin/RefundRecords.vue, /src/views/admin/Balance.vue, /src/views/admin/BasicConfig.vue, /src/views/admin/RoleManagement.vue, /src/views/admin/Devices.vue, /src/views/admin/MenuConfig.vue, /src/views/admin/QueryLogs.vue, /src/components/Layout.vue, /src/views/Membership.vue, /src/views/admin/Plans.vue, /src/views/admin/MemberCatalogs.vue
+15:31:53 [vite] .env.development changed, restarting server...
+15:31:53 [vite] .env.development changed, restarting server...
+15:31:53 [vite] server restarted.
+15:31:53 [vite] .env.development changed, restarting server...
+15:31:53 [vite] server restarted.
+15:32:09 [vite] vite.config.js changed, restarting server...
+15:32:09 [vite] server restarted.
+15:36:56 [vite] vite.config.js changed, restarting server...
+15:36:56 [vite] server restarted.
+15:37:20 [vite] vite.config.js changed, restarting server...
+15:37:21 [vite] server restarted.
+15:37:37 [vite] vite.config.js changed, restarting server...
+15:37:37 [vite] server restarted.

@@ -43,5 +43,8 @@ class DatabaseSeeder extends Seeder
 
         // Seed default permissions and role mappings
         PermissionService::seedDefaults();
+
+        // Seed admin menu rules (so AdminLayout can load them from DB)
+        $this->call(AdminMenuRuleSeeder::class);
     }
 }

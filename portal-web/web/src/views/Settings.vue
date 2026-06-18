@@ -124,8 +124,17 @@ const passwordForm = reactive({
     confirm: '',
 })
 
-const dohUrl = computed(() => `https://dns.ocerdns.local/dns-query`)
+const dohUrl = computed(() => {
+    const domain = dnsDomain.value || 'dns.ocerdns.local'
+    const profileId = currentProfileId.value
+    if (profileId) {
+        return `https://${domain}/prf_${profileId}`
+    }
+    return `https://${domain}/dns-query`
+})
 const udpAddress = computed(() => '127.0.0.1:53')
+const dnsDomain = ref('dns.ocerdns.local')
+const currentProfileId = ref(localStorage.getItem('current_profile_id') || '')
 
 const copyText = (text) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -174,6 +183,13 @@ onMounted(async () => {
     try {
         const { data } = await client.get('/member/settings')
         if (data.data) Object.assign(form, data.data)
+    } catch {}
+    // 从系统配置加载 DNS 域名
+    try {
+        const { data } = await client.get('/admin/system-config')
+        if (data?.data?.dns_domain) {
+            dnsDomain.value = data.data.dns_domain
+        }
     } catch {}
 })
 </script>
