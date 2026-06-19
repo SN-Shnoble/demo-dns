@@ -135,7 +135,7 @@ func validateInstallOptions(opts *installOptions) error {
 // exchangeToken 使用 --token 调用控制面 verify API 换取 api_key + secret
 func exchangeToken(server, token string) (apiKey, secret string, err error) {
 	server = strings.TrimRight(server, "/")
-	url := server + "/api/v1/agent/tokens/verify"
+	url := server + "/api/v1/node/tokens/verify"
 
 	reqBody := fmt.Sprintf(`{"token":"%s"}`, token)
 	resp, err := http.Post(url, "application/json", strings.NewReader(reqBody))

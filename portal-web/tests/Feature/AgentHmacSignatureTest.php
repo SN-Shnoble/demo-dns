@@ -33,7 +33,7 @@ final class AgentHmacSignatureTest extends TestCase
     private NodeTokenService $tokens;
 
     /** heartbeat 端点的 canonical path 与 body，保持与签名计算一致。 */
-    private const HEARTBEAT_PATH = '/api/v1/agent/nodes/heartbeat';
+    private const HEARTBEAT_PATH = '/api/v1/node/nodes/heartbeat';
 
     /**
      * 真实发出去的 POST body。

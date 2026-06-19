@@ -10,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+
 final class AdminRuleController
 {
     public function index(Request $request): JsonResponse
@@ -97,21 +100,146 @@ final class AdminRuleController
     {
         $actorId = $request->user()?->id;
         $source = RuleSource::findOrFail($id);
+
         $source->update([
-            'last_sync_status' => 'pending',
+            'last_sync_status' => 'syncing',
             'last_synced_at' => now(),
-            'last_sync_message' => 'Sync requested by admin',
+            'last_sync_message' => 'Downloading...',
         ]);
 
-        AdminAuditLog::record('rule.sync', 'rule_source', $id, [], $actorId, null, $request->ip(), $request->userAgent());
+        try {
+            // Download the rule source
+            $response = Http::timeout(30)->get($source->url);
+            $content = $response->body();
+
+            if (empty($content)) {
+                throw new \RuntimeException('Empty response from ' . $source->url);
+            }
+
+            // Parse based on type
+            $domains = match ($source->type) {
+                'domain_list' => $this->parseDomainList($content),
+                'adblock' => $this->parseAdblock($content),
+                'hosts' => $this->parseHosts($content),
+                'rpz' => $this->parseRpz($content),
+                default => throw new \RuntimeException('Unsupported format: ' . $source->type),
+            };
+
+            // Store parsed domains
+            $imported = 0;
+            $now = now();
+            foreach ($domains as $domain) {
+                if (empty($domain) || strlen($domain) > 255) {
+                    continue;
+                }
+                DB::table('rule_items')->updateOrInsert(
+                    ['source_id' => $source->id, 'domain' => $domain],
+                    ['created_at' => $now, 'updated_at' => $now]
+                );
+                $imported++;
+            }
+
+            $source->update([
+                'last_sync_status' => 'success',
+                'last_sync_message' => "Imported {$imported} rules",
+                'last_synced_at' => now(),
+            ]);
+
+            AdminAuditLog::record('rule.sync', 'rule_source', $id, [
+                'imported' => $imported,
+                'status' => 'success',
+            ], $actorId, null, $request->ip(), $request->userAgent());
+
+        } catch (\Throwable $e) {
+            $source->update([
+                'last_sync_status' => 'failed',
+                'last_sync_message' => $e->getMessage(),
+                'last_synced_at' => now(),
+            ]);
+
+            AdminAuditLog::record('rule.sync', 'rule_source', $id, [
+                'error' => $e->getMessage(),
+                'status' => 'failed',
+            ], $actorId, null, $request->ip(), $request->userAgent());
+        }
 
         return response()->json([
             'data' => [
                 'id' => $id,
-                'status' => 'pending',
-                'synced_at' => now()->toIso8601String(),
+                'status' => $source->last_sync_status,
+                'message' => $source->last_sync_message,
+                'synced_at' => $source->last_synced_at?->toIso8601String(),
             ],
         ]);
+    }
+
+    private function parseDomainList(string $content): array
+    {
+        $domains = [];
+        foreach (explode("\n", $content) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || str_starts_with($line, '//') || str_starts_with($line, '!')) {
+                continue;
+            }
+            $domains[] = $line;
+        }
+        return $domains;
+    }
+
+    private function parseAdblock(string $content): array
+    {
+        $domains = [];
+        foreach (explode("\n", $content) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '!') || str_starts_with($line, '#')) {
+                continue;
+            }
+            // Extract domain from AdBlock syntax: ||example.com^ or |https://example.com
+            if (preg_match('/^\|\|([a-zA-Z0-9.\-]+)\^/', $line, $m)) {
+                $domains[] = $m[1];
+            } elseif (preg_match('/^\|https?:\/\/([a-zA-Z0-9.\-]+)/', $line, $m)) {
+                $domains[] = $m[1];
+            } elseif (preg_match('/^([a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})(?:\/|$)/', $line, $m)) {
+                $domains[] = $m[1];
+            }
+        }
+        return $domains;
+    }
+
+    private function parseHosts(string $content): array
+    {
+        $domains = [];
+        foreach (explode("\n", $content) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            $parts = preg_split('/\s+/', $line);
+            if (count($parts) >= 2) {
+                // Skip localhost and broadcast addresses
+                $ip = $parts[0];
+                if ($ip === '127.0.0.1' || $ip === '0.0.0.0' || $ip === '::1') {
+                    $domains[] = $parts[1];
+                }
+            }
+        }
+        return $domains;
+    }
+
+    private function parseRpz(string $content): array
+    {
+        $domains = [];
+        foreach (explode("\n", $content) as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, ';') || str_starts_with($line, '#')) {
+                continue;
+            }
+            // RPZ format: domain IN CNAME .
+            if (preg_match('/^([a-zA-Z0-9.\-]+)\s+IN\s+(A|CNAME)\s+/', $line, $m)) {
+                $domains[] = $m[1];
+            }
+        }
+        return $domains;
     }
 
     public function batchDestroy(Request $request): JsonResponse

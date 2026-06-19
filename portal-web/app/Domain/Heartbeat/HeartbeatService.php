@@ -30,7 +30,7 @@ final class HeartbeatService
             'node_status' => $this->computeStatus($heartbeat),
             'latest_config_version' => $latestConfigVersion,
             'should_pull_config' => $latestConfigVersion > $currentConfigVersion,
-            'config_endpoint' => '/api/v1/agent/resolver/config',
+            'config_endpoint' => '/api/v1/node/resolver/config',
             'next_heartbeat_after_seconds' => 30,
         ];
     }

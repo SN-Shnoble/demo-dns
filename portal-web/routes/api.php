@@ -21,8 +21,8 @@ Route::prefix('v1')->group(function (): void {
     // Admin routes (sanctum + permission required)
     require base_path('routes/v1/admin.php');
 
-    // Agent routes (node HMAC auth)
-    require base_path('routes/v1/agent.php');
+    // Node routes (node HMAC auth)
+    require base_path('routes/v1/node.php');
 
     // Internal routes (shared token auth)
     require base_path('routes/v1/internal.php');

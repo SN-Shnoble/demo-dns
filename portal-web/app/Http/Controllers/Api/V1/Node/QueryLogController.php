@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Agent;
+namespace App\Http\Controllers\Api\V1\Node;
 
 use App\Domain\Ingest\QueryLogIngestService;
 use App\Models\ConfigVersion;

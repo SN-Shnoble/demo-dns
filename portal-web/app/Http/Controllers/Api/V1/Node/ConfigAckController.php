@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Agent;
+namespace App\Http\Controllers\Api\V1\Node;
 
-use App\Application\Agent\ConfigAcknowledgementService;
+use App\Application\Node\ConfigAcknowledgementService;
 use App\Models\Node;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

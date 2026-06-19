@@ -1,22 +1,23 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Agent\ConfigAckController;
-use App\Http\Controllers\Api\V1\Agent\ConfigPullController;
-use App\Http\Controllers\Api\V1\Agent\HeartbeatController;
-use App\Http\Controllers\Api\V1\Agent\QueryLogController;
+use App\Http\Controllers\Api\V1\Node\ConfigAckController;
+use App\Http\Controllers\Api\V1\Node\ConfigPullController;
+use App\Http\Controllers\Api\V1\Node\HeartbeatController;
+use App\Http\Controllers\Api\V1\Node\QueryLogController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Agent Routes - DNS Resolver 节点认证
+| Node Routes - DNS Resolver 节点 API
 |--------------------------------------------------------------------------
 */
-Route::prefix('agent')->group(function (): void {
+Route::prefix('node')->group(function (): void {
     // Token 验证（无中间件，安装时用 token 换取 api_key + secret）
-    Route::post('tokens/verify', [App\Http\Controllers\Api\V1\Agent\TokenVerifyController::class, 'verify']);
+    Route::post('tokens/verify', [App\Http\Controllers\Api\V1\Node\TokenVerifyController::class, 'verify']);
 
     Route::post('nodes/heartbeat', [HeartbeatController::class, 'store'])->middleware(['node.hmac']);
     Route::get('resolver/config', [ConfigPullController::class, 'show'])->middleware(['node.hmac']);
     Route::post('resolver/config/ack', [ConfigAckController::class, 'store'])->middleware(['node.hmac']);
     Route::post('query-logs/batch', [QueryLogController::class, 'batch'])->middleware(['node.hmac']);
+    Route::post('devices/seen', [\App\Http\Controllers\Api\V1\Node\DeviceSeenController::class, 'store'])->middleware(['node.hmac']);
 });

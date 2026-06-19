@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Billing\PaymentService;
+use App\Models\Alert;
 use App\Models\StripeWebhookLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Stripe\Webhook;
 use Stripe\Exception\SignatureVerificationException;
 
@@ -107,6 +109,13 @@ final class StripeWebhookController
                 'processed_at' => now(),
             ]);
             Log::error('stripe_webhook_failed', ['event_id' => $eventId, 'error' => $e->getMessage()]);
+            Alert::create([
+                'id' => 'alert_' . Str::random(16),
+                'level' => 'critical',
+                'status' => 'open',
+                'title' => '支付处理失败',
+                'message' => "Webhook 处理异常: {$e->getMessage()}",
+            ]);
             return response()->json(['message' => 'webhook handler failed'], 500);
         }
     }

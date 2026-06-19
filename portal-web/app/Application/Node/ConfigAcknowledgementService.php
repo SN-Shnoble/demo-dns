@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Application\Agent;
+namespace App\Application\Node;
 
 use App\Domain\ConfigVersion\ConfigAckService;
 use App\Models\Node;

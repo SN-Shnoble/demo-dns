@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Billing;
 
+use App\Infrastructure\ClickHouse\ClickHouseClient;
 use App\Models\JobExecution;
 use App\Domain\Jobs\JobRunner;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,12 @@ use Illuminate\Support\Facades\DB;
  * 2) Billing Generation: usage_records (按 period) → invoices(billing_type=usage)
  *
  * 当前实现：聚合逻辑 + 账单生成，使用 JobRunner 包裹 + 失败告警。
- * ClickHouse 客户端通过 ocer-dns/portal-web/app/Services/ClickHouseClient 注入。
+ * ClickHouse 客户端通过 Infrastructure\ClickHouse\ClickHouseClient 注入。
  */
 final class UsageBillingService
 {
     public function __construct(
-        private readonly ?object $clickhouseClient = null,
+        private readonly ?ClickHouseClient $clickhouseClient = null,
     ) {
     }
 
@@ -191,13 +192,7 @@ final class UsageBillingService
         if ($this->clickhouseClient === null) {
             // 关键路径：ClickHouse 未配置 → 必须显式失败，不能聚合为 0。
             throw new \RuntimeException(
-                'ClickHouse client not configured. Refuse to aggregate usage with empty source. ' .
-                'Inject App\\Services\\ClickHouseClient into UsageBillingService.'
-            );
-        }
-        if (! method_exists($this->clickhouseClient, 'select')) {
-            throw new \RuntimeException(
-                'ClickHouse client does not implement select(). Cannot aggregate usage.'
+                'ClickHouse client not configured. Refuse to aggregate usage with empty source.'
             );
         }
         $sql = 'SELECT user_id, profile_id, device_id, billing_category, timestamp FROM usage_events';
@@ -205,7 +200,7 @@ final class UsageBillingService
             $sql .= " WHERE timestamp > '" . addslashes($sinceIso) . "'";
         }
         $sql .= ' ORDER BY timestamp LIMIT 10000';
-        $rows = $this->clickhouseClient->select($sql);
+        $rows = $this->clickhouseClient->jsonSelect($sql, []);
         return is_array($rows) ? $rows : [];
     }
 }

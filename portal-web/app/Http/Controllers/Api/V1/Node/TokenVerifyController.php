@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Agent;
+namespace App\Http\Controllers\Api\V1\Node;
 
 use App\Models\NodeToken;
 use Illuminate\Http\JsonResponse;
@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 final class TokenVerifyController
 {
     /**
-     * POST /api/v1/agent/tokens/verify
+     * POST /api/v1/node/tokens/verify
      *
      * DNS Resolver 安装时用 --token 换取 api_key + secret。
      * 前端签发 token 时返回的 api_key 即为这里的 token，

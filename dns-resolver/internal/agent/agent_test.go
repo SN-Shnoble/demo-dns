@@ -25,7 +25,7 @@ func TestPreissuedCredentialsFlow(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/agent/nodes/heartbeat":
+		case "/api/v1/node/nodes/heartbeat":
 			if got := r.Header.Get("Authorization"); got != "Bearer ak_test_01" {
 				t.Fatalf("unexpected heartbeat auth header: %s", got)
 			}
@@ -42,11 +42,11 @@ func TestPreissuedCredentialsFlow(t *testing.T) {
 					"node_status":                  "online",
 					"latest_config_version":        1,
 					"should_pull_config":           true,
-					"config_endpoint":              "/api/v1/agent/resolver/config",
+					"config_endpoint":              "/api/v1/node/resolver/config",
 					"next_heartbeat_after_seconds": 30,
 				},
 			})
-		case "/api/v1/agent/resolver/config":
+		case "/api/v1/node/resolver/config":
 			if got := r.URL.Query().Get("node_id"); got != "hk-test-01" {
 				t.Fatalf("unexpected node_id: %s", got)
 			}
@@ -95,7 +95,7 @@ func TestPreissuedCredentialsFlow(t *testing.T) {
 			}
 			bundle["checksum"] = "sha256:" + sha256Hex(canonical)
 			_ = json.NewEncoder(w).Encode(map[string]any{"data": bundle})
-		case "/api/v1/agent/resolver/config/ack":
+		case "/api/v1/node/resolver/config/ack":
 			var payload map[string]any
 			_ = json.NewDecoder(r.Body).Decode(&payload)
 			ackStatus.Store(payload["status"])
@@ -143,17 +143,17 @@ func TestChecksumMismatchDoesNotApplyConfig(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/agent/nodes/heartbeat":
+		case "/api/v1/node/nodes/heartbeat":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"ok":                           true,
 					"latest_config_version":        2,
 					"should_pull_config":           true,
-					"config_endpoint":              "/api/v1/agent/resolver/config",
+					"config_endpoint":              "/api/v1/node/resolver/config",
 					"next_heartbeat_after_seconds": 30,
 				},
 			})
-		case "/api/v1/agent/resolver/config":
+		case "/api/v1/node/resolver/config":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"version":      2,
@@ -192,7 +192,7 @@ func TestChecksumMismatchDoesNotApplyConfig(t *testing.T) {
 					"signature": nil,
 				},
 			})
-		case "/api/v1/agent/resolver/config/ack":
+		case "/api/v1/node/resolver/config/ack":
 			var payload map[string]any
 			_ = json.NewDecoder(r.Body).Decode(&payload)
 			ackStatus.Store(payload["status"])
