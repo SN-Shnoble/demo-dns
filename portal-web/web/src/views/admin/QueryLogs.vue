@@ -270,7 +270,7 @@ const handleExport = async () => {
 
 const fetchProfiles = async () => {
     try {
-        const { data } = await client.get('/member/profiles').catch(() => ({ data: { data: [] } }))
+        const { data } = await client.get('/user/profiles').catch(() => ({ data: { data: [] } }))
         profiles.value = data.data ?? []
     } catch {
         profiles.value = []

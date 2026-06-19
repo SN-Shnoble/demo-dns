@@ -1,6 +1,10 @@
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import en from 'element-plus/dist/locale/en.mjs'
+import ko from 'element-plus/dist/locale/ko.mjs'
+import ja from 'element-plus/dist/locale/ja.mjs'
 import {
     Aim,
     ArrowDown,
@@ -91,7 +95,7 @@ for (const [key, component] of Object.entries(icons)) {
     app.component(key, component)
 }
 
-app.use(ElementPlus)
+app.use(ElementPlus, { locale: elementLocale })
 app.use(router)
 app.use(i18n)
 app.mount('#app')

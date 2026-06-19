@@ -201,7 +201,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
 import { useCurrentProfile } from '@/composables/useCurrentProfile'
@@ -228,9 +228,9 @@ const quotaPercent = computed(() => {
     return Math.min(Math.round((used / limit) * 100), 100)
 })
 
-onMounted(async () => {
+const fetchData = async () => {
     try {
-        const { data } = await client.get('/member/analytics', { params: { profile_id: currentProfileId.value } })
+        const { data } = await client.get('/user/analytics', { params: { profile_id: currentProfileId.value } })
         const d = data.data || {}
         stats.value = d
         topDomains.value = d.top_domains || []
@@ -244,7 +244,11 @@ onMounted(async () => {
         encryptedDns.value = d.encrypted_dns || null
         dnssec.value = d.dnssec || null
     } catch {}
-})
+}
+
+onMounted(fetchData)
+
+watch(currentProfileId, fetchData)
 </script>
 
 <style scoped>

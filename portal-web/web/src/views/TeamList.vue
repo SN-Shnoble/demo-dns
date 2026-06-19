@@ -83,7 +83,7 @@ const pendingInvitations = ref([])
 async function loadTeams() {
     loading.value = true
     try {
-        const { data } = await client.get('/member/teams')
+        const { data } = await client.get('/user/teams')
         teams.value = data.data || []
     } catch {
         ElMessage.error(t('common.loadFailed'))
@@ -94,7 +94,7 @@ async function loadTeams() {
 
 async function loadPendingInvitations() {
     try {
-        const { data } = await client.get('/member/teams/invitations/pending')
+        const { data } = await client.get('/user/teams/invitations/pending')
         pendingInvitations.value = (data.data || []).map(inv => ({
             ...inv,
             token: '' // token is handled differently
@@ -111,7 +111,7 @@ async function handleLeave(teamId, teamName) {
             t('common.confirm'),
             { type: 'warning' },
         )
-        await client.post(`/member/teams/${teamId}/leave`)
+        await client.post(`/user/teams/${teamId}/leave`)
         ElMessage.success(t('team.leftTeam'))
         await loadTeams()
     } catch {}

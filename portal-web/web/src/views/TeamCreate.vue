@@ -61,7 +61,7 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-        await client.post('/member/teams', form)
+        await client.post('/user/teams', form)
         ElMessage.success(t('team.teamCreated') || 'Team created')
         await router.push('/user/teams')
     } catch (err) {

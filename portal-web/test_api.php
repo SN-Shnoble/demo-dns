@@ -36,81 +36,81 @@ echo "========== 会员闭环测试 (test/123456) ==========\n\n";
 
 // 1. 会员登录
 echo "【认证】\n";
-$r = api('POST', "$baseUrl/public/auth/login", null, ['email'=>'test@ocer.local','password'=>'123456','device_name'=>'browser']);
+$r = api('POST', "$baseUrl/auth/login", null, ['email'=>'test@ocer.local','password'=>'123456','device_name'=>'browser']);
 $userToken = $r['body']['data']['token'] ?? null;
 check('会员登录', $r);
 if (!$userToken) { echo "登录失败，终止测试\n"; exit(1); }
 
 // 2. 获取当前用户信息
-$r = api('GET', "$baseUrl/member/me", $userToken);
+$r = api('GET', "$baseUrl/user/me", $userToken);
 check('获取当前用户', $r);
 
 // 3. 会员中心概览
-$r = api('GET', "$baseUrl/member/member-center/overview", $userToken);
+$r = api('GET', "$baseUrl/user/member-center/overview", $userToken);
 check('会员中心概览', $r);
 
 // 4. 配置方案列表
-$r = api('GET', "$baseUrl/member/profiles", $userToken);
+$r = api('GET', "$baseUrl/user/profiles", $userToken);
 check('配置方案列表', $r);
 
 // 5. 安全防护
-$r = api('GET', "$baseUrl/member/security", $userToken);
+$r = api('GET', "$baseUrl/user/security", $userToken);
 check('安全防护', $r);
 
 // 6. 隐私保护
-$r = api('GET', "$baseUrl/member/privacy", $userToken);
+$r = api('GET', "$baseUrl/user/privacy", $userToken);
 check('隐私保护', $r);
 
 // 7. 家长控制
-$r = api('GET', "$baseUrl/member/parental", $userToken);
+$r = api('GET', "$baseUrl/user/parental", $userToken);
 check('家长控制', $r);
 
 // 8. 黑名单
-$r = api('GET', "$baseUrl/member/denylist", $userToken);
+$r = api('GET', "$baseUrl/user/denylist", $userToken);
 check('黑名单', $r);
 
 // 9. 白名单
-$r = api('GET', "$baseUrl/member/allowlist", $userToken);
+$r = api('GET', "$baseUrl/user/allowlist", $userToken);
 check('白名单', $r);
 
 // 10. 统计分析
-$r = api('GET', "$baseUrl/member/analytics", $userToken);
+$r = api('GET', "$baseUrl/user/analytics", $userToken);
 check('统计分析', $r);
 
 // 11. 查询日志
-$r = api('GET', "$baseUrl/member/logs", $userToken);
+$r = api('GET', "$baseUrl/user/logs", $userToken);
 check('查询日志', $r);
 
 // 12. 设备管理
-$r = api('GET', "$baseUrl/member/member-center/devices", $userToken);
+$r = api('GET', "$baseUrl/user/member-center/devices", $userToken);
 check('设备列表', $r);
 
 // 13. API Keys
-$r = api('GET', "$baseUrl/member/api-keys", $userToken);
+$r = api('GET', "$baseUrl/user/api-keys", $userToken);
 check('API Keys', $r);
 
 // 14. 系统设置
-$r = api('GET', "$baseUrl/member/settings", $userToken);
+$r = api('GET', "$baseUrl/user/settings", $userToken);
 check('系统设置', $r);
 
 // 15. 团队列表
-$r = api('GET', "$baseUrl/member/teams", $userToken);
+$r = api('GET', "$baseUrl/user/teams", $userToken);
 check('团队列表', $r);
 
 // 16. 会员订阅
-$r = api('GET', "$baseUrl/member/membership", $userToken);
+$r = api('GET', "$baseUrl/user/membership", $userToken);
 check('会员订阅', $r);
 
 // 17. 钱包
-$r = api('GET', "$baseUrl/member/wallet", $userToken);
+$r = api('GET', "$baseUrl/user/wallet", $userToken);
 check('钱包', $r);
 
 // 18. DNS 端点
-$r = api('GET', "$baseUrl/member/member-center/dns-endpoints", $userToken);
+$r = api('GET', "$baseUrl/user/member-center/dns-endpoints", $userToken);
 check('DNS 端点', $r);
 
 // 19. 套餐目录
-$r = api('GET', "$baseUrl/member/catalogs", $userToken);
+$r = api('GET', "$baseUrl/user/catalogs", $userToken);
 check('套餐目录', $r);
 
 echo "\n========== 管理员闭环测试 (admin/123456) ==========\n\n";

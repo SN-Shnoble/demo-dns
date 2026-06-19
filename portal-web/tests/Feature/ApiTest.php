@@ -86,7 +86,7 @@ class ApiTest extends TestCase
 
     protected function loginUsers()
     {
-        $response = $this->postJson('/api/v1/public/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'user@example.com',
             'password' => '123456',
         ]);
@@ -138,7 +138,7 @@ class ApiTest extends TestCase
 
     public function test_public_login()
     {
-        $response = $this->postJson('/api/v1/public/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'user@example.com',
             'password' => '123456',
         ]);
@@ -148,7 +148,7 @@ class ApiTest extends TestCase
 
     public function test_public_register()
     {
-        $response = $this->postJson('/api/v1/public/auth/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'New User',
             'email' => 'newuser_' . time() . '@example.com',
             'password' => 'Password123!',
@@ -173,22 +173,22 @@ class ApiTest extends TestCase
 
     public function test_01_member_me()
     {
-        $this->callMemberApi('GET', '/api/v1/member/me', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/me', [], 200);
     }
 
     public function test_02_member_logout()
     {
-        $this->callMemberApi('POST', '/api/v1/member/logout', [], 200);
+        $this->callMemberApi('POST', '/api/v1/user/logout', [], 200);
     }
 
     public function test_03_member_settings_get()
     {
-        $this->callMemberApi('GET', '/api/v1/member/settings', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/settings', [], 200);
     }
 
     public function test_04_member_settings_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/settings', [
+        $this->callMemberApi('PUT', '/api/v1/user/settings', [
             'locale' => 'zh-CN',
             'timezone' => 'Asia/Shanghai',
             'profile_name' => 'Updated Profile',
@@ -199,12 +199,12 @@ class ApiTest extends TestCase
 
     public function test_05_member_security_get()
     {
-        $this->callMemberApi('GET', '/api/v1/member/security', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/security', [], 200);
     }
 
     public function test_06_member_security_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/security', [
+        $this->callMemberApi('PUT', '/api/v1/user/security', [
             'enabled' => true,
             'block_malware' => true,
             'block_phishing' => true,
@@ -228,19 +228,19 @@ class ApiTest extends TestCase
     public function test_06b_member_security_update_partial()
     {
         // Partial update - only changed fields
-        $this->callMemberApi('PUT', '/api/v1/member/security', [
+        $this->callMemberApi('PUT', '/api/v1/user/security', [
             'enabled' => false,
         ], 200);
     }
 
     public function test_07_member_privacy_get()
     {
-        $this->callMemberApi('GET', '/api/v1/member/privacy', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/privacy', [], 200);
     }
 
     public function test_08_member_privacy_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/privacy', [
+        $this->callMemberApi('PUT', '/api/v1/user/privacy', [
             'enabled' => true,
             'block_trackers' => true,
             'block_analytics' => true,
@@ -261,7 +261,7 @@ class ApiTest extends TestCase
     public function test_08b_member_privacy_update_partial()
     {
         // Partial update - only changed fields
-        $this->callMemberApi('PUT', '/api/v1/member/privacy', [
+        $this->callMemberApi('PUT', '/api/v1/user/privacy', [
             'enabled' => false,
             'log_mode' => 'disabled',
         ], 200);
@@ -269,12 +269,12 @@ class ApiTest extends TestCase
 
     public function test_09_member_parental_get()
     {
-        $this->callMemberApi('GET', '/api/v1/member/parental', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/parental', [], 200);
     }
 
     public function test_10_member_parental_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/parental', [
+        $this->callMemberApi('PUT', '/api/v1/user/parental', [
             'enabled' => true,
             'block_adult_content' => true,
             'block_gambling' => true,
@@ -298,7 +298,7 @@ class ApiTest extends TestCase
     public function test_10b_member_parental_update_partial()
     {
         // Partial update - only changed fields
-        $this->callMemberApi('PUT', '/api/v1/member/parental', [
+        $this->callMemberApi('PUT', '/api/v1/user/parental', [
             'enabled' => true,
             'block_adult_content' => false,
         ], 200);
@@ -307,7 +307,7 @@ class ApiTest extends TestCase
     // Independent settings API endpoints
     public function test_10c_member_settings_security_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/settings/security', [
+        $this->callMemberApi('PUT', '/api/v1/user/settings/security', [
             'enabled' => true,
             'block_malware' => true,
             'block_phishing' => true,
@@ -316,7 +316,7 @@ class ApiTest extends TestCase
 
     public function test_10d_member_settings_privacy_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/settings/privacy', [
+        $this->callMemberApi('PUT', '/api/v1/user/settings/privacy', [
             'enabled' => true,
             'block_trackers' => true,
             'log_mode' => 'full',
@@ -325,7 +325,7 @@ class ApiTest extends TestCase
 
     public function test_10e_member_settings_parental_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/settings/parental', [
+        $this->callMemberApi('PUT', '/api/v1/user/settings/parental', [
             'enabled' => true,
             'block_adult_content' => true,
             'safe_search' => true,
@@ -334,7 +334,7 @@ class ApiTest extends TestCase
 
     public function test_11_member_password_update()
     {
-        $this->callMemberApi('PUT', '/api/v1/member/password', [
+        $this->callMemberApi('PUT', '/api/v1/user/password', [
             'current_password' => '123456',
             'new_password' => '1234567',
         ], 200);
@@ -342,13 +342,13 @@ class ApiTest extends TestCase
 
     public function test_14_member_membership()
     {
-        $response = $this->callMemberApi('GET', '/api/v1/member/membership', [], 200);
+        $response = $this->callMemberApi('GET', '/api/v1/user/membership', [], 200);
         $response->assertJsonStructure(['data' => ['plan', 'plans', 'orders']]);
     }
 
     public function test_15_member_upgrade()
     {
-        $this->callMemberApi('POST', '/api/v1/member/upgrade', [
+        $this->callMemberApi('POST', '/api/v1/user/upgrade', [
             'plan_code' => 'pro',
             'billing_cycle' => 'monthly',
         ], 200);
@@ -356,46 +356,46 @@ class ApiTest extends TestCase
 
     public function test_12_member_analytics()
     {
-        $this->callMemberApi('GET', '/api/v1/member/analytics', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/analytics', [], 200);
     }
 
     public function test_13_member_logs()
     {
-        $this->callMemberApi('GET', '/api/v1/member/logs', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/logs', [], 200);
     }
 
     // ==================== Member Center API Tests ====================
 
     public function test_20_member_center_overview()
     {
-        $this->callMemberApi('GET', '/api/v1/member/member-center/overview', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/member-center/overview', [], 200);
     }
 
     public function test_21_member_center_dns_endpoints()
     {
-        $this->callMemberApi('GET', '/api/v1/member/member-center/dns-endpoints', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/member-center/dns-endpoints', [], 200);
     }
 
     public function test_22_member_center_devices()
     {
-        $this->callMemberApi('GET', '/api/v1/member/member-center/devices', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/member-center/devices', [], 200);
     }
 
     public function test_23_member_center_top_domains()
     {
-        $this->callMemberApi('GET', '/api/v1/member/member-center/top-domains', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/member-center/top-domains', [], 200);
     }
 
     // ==================== Allowlist API Tests ====================
 
     public function test_30_member_allowlist_list()
     {
-        $this->callMemberApi('GET', '/api/v1/member/allowlist', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/allowlist', [], 200);
     }
 
     public function test_31_member_allowlist_create()
     {
-        $this->callMemberApi('POST', '/api/v1/member/allowlist', [
+        $this->callMemberApi('POST', '/api/v1/user/allowlist', [
             'match_type' => 'exact',
             'domain' => 'allow.example.com',
         ], 201);
@@ -403,7 +403,7 @@ class ApiTest extends TestCase
 
     public function test_32_member_allowlist_batch_delete()
     {
-        $this->callMemberApi('POST', '/api/v1/member/allowlist/batch-delete', [
+        $this->callMemberApi('POST', '/api/v1/user/allowlist/batch-delete', [
             'ids' => ['fake-rule-1', 'fake-rule-2'],
         ], 200);
     }
@@ -420,7 +420,7 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('PUT', "/api/v1/member/allowlist/{$rule->id}", [
+        $this->callMemberApi('PUT', "/api/v1/user/allowlist/{$rule->id}", [
             'domain' => 'allow-updated.example.com',
             'match_type' => 'exact',
             'enabled' => true,
@@ -439,19 +439,19 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/allowlist/{$rule->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/allowlist/{$rule->id}", [], 200);
     }
 
     // ==================== Denylist API Tests ====================
 
     public function test_40_member_denylist_list()
     {
-        $this->callMemberApi('GET', '/api/v1/member/denylist', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/denylist', [], 200);
     }
 
     public function test_41_member_denylist_create()
     {
-        $this->callMemberApi('POST', '/api/v1/member/denylist', [
+        $this->callMemberApi('POST', '/api/v1/user/denylist', [
             'match_type' => 'exact',
             'domain' => 'block.example.com',
         ], 201);
@@ -459,7 +459,7 @@ class ApiTest extends TestCase
 
     public function test_42_member_denylist_batch_delete()
     {
-        $this->callMemberApi('POST', '/api/v1/member/denylist/batch-delete', [
+        $this->callMemberApi('POST', '/api/v1/user/denylist/batch-delete', [
             'ids' => ['fake-rule-1', 'fake-rule-2'],
         ], 200);
     }
@@ -476,7 +476,7 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('PUT', "/api/v1/member/denylist/{$rule->id}", [
+        $this->callMemberApi('PUT', "/api/v1/user/denylist/{$rule->id}", [
             'domain' => 'deny-updated.example.com',
             'match_type' => 'exact',
             'enabled' => true,
@@ -495,19 +495,19 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/denylist/{$rule->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/denylist/{$rule->id}", [], 200);
     }
 
     // ==================== Profile API Tests ====================
 
     public function test_50_member_profiles_list()
     {
-        $this->callMemberApi('GET', '/api/v1/member/profiles', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/profiles', [], 200);
     }
 
     public function test_51_member_profiles_create()
     {
-        $this->callMemberApi('POST', '/api/v1/member/profiles', [
+        $this->callMemberApi('POST', '/api/v1/user/profiles', [
             'name' => 'New Profile',
             'default_action' => 'allow',
         ], 201);
@@ -515,12 +515,12 @@ class ApiTest extends TestCase
 
     public function test_52_member_profile_detail()
     {
-        $this->callMemberApi('GET', "/api/v1/member/profiles/{$this->profileId}", [], 200);
+        $this->callMemberApi('GET', "/api/v1/user/profiles/{$this->profileId}", [], 200);
     }
 
     public function test_53_member_profile_update()
     {
-        $this->callMemberApi('PUT', "/api/v1/member/profiles/{$this->profileId}", [
+        $this->callMemberApi('PUT', "/api/v1/user/profiles/{$this->profileId}", [
             'name' => 'Updated Profile',
         ], 200);
     }
@@ -532,19 +532,19 @@ class ApiTest extends TestCase
             'name' => 'Temp Profile',
             'default_action' => 'allow',
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/profiles/{$profile->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/profiles/{$profile->id}", [], 200);
     }
 
     public function test_55_member_profile_copy()
     {
-        $this->callMemberApi('POST', "/api/v1/member/profiles/{$this->profileId}/copy", [
+        $this->callMemberApi('POST', "/api/v1/user/profiles/{$this->profileId}/copy", [
             'name' => 'Copied Profile',
         ], 201);
     }
 
     public function test_56_member_profile_batch_delete()
     {
-        $this->callMemberApi('POST', '/api/v1/member/profiles/batch-delete', [
+        $this->callMemberApi('POST', '/api/v1/user/profiles/batch-delete', [
             'ids' => ['fake-profile-1', 'fake-profile-2'],
         ], 200);
     }
@@ -553,12 +553,12 @@ class ApiTest extends TestCase
 
     public function test_60_member_profile_rules_list()
     {
-        $this->callMemberApi('GET', "/api/v1/member/profiles/{$this->profileId}/rules", [], 200);
+        $this->callMemberApi('GET', "/api/v1/user/profiles/{$this->profileId}/rules", [], 200);
     }
 
     public function test_61_member_profile_rules_create()
     {
-        $this->callMemberApi('POST', "/api/v1/member/profiles/{$this->profileId}/rules", [
+        $this->callMemberApi('POST', "/api/v1/user/profiles/{$this->profileId}/rules", [
             'list_type' => 'deny',
             'match_type' => 'exact',
             'domain' => 'newrule.example.com',
@@ -568,7 +568,7 @@ class ApiTest extends TestCase
 
     public function test_62_member_profile_rules_batch_delete()
     {
-        $this->callMemberApi('POST', "/api/v1/member/profiles/{$this->profileId}/rules/batch-delete", [
+        $this->callMemberApi('POST', "/api/v1/user/profiles/{$this->profileId}/rules/batch-delete", [
             'ids' => ['fake-rule-1', 'fake-rule-2'],
         ], 200);
     }
@@ -585,7 +585,7 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('PUT', "/api/v1/member/profiles/{$this->profileId}/rules/{$rule->id}", [
+        $this->callMemberApi('PUT', "/api/v1/user/profiles/{$this->profileId}/rules/{$rule->id}", [
             'domain' => 'rule-updated.example.com',
             'match_type' => 'exact',
             'list_type' => 'deny',
@@ -605,14 +605,14 @@ class ApiTest extends TestCase
             'enabled' => true,
             'created_by' => $this->userId,
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/profiles/{$this->profileId}/rules/{$rule->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/profiles/{$this->profileId}/rules/{$rule->id}", [], 200);
     }
 
     // ==================== Profile Publish API Tests ====================
 
     public function test_70_member_profile_publish()
     {
-        $this->callMemberApi('POST', "/api/v1/member/profiles/{$this->profileId}/publish", [
+        $this->callMemberApi('POST', "/api/v1/user/profiles/{$this->profileId}/publish", [
             'message' => 'Test publish',
         ], 200);
     }
@@ -621,12 +621,12 @@ class ApiTest extends TestCase
 
     public function test_80_member_teams_list()
     {
-        $this->callMemberApi('GET', '/api/v1/member/teams', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/teams', [], 200);
     }
 
     public function test_81_member_teams_create()
     {
-        $this->callMemberApi('POST', '/api/v1/member/teams', [
+        $this->callMemberApi('POST', '/api/v1/user/teams', [
             'name' => 'New Team',
             'slug' => 'new-team-' . time(),
         ], 201);
@@ -634,12 +634,12 @@ class ApiTest extends TestCase
 
     public function test_82_member_team_detail()
     {
-        $this->callMemberApi('GET', "/api/v1/member/teams/{$this->teamId}", [], 200);
+        $this->callMemberApi('GET', "/api/v1/user/teams/{$this->teamId}", [], 200);
     }
 
     public function test_83_member_team_update()
     {
-        $this->callMemberApi('PUT', "/api/v1/member/teams/{$this->teamId}", [
+        $this->callMemberApi('PUT', "/api/v1/user/teams/{$this->teamId}", [
             'name' => 'Updated Team',
         ], 200);
     }
@@ -656,7 +656,7 @@ class ApiTest extends TestCase
             'user_id' => $this->userId,
             'role' => 'owner',
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/teams/{$team->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/teams/{$team->id}", [], 200);
     }
 
     public function test_85_member_team_leave()
@@ -671,7 +671,7 @@ class ApiTest extends TestCase
             'user_id' => $this->userId,
             'role' => 'member',
         ]);
-        $this->callMemberApi('POST', "/api/v1/member/teams/{$newTeam->id}/leave", [], 200);
+        $this->callMemberApi('POST', "/api/v1/user/teams/{$newTeam->id}/leave", [], 200);
     }
 
     public function test_86_member_team_transfer_ownership()
@@ -688,14 +688,14 @@ class ApiTest extends TestCase
             'user_id' => $newUser->id,
             'role' => 'member',
         ]);
-        $this->callMemberApi('POST', "/api/v1/member/teams/{$this->teamId}/transfer-ownership", [
+        $this->callMemberApi('POST', "/api/v1/user/teams/{$this->teamId}/transfer-ownership", [
             'new_owner_id' => $newUser->id,
         ], 200);
     }
 
     public function test_87_member_team_members_list()
     {
-        $this->callMemberApi('GET', "/api/v1/member/teams/{$this->teamId}/members", [], 200);
+        $this->callMemberApi('GET', "/api/v1/user/teams/{$this->teamId}/members", [], 200);
     }
 
     public function test_88_member_team_member_update_role()
@@ -712,7 +712,7 @@ class ApiTest extends TestCase
             'user_id' => $newUser->id,
             'role' => 'member',
         ]);
-        $this->callMemberApi('PUT', "/api/v1/member/teams/{$this->teamId}/members/{$newUser->id}/role", [
+        $this->callMemberApi('PUT', "/api/v1/user/teams/{$this->teamId}/members/{$newUser->id}/role", [
             'role' => 'admin',
         ], 200);
     }
@@ -731,22 +731,22 @@ class ApiTest extends TestCase
             'user_id' => $newUser->id,
             'role' => 'member',
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/teams/{$this->teamId}/members/{$newUser->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/teams/{$this->teamId}/members/{$newUser->id}", [], 200);
     }
 
     public function test_90_member_team_switch()
     {
-        $this->callMemberApi('POST', "/api/v1/member/teams/{$this->teamId}/switch", [], 200);
+        $this->callMemberApi('POST', "/api/v1/user/teams/{$this->teamId}/switch", [], 200);
     }
 
     public function test_91_member_team_invitations_list()
     {
-        $this->callMemberApi('GET', "/api/v1/member/teams/{$this->teamId}/invitations", [], 200);
+        $this->callMemberApi('GET', "/api/v1/user/teams/{$this->teamId}/invitations", [], 200);
     }
 
     public function test_92_member_team_invitations_create()
     {
-        $this->callMemberApi('POST', "/api/v1/member/teams/{$this->teamId}/invitations", [
+        $this->callMemberApi('POST', "/api/v1/user/teams/{$this->teamId}/invitations", [
             'email' => 'invite_' . time() . '@example.com',
         ], 201);
     }
@@ -760,19 +760,19 @@ class ApiTest extends TestCase
             'invited_by' => $this->userId,
             'expires_at' => now()->addDay(),
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/teams/{$this->teamId}/invitations/{$invitation->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/teams/{$this->teamId}/invitations/{$invitation->id}", [], 200);
     }
 
     public function test_94_member_team_batch_cancel_invitations()
     {
-        $this->callMemberApi('POST', "/api/v1/member/teams/{$this->teamId}/invitations/batch-cancel", [
+        $this->callMemberApi('POST', "/api/v1/user/teams/{$this->teamId}/invitations/batch-cancel", [
             'ids' => ['fake-inv-1', 'fake-inv-2'],
         ], 200);
     }
 
     public function test_95_member_pending_invitations()
     {
-        $this->callMemberApi('GET', '/api/v1/member/teams/invitations/pending', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/teams/invitations/pending', [], 200);
     }
 
     public function test_96_member_accept_invitation()
@@ -794,7 +794,7 @@ class ApiTest extends TestCase
         ]);
         $inviteeToken = $invitee->createToken('invitee-token')->plainTextToken;
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $inviteeToken])
-            ->postJson('/api/v1/member/teams/accept-invitation', [
+            ->postJson('/api/v1/user/teams/accept-invitation', [
                 'token' => $token,
             ]);
         $response->assertStatus(200);
@@ -804,12 +804,12 @@ class ApiTest extends TestCase
 
     public function test_100_member_api_keys_list()
     {
-        $this->callMemberApi('GET', '/api/v1/member/api-keys', [], 200);
+        $this->callMemberApi('GET', '/api/v1/user/api-keys', [], 200);
     }
 
     public function test_101_member_api_keys_create()
     {
-        $this->callMemberApi('POST', '/api/v1/member/api-keys', [
+        $this->callMemberApi('POST', '/api/v1/user/api-keys', [
             'name' => 'New API Key',
         ], 201);
     }
@@ -823,7 +823,7 @@ class ApiTest extends TestCase
             'key_hash' => hash('sha256', 'pk_del_' . time()),
             'expires_at' => now()->addYear(),
         ]);
-        $this->callMemberApi('DELETE', "/api/v1/member/api-keys/{$key->id}", [], 200);
+        $this->callMemberApi('DELETE', "/api/v1/user/api-keys/{$key->id}", [], 200);
     }
 
     // ==================== Admin API Tests ====================
@@ -1527,7 +1527,7 @@ class ApiTest extends TestCase
 
     public function test_500_auth_failure_no_token()
     {
-        $response = $this->getJson('/api/v1/member/me');
+        $response = $this->getJson('/api/v1/user/me');
         $response->assertStatus(401);
 
         $response = $this->getJson('/api/v1/admin/users');
@@ -1545,7 +1545,7 @@ class ApiTest extends TestCase
     {
         // Admin token uses 'admins' guard, cannot access member endpoints protected by 'users' guard.
         $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->adminToken])
-            ->getJson('/api/v1/member/me');
+            ->getJson('/api/v1/user/me');
         $response->assertStatus(401);
     }
 

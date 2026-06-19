@@ -30,7 +30,7 @@ final class OrderController
     {
         $validated = $request->validate([
             'plan_code' => 'required|string|max:30',
-            'payable_amount_minor' => 'required|integer|min:1',
+            'payable_amount_minor' => 'nullable|integer|min:1',
             'currency' => 'sometimes|string|size:3',
             'description' => 'nullable|string|max:255',
             'idempotency_key' => 'nullable|string|max:80',
@@ -43,11 +43,23 @@ final class OrderController
             ? (string) $request->header('Idempotency-Key')
             : (string) ($validated['idempotency_key'] ?? '');
 
+        // 从 plan_prices 表计算金额，忽略前端传入的 payable_amount_minor（防篡改）
+        $billingCycle = $validated['meta']['billing_cycle'] ?? 'monthly';
+        $price = \App\Models\Plan::where('code', $validated['plan_code'])
+            ->first()
+            ?->prices()
+            ->where('billing_cycle', $billingCycle)
+            ->where('status', 'active')
+            ->first();
+
+        $payableAmountMinor = $price ? (int) $price->amount_minor : (int) ($validated['payable_amount_minor'] ?? 0);
+        $currency = $validated['currency'] ?? ($price->currency ?? 'USD');
+
         $order = $this->orders->create(
             userId: $userId,
             planCode: $validated['plan_code'],
-            payableAmountMinor: (int) $validated['payable_amount_minor'],
-            currency: $validated['currency'] ?? 'USD',
+            payableAmountMinor: $payableAmountMinor,
+            currency: $currency,
             description: $validated['description'] ?? null,
             meta: $validated['meta'] ?? [],
             idempotencyKey: $idempotencyKey !== '' ? $idempotencyKey : null,

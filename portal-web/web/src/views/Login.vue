@@ -75,7 +75,7 @@ const handleLogin = async () => {
 
     loading.value = true
     try {
-        const { data } = await client.post('/public/auth/login', form)
+        const { data } = await client.post('/auth/login', form)
         const token = data.data.token
         const user = data.data.user
 

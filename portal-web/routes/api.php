@@ -15,8 +15,8 @@ Route::prefix('v1')->group(function (): void {
     // Public routes (no auth required)
     require base_path('routes/v1/public.php');
 
-    // Member routes (user auth required)
-    require base_path('routes/v1/member.php');
+    // User routes (user auth required)
+    require base_path('routes/v1/user.php');
 
     // Admin routes (sanctum + permission required)
     require base_path('routes/v1/admin.php');

@@ -1,6 +1,6 @@
 <template>
     <Layout>
-        <el-button @click="$router.push('/member/profiles')" style="margin-bottom:16px">← {{ $t('profileDetail.back') }}</el-button>
+        <el-button @click="$router.push('/user/profiles')" style="margin-bottom:16px">← {{ $t('profileDetail.back') }}</el-button>
 
         <el-card v-if="profile">
             <template #header>
@@ -134,8 +134,8 @@ const fetchData = async () => {
     try {
         const id = route.params.id
         const [profileRes, rulesRes] = await Promise.all([
-            client.get(`/member/profiles/${id}`),
-            client.get(`/member/profiles/${id}/rules`),
+            client.get(`/user/profiles/${id}`),
+            client.get(`/user/profiles/${id}/rules`),
         ])
         profile.value = profileRes.data.data
         profileRules.value = rulesRes.data.data ?? []
@@ -149,7 +149,7 @@ const fetchData = async () => {
 const handlePublish = async () => {
     publishing.value = true
     try {
-        await client.post(`/member/profiles/${route.params.id}/publish`)
+        await client.post(`/user/profiles/${route.params.id}/publish`)
         ElMessage.success(t('common.saved'))
         await fetchData()
     } catch {
@@ -166,7 +166,7 @@ const handleAddRule = async () => {
     if (!valid) return
     ruleSaving.value = true
     try {
-        await client.post(`/member/profiles/${route.params.id}/rules`, ruleForm.value)
+        await client.post(`/user/profiles/${route.params.id}/rules`, ruleForm.value)
         ElMessage.success(t('profileDetail.ruleAdded'))
         showAddRuleDialog.value = false
         ruleForm.value = { domain: '', match_type: 'exact', list_type: 'deny' }
@@ -181,7 +181,7 @@ const handleAddRule = async () => {
 const handleDeleteRule = async (ruleId, profileId) => {
     try {
         await ElMessageBox.confirm(t('profileDetail.deleteConfirm'), t('common.confirm'))
-        await client.delete(`/member/profiles/${profileId || route.params.id}/rules/${ruleId}`)
+        await client.delete(`/user/profiles/${profileId || route.params.id}/rules/${ruleId}`)
         ElMessage.success(t('profileDetail.ruleDeleted'))
         await fetchData()
     } catch (e) {
@@ -199,7 +199,7 @@ const handleEditRuleSave = async () => {
     if (!valid) return
     editRuleSaving.value = true
     try {
-        await client.put(`/member/profiles/${editRuleForm.value.profile_id || route.params.id}/rules/${editRuleForm.value.id}`, {
+        await client.put(`/user/profiles/${editRuleForm.value.profile_id || route.params.id}/rules/${editRuleForm.value.id}`, {
             domain: editRuleForm.value.domain, match_type: editRuleForm.value.match_type, enabled: editRuleForm.value.enabled,
         })
         ElMessage.success(t('common.saved'))
@@ -217,7 +217,7 @@ const handleBatchDeleteRules = async () => {
     try {
         await ElMessageBox.confirm(t('profileDetail.deleteConfirm'), t('common.confirm'), { type: 'warning' })
         const ids = selectedRules.value.map((r) => r.id)
-        await client.post(`/member/profiles/${route.params.id}/rules/batch-delete`, { ids })
+        await client.post(`/user/profiles/${route.params.id}/rules/batch-delete`, { ids })
         ElMessage.success(t('profileDetail.ruleDeleted'))
         await fetchData()
     } catch (e) {

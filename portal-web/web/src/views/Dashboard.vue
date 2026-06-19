@@ -249,7 +249,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
@@ -292,18 +292,18 @@ async function copyText(text) {
     }
 }
 
-onMounted(async () => {
+const fetchData = async () => {
     const params = { profile_id: currentProfileId.value }
 
     try {
-        const { data } = await client.get('/member/member-center/overview', { params })
+        const { data } = await client.get('/user/member-center/overview', { params })
         overview.value = data.data
     } catch {
         ElMessage.error(t('dashboard.failedToLoad'))
     }
 
     try {
-        const { data } = await client.get('/member/member-center/dns-endpoints', { params })
+        const { data } = await client.get('/user/member-center/dns-endpoints', { params })
         const ep = data.data || {}
         dohUrl.value = ep.doh || ''
         dotUrl.value = ep.dot || ''
@@ -313,7 +313,7 @@ onMounted(async () => {
     }
 
     try {
-        const { data } = await client.get('/member/member-center/top-domains', { params })
+        const { data } = await client.get('/user/member-center/top-domains', { params })
         const td = data.data || {}
         topVisited.value = td.visited || []
         topBlocked.value = td.blocked || []
@@ -322,12 +322,16 @@ onMounted(async () => {
     }
 
     try {
-        const { data } = await client.get('/member/member-center/devices', { params })
+        const { data } = await client.get('/user/member-center/devices', { params })
         recentDevices.value = (data.data || []).slice(0, 3)
     } catch {
         // Devices optional
     }
-})
+}
+
+onMounted(fetchData)
+
+watch(currentProfileId, fetchData)
 </script>
 
 <style scoped>

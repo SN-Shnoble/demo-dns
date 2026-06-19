@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * 修复 /api/v1/member/upgrade 500：
+ * 修复 /api/v1/user/upgrade 500：
  * User::id = "usr_" + 28 chars = 32 chars；
  * 但 dns_subscriptions/dns_invoices/dns_wallet_transactions/dns_usage_records.user_id 字段只有 30，
  * 触发 MySQL 1406 Data too long for column。

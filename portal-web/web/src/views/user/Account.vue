@@ -378,12 +378,12 @@ const loadAccountData = async () => {
     loading.value = true
     try {
         // 加载用户信息
-        const { data: meData } = await client.get('/member/me')
+        const { data: meData } = await client.get('/user/me')
         userInfo.value = meData.data || {}
 
         // 加载使用量
         try {
-            const { data: usageRes } = await client.get('/member/usage')
+            const { data: usageRes } = await client.get('/user/usage')
             if (usageRes.data) {
                 usageData.value = usageRes.data
             }
@@ -391,7 +391,7 @@ const loadAccountData = async () => {
 
         // 加载钱包余额
         try {
-            const { data: walletRes } = await client.get('/member/wallet')
+            const { data: walletRes } = await client.get('/user/wallet')
             if (walletRes.data) {
                 walletBalance.value = walletRes.data
             }
@@ -399,7 +399,7 @@ const loadAccountData = async () => {
 
         // 加载订阅信息
         try {
-            const { data: subRes } = await client.get('/member/subscription')
+            const { data: subRes } = await client.get('/user/subscription')
             if (subRes.data) {
                 currentSubscription.value = subRes.data
             }
@@ -407,7 +407,7 @@ const loadAccountData = async () => {
 
         // 加载推广链接
         try {
-            const { data: refRes } = await client.get('/member/referral-link')
+            const { data: refRes } = await client.get('/user/referral-link')
             if (refRes.data?.link) {
                 referralLink.value = refRes.data.link
             }
@@ -415,7 +415,7 @@ const loadAccountData = async () => {
 
         // 加载套餐列表
         try {
-            const { data: planRes } = await client.get('/member/membership')
+            const { data: planRes } = await client.get('/user/membership')
             if (planRes.data) {
                 plans.value = planRes.data.plans || []
                 currentPlanCode.value = planRes.data.plan || 'free'
@@ -436,7 +436,7 @@ const openSubscribeDialog = async () => {
     // 如果套餐列表为空，重新加载
     if (plans.value.length === 0) {
         try {
-            const { data } = await client.get('/member/membership')
+            const { data } = await client.get('/user/membership')
             if (data.data) {
                 plans.value = data.data.plans || []
                 currentPlanCode.value = data.data.plan || 'free'
@@ -514,8 +514,6 @@ const handleSubscribe = async () => {
             '/user/orders',
             {
                 plan_code: selectedPlan.value.code,
-                payable_amount_minor: Number(price.amount_minor),
-                currency: price.currency,
                 description: `${selectedPlan.value.name} ${billingCycleLabel(selectedBillingCycle.value)}`,
                 meta: {
                     billing_cycle: selectedBillingCycle.value,
@@ -556,10 +554,10 @@ const confirmPay = async () => {
             throw new Error('missing redirect_url')
         }
 
-        // 模拟支付：若为占位 URL，弹窗提示并刷新订阅状态
-        if (redirectUrl.startsWith('https://checkout.stripe.com/') === false) {
+        // 模拟支付：仅开发环境可用
+        if (redirectUrl.startsWith('https://checkout.stripe.com/') === false && import.meta.env.DEV) {
             // 占位/降级流程：保持当前会话，直接触发一次升级确认
-            await client.post('/member/upgrade', {
+            await client.post('/user/upgrade', {
                 plan_code: pendingOrder.value.plan_code,
                 billing_cycle: selectedBillingCycle.value,
             })
@@ -591,19 +589,19 @@ const cancelPay = () => {
 // 刷新订阅/使用量数据
 const refreshSubscriptionData = async () => {
     try {
-        const { data: subRes } = await client.get('/member/subscription')
+        const { data: subRes } = await client.get('/user/subscription')
         if (subRes.data) {
             currentSubscription.value = subRes.data
         }
     } catch {}
     try {
-        const { data: usageRes } = await client.get('/member/usage')
+        const { data: usageRes } = await client.get('/user/usage')
         if (usageRes.data) {
             usageData.value = usageRes.data
         }
     } catch {}
     try {
-        const { data: planRes } = await client.get('/member/membership')
+        const { data: planRes } = await client.get('/user/membership')
         if (planRes.data?.plan) {
             currentPlanCode.value = planRes.data.plan
         }
@@ -624,7 +622,7 @@ const copyReferralLink = async () => {
 const handleRecharge = async () => {
     recharging.value = true
     try {
-        const { data } = await client.post('/member/wallet/recharge', {
+        const { data } = await client.post('/user/wallet/recharge', {
             amount: rechargeForm.value.amount
         })
         const payload = data?.data || data
@@ -657,7 +655,7 @@ const handleUpdateEmail = async () => {
     
     updatingEmail.value = true
     try {
-        await client.put('/member/email', {
+        await client.put('/user/email', {
             email: emailForm.value.email,
             password: emailForm.value.password
         })
@@ -686,7 +684,7 @@ const handleUpdatePassword = async () => {
     
     updatingPassword.value = true
     try {
-        await client.put('/member/password', {
+        await client.put('/user/password', {
             current_password: passwordForm.value.currentPassword,
             new_password: passwordForm.value.newPassword
         })

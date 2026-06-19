@@ -92,7 +92,7 @@ const handleRegister = async () => {
 
     loading.value = true
     try {
-        const { data } = await client.post('/public/auth/register', form)
+        const { data } = await client.post('/auth/register', form)
         const token = data.data.token
         const user = data.data.user
 

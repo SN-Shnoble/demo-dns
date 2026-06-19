@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Member Routes - 需要用户认证
+| User Routes - 需要用户认证
 |--------------------------------------------------------------------------
 */
-Route::prefix('member')->middleware('auth:api')->group(function (): void {
+Route::prefix('user')->middleware('auth:api')->group(function (): void {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
 
@@ -33,6 +33,7 @@ Route::prefix('member')->middleware('auth:api')->group(function (): void {
     Route::match(['get', 'put'], 'privacy', [MemberWorkspaceController::class, 'privacy']);
     Route::match(['get', 'put'], 'parental', [MemberWorkspaceController::class, 'parental']);
     Route::put('password', [MemberWorkspaceController::class, 'password']);
+    Route::put('email', [MemberWorkspaceController::class, 'email']);
 
     Route::get('allowlist', [MemberWorkspaceController::class, 'allowlist']);
     Route::post('allowlist', [MemberWorkspaceController::class, 'createAllowlistRule']);
@@ -102,15 +103,6 @@ Route::prefix('member')->middleware('auth:api')->group(function (): void {
     Route::delete('api-keys/{key_id}', [ApiKeyController::class, 'destroy']);
 
     // User Orders + Stripe Checkout (member-facing purchase loop)
-    Route::prefix('user/orders')->group(function (): void {
-        Route::get('', [OrderController::class, 'index']);
-        Route::post('', [OrderController::class, 'create']);
-        Route::get('{id}', [OrderController::class, 'show']);
-        Route::post('{id}/checkout', [OrderController::class, 'checkout']);
-    });
-});
-
-Route::prefix('user')->middleware('auth:api')->group(function (): void {
     Route::prefix('orders')->group(function (): void {
         Route::get('', [OrderController::class, 'index']);
         Route::post('', [OrderController::class, 'create']);

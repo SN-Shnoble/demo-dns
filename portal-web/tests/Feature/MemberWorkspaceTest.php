@@ -23,7 +23,7 @@ final class MemberWorkspaceTest extends TestCase
 
         Sanctum::actingAs($user, [], 'api');
 
-        $this->putJson('/api/v1/member/security', [
+        $this->putJson('/api/v1/user/security', [
             'enabled' => true,
             'block_malware' => true,
             'block_phishing' => false,
@@ -31,7 +31,7 @@ final class MemberWorkspaceTest extends TestCase
             'block_cryptojacking' => false,
         ])->assertOk()->assertJsonPath('data.block_phishing', false);
 
-        $this->putJson('/api/v1/member/privacy', [
+        $this->putJson('/api/v1/user/privacy', [
             'enabled' => true,
             'block_trackers' => true,
             'block_analytics' => true,
@@ -40,7 +40,7 @@ final class MemberWorkspaceTest extends TestCase
             'log_mode' => 'blocked_only',
         ])->assertOk()->assertJsonPath('data.log_mode', 'blocked_only');
 
-        $this->putJson('/api/v1/member/parental', [
+        $this->putJson('/api/v1/user/parental', [
             'enabled' => true,
             'block_adult_content' => true,
             'safe_search' => true,
@@ -48,7 +48,7 @@ final class MemberWorkspaceTest extends TestCase
             'block_gambling_basic' => true,
         ])->assertOk()->assertJsonPath('data.safe_search', true);
 
-        $this->putJson('/api/v1/member/settings', [
+        $this->putJson('/api/v1/user/settings', [
             'locale' => 'zh-CN',
             'timezone' => 'Asia/Shanghai',
             'profile_name' => 'Family Profile',
@@ -56,7 +56,7 @@ final class MemberWorkspaceTest extends TestCase
             'block_response' => 'zero_ip',
         ])->assertOk()->assertJsonPath('data.profile_name', 'Family Profile');
 
-        $this->getJson('/api/v1/member/settings')
+        $this->getJson('/api/v1/user/settings')
             ->assertOk()
             ->assertJsonPath('data.locale', 'zh-CN')
             ->assertJsonPath('data.profile_name', 'Family Profile');
@@ -67,29 +67,29 @@ final class MemberWorkspaceTest extends TestCase
         $user = $this->createUser('workspace2@example.com');
         Sanctum::actingAs($user, [], 'api');
 
-        $allow = $this->postJson('/api/v1/member/allowlist', [
+        $allow = $this->postJson('/api/v1/user/allowlist', [
             'domain' => 'openai.com',
             'match_type' => 'exact',
         ])->assertCreated();
 
-        $deny = $this->postJson('/api/v1/member/denylist', [
+        $deny = $this->postJson('/api/v1/user/denylist', [
             'domain' => 'ads.example.com',
             'match_type' => 'suffix',
         ])->assertCreated();
 
-        $this->getJson('/api/v1/member/allowlist')
+        $this->getJson('/api/v1/user/allowlist')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
-        $this->getJson('/api/v1/member/denylist')
+        $this->getJson('/api/v1/user/denylist')
             ->assertOk()
             ->assertJsonCount(1, 'data');
 
-        $this->deleteJson('/api/v1/member/allowlist/' . $allow->json('data.id'))
+        $this->deleteJson('/api/v1/user/allowlist/' . $allow->json('data.id'))
             ->assertOk()
             ->assertJsonPath('data.deleted', true);
 
-        $this->deleteJson('/api/v1/member/denylist/' . $deny->json('data.id'))
+        $this->deleteJson('/api/v1/user/denylist/' . $deny->json('data.id'))
             ->assertOk()
             ->assertJsonPath('data.deleted', true);
     }
@@ -99,7 +99,7 @@ final class MemberWorkspaceTest extends TestCase
         $user = $this->createUser('workspace3@example.com');
         Sanctum::actingAs($user, [], 'api');
 
-        $this->putJson('/api/v1/member/settings', [
+        $this->putJson('/api/v1/user/settings', [
             'locale' => 'en',
             'timezone' => 'UTC',
             'profile_name' => 'Home',
@@ -107,7 +107,7 @@ final class MemberWorkspaceTest extends TestCase
             'block_response' => 'refused',
         ])->assertOk();
 
-        $this->putJson('/api/v1/member/security', [
+        $this->putJson('/api/v1/user/security', [
             'enabled' => true,
             'block_malware' => true,
             'block_phishing' => true,
@@ -115,12 +115,12 @@ final class MemberWorkspaceTest extends TestCase
             'block_cryptojacking' => true,
         ])->assertOk();
 
-        $ruleResponse = $this->postJson('/api/v1/member/denylist', [
+        $ruleResponse = $this->postJson('/api/v1/user/denylist', [
             'domain' => 'tracker.example.com',
             'match_type' => 'exact',
         ])->assertCreated();
 
-        $profileId = $this->getJson('/api/v1/member/profiles')->json('data.0.id');
+        $profileId = $this->getJson('/api/v1/user/profiles')->json('data.0.id');
         Device::create([
             'user_id' => $user->id,
             'profile_id' => $profileId,
@@ -130,7 +130,7 @@ final class MemberWorkspaceTest extends TestCase
             'public_ip' => '203.0.113.25',
         ]);
 
-        $publishResponse = $this->postJson("/api/v1/member/profiles/{$profileId}/publish", [
+        $publishResponse = $this->postJson("/api/v1/user/profiles/{$profileId}/publish", [
             'profile' => ['default_action' => 'allow'],
             'rules' => [],
             'features' => [],
@@ -228,13 +228,13 @@ final class MemberWorkspaceTest extends TestCase
 
         Sanctum::actingAs($user, [], 'api');
 
-        $this->getJson('/api/v1/member/logs')
+        $this->getJson('/api/v1/user/logs')
             ->assertOk()
             ->assertJsonPath('meta.total', 2)
             ->assertJsonPath('data.0.profile_name', 'Home Profile')
             ->assertJsonPath('data.0.device', 'MacBook');
 
-        $this->getJson('/api/v1/member/analytics')
+        $this->getJson('/api/v1/user/analytics')
             ->assertOk()
             ->assertJsonPath('data.today_queries', 2)
             ->assertJsonPath('data.today_blocked', 1);

@@ -225,7 +225,7 @@ const onInvitationSelectionChange = (rows) => { selectedInvitations.value = rows
 async function loadTeam() {
     loading.value = true
     try {
-        const { data: teamData } = await client.get(`/member/teams/${teamId}`)
+        const { data: teamData } = await client.get(`/user/teams/${teamId}`)
         team.value = teamData.data
         editForm.value = { name: team.value.name, description: team.value.description || '' }
     } catch {
@@ -235,12 +235,12 @@ async function loadTeam() {
     }
 
     try {
-        const { data: memberData } = await client.get(`/member/teams/${teamId}/members`)
+        const { data: memberData } = await client.get(`/user/teams/${teamId}/members`)
         members.value = memberData.data || []
     } catch {}
 
     try {
-        const { data: invData } = await client.get(`/member/teams/${teamId}/invitations`)
+        const { data: invData } = await client.get(`/user/teams/${teamId}/invitations`)
         invitations.value = invData.data || []
     } catch {}
 
@@ -250,7 +250,7 @@ async function loadTeam() {
 async function handleUpdate() {
     updating.value = true
     try {
-        await client.put(`/member/teams/${teamId}`, editForm.value)
+        await client.put(`/user/teams/${teamId}`, editForm.value)
         ElMessage.success(t('team.updated'))
         await loadTeam()
     } catch (err) {
@@ -263,7 +263,7 @@ async function handleUpdate() {
 async function handleDelete() {
     try {
         await ElMessageBox.confirm(t('team.confirmDeleteTeam') || 'Are you sure you want to delete this team?', t('common.confirm'), { type: 'warning' })
-        await client.delete(`/member/teams/${teamId}`)
+        await client.delete(`/user/teams/${teamId}`)
         ElMessage.success(t('team.teamDeleted'))
         await router.push('/user/teams')
     } catch {}
@@ -272,7 +272,7 @@ async function handleDelete() {
 async function handleRemoveMember(targetUserId) {
     try {
         await ElMessageBox.confirm(t('team.removeMember'), t('common.confirm'), { type: 'warning' })
-        await client.delete(`/member/teams/${teamId}/members/${targetUserId}`)
+        await client.delete(`/user/teams/${teamId}/members/${targetUserId}`)
         ElMessage.success(t('team.memberRemoved'))
         await loadTeam()
     } catch {}
@@ -282,7 +282,7 @@ async function handleInvite() {
     if (!inviteForm.value.email) return
     inviting.value = true
     try {
-        await client.post(`/member/teams/${teamId}/invitations`, inviteForm.value)
+        await client.post(`/user/teams/${teamId}/invitations`, inviteForm.value)
         ElMessage.success(t('team.invitationSent'))
         inviteForm.value.email = ''
         await loadTeam()
@@ -296,7 +296,7 @@ async function handleInvite() {
 async function handleCancelInvite(invitationId) {
     try {
         await ElMessageBox.confirm(t('team.cancelInvitation'), t('common.confirm'), { type: 'warning' })
-        await client.delete(`/member/teams/${teamId}/invitations/${invitationId}`)
+        await client.delete(`/user/teams/${teamId}/invitations/${invitationId}`)
         ElMessage.success(t('team.invitationCancelled'))
         await loadTeam()
     } catch {}
@@ -311,7 +311,7 @@ async function handleBatchCancelInvites() {
             { type: 'warning' },
         )
         const ids = selectedInvitations.value.map((i) => i.id)
-        const { data } = await client.post(`/member/teams/${teamId}/invitations/batch-cancel`, { ids })
+        const { data } = await client.post(`/user/teams/${teamId}/invitations/batch-cancel`, { ids })
         ElMessage.success(t('team.batchCancelled').replace('{count}', data.data.cancelled))
         await loadTeam()
     } catch (e) {
@@ -322,7 +322,7 @@ async function handleBatchCancelInvites() {
 async function handleLeave() {
     try {
         await ElMessageBox.confirm(t('team.confirmLeaveTeam'), t('common.confirm'), { type: 'warning' })
-        await client.post(`/member/teams/${teamId}/leave`)
+        await client.post(`/user/teams/${teamId}/leave`)
         ElMessage.success(t('team.leftTeam'))
         await router.push('/user/teams')
     } catch {}
@@ -338,7 +338,7 @@ async function handleSaveRole() {
     if (!roleTarget.value) return
     roleSaving.value = true
     try {
-        await client.put(`/member/teams/${teamId}/members/${roleTarget.value.user_id}/role`, {
+        await client.put(`/user/teams/${teamId}/members/${roleTarget.value.user_id}/role`, {
             role: roleForm.value.role,
         })
         ElMessage.success(t('team.roleUpdated'))
@@ -360,7 +360,7 @@ async function handleTransferOwnership() {
     if (!roleTarget.value) return
     transferring.value = true
     try {
-        await client.post(`/member/teams/${teamId}/transfer-ownership`, {
+        await client.post(`/user/teams/${teamId}/transfer-ownership`, {
             new_owner_id: roleTarget.value.user_id,
         })
         ElMessage.success(t('team.ownershipTransferred'))

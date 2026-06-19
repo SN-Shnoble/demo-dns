@@ -146,10 +146,21 @@ const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
 
-const activeRoute = computed(() => route.path)
+const activeRoute = computed(() => {
+    const p = route.params.profile_id
+    if (p) {
+        return route.path.replace(`/${p}`, '/:profile_id')
+    }
+    return route.path
+})
 
 const navigateTo = (path) => {
-    router.push({ path, query: { profile_id: currentProfileId.value } })
+    const profileId = route.params.profile_id || localStorage.getItem('current_profile_id')
+    if (profileId) {
+        router.push(`/user/${profileId}${path.replace(/^\/user/, '')}`)
+    } else {
+        router.push(path)
+    }
 }
 const userName = ref(t('common.defaultUser'))
 const userInitial = computed(() => (userName.value?.trim()?.charAt(0) || 'U').toUpperCase())
@@ -169,25 +180,25 @@ const newProfile = ref({ name: '' })
 
 const loadProfiles = async () => {
     try {
-        const { data } = await client.get('/member/profiles')
+        const { data } = await client.get('/user/profiles')
         profiles.value = data.data || []
         
-        // 优先从 URL 获取 profile_id，其次 localStorage，最后取第一个
-        const urlProfileId = route.query.profile_id
+        // 优先从 URL params 获取 profile_id，其次 localStorage，最后取第一个
+        const urlProfileId = route.params.profile_id
         const savedId = localStorage.getItem('current_profile_id')
         const resolvedId = urlProfileId || savedId || (profiles.value.length > 0 ? profiles.value[0].id : null)
         
         if (resolvedId && profiles.value.some(p => p.id === resolvedId)) {
             currentProfileId.value = resolvedId
             localStorage.setItem('current_profile_id', resolvedId)
-            // 如果 URL 中没有 profile_id，同步到 URL
+            // 如果 URL 中没有 profile_id，跳转到新格式 URL
             if (!urlProfileId) {
-                router.replace({ query: { profile_id: resolvedId } })
+                router.replace(`/user/${resolvedId}`)
             }
         } else if (profiles.value.length > 0) {
             currentProfileId.value = profiles.value[0].id
             localStorage.setItem('current_profile_id', currentProfileId.value)
-            router.replace({ query: { profile_id: currentProfileId.value } })
+            router.replace(`/user/${currentProfileId.value}`)
         }
     } catch {
         profiles.value = []
@@ -197,9 +208,7 @@ const loadProfiles = async () => {
 const switchProfile = (profileId) => {
     currentProfileId.value = profileId
     localStorage.setItem('current_profile_id', profileId)
-    // 更新 URL 中的 profile_id 并刷新页面
-    const newUrl = router.resolve({ path: route.path, query: { profile_id: profileId } }).href
-    window.location.href = newUrl
+    router.push(`/user/${profileId}`)
 }
 
 const handleProfileCommand = (command) => {
@@ -223,7 +232,7 @@ const handleCreateProfile = async () => {
     
     creatingProfile.value = true
     try {
-        const { data } = await client.post('/member/profiles', {
+        const { data } = await client.post('/user/profiles', {
             name: newProfile.value.name.trim()
         })
         
@@ -253,7 +262,7 @@ const switchLocale = (loc) => {
 
 const handleLogout = async () => {
     try {
-        await client.post('/member/logout')
+        await client.post('/user/logout')
     } catch {}
     sessionStorage.removeItem('user_token')
     sessionStorage.removeItem('user_role')
@@ -288,7 +297,8 @@ const handleCommand = async (command) => {
     }
 
     if (command === 'settings') {
-        await router.push('/user/settings')
+        const profileId = route.params.profile_id || localStorage.getItem('current_profile_id')
+        await router.push(`/user/${profileId}/settings`)
         return
     }
 
@@ -299,7 +309,7 @@ const handleCommand = async (command) => {
 
 onMounted(async () => {
     try {
-        const { data } = await client.get('/member/me')
+        const { data } = await client.get('/user/me')
         userName.value = data.data?.username ?? t('common.defaultUser')
     } catch {}
     

@@ -215,7 +215,7 @@ const autoSave = () => {
     saveTimer = setTimeout(async () => {
         saving.value = true
         try {
-            await client.put('/member/security', { ...form, profile_id: currentProfileId.value })
+            await client.put('/user/security', { ...form, profile_id: currentProfileId.value })
         } catch {
             ElMessage.error(t('common.saveFailed'))
         } finally {
@@ -233,7 +233,7 @@ watch(
 
 onMounted(async () => {
     try {
-        const { data } = await client.get('/member/security', { params: { profile_id: currentProfileId.value } })
+        const { data } = await client.get('/user/security', { params: { profile_id: currentProfileId.value } })
         Object.assign(form, data.data || form)
     } catch {}
 })

@@ -59,7 +59,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
@@ -84,7 +84,7 @@ const fetchLogs = async () => {
         const params = { page: page.value, per_page: 20, profile_id: currentProfileId.value }
         if (filter.action) params.action = filter.action
         if (filter.domain) params.domain = filter.domain
-        const { data } = await client.get('/member/logs', { params })
+        const { data } = await client.get('/user/logs', { params })
         logs.value = data.data || []
         total.value = data.meta?.total || 0
     } catch {}
@@ -97,6 +97,11 @@ const handleBlockedOnlyChange = (value) => {
 }
 
 onMounted(fetchLogs)
+
+watch(currentProfileId, () => {
+    page.value = 1
+    fetchLogs()
+})
 </script>
 
 <style scoped>

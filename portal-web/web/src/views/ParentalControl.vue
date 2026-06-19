@@ -273,7 +273,7 @@ const handleSave = async (forceData = null) => {
             blocked_categories: [...blockedCategories.value],
             profile_id: currentProfileId.value,
         }
-        await client.put('/member/parental', data)
+        await client.put('/user/parental', data)
     } catch {
         ElMessage.error(t('common.saveFailed'))
     } finally {
@@ -295,7 +295,7 @@ watch(
 
 onMounted(async () => {
     try {
-        const catalogResponse = await client.get('/member/catalogs')
+        const catalogResponse = await client.get('/user/catalogs')
         const catalogs = catalogResponse.data?.data || {}
         if (Array.isArray(catalogs.parental_presets) && catalogs.parental_presets.length > 0) {
             presets.value = catalogs.parental_presets
@@ -303,7 +303,7 @@ onMounted(async () => {
         if (Array.isArray(catalogs.parental_categories) && catalogs.parental_categories.length > 0) {
             categoryPresets.value = catalogs.parental_categories
         }
-        const { data } = await client.get('/member/parental', { params: { profile_id: currentProfileId.value } })
+        const { data } = await client.get('/user/parental', { params: { profile_id: currentProfileId.value } })
         const apiData = data.data || {}
         Object.assign(form, { ...apiData })
         if (apiData.blocked_items) {

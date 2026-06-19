@@ -67,7 +67,7 @@ const form = ref({ name: '', description: '', default_action: 'allow' })
 
 const fetchProfiles = async () => {
     try {
-        const { data } = await client.get('/member/profiles')
+        const { data } = await client.get('/user/profiles')
         profiles.value = data.data
     } catch {
         ElMessage.error(t('common.loadFailed'))
@@ -81,7 +81,7 @@ const handleCreate = async () => {
 
     saving.value = true
     try {
-        await client.post('/member/profiles', form.value)
+        await client.post('/user/profiles', form.value)
         ElMessage.success(t('profile.profileCreated'))
         showDialog.value = false
         form.value = { name: '', description: '', default_action: 'allow' }
@@ -96,7 +96,7 @@ const handleCreate = async () => {
 const handleDelete = async (id) => {
     try {
         await ElMessageBox.confirm(t('common.confirmDelete'), t('common.confirm'))
-        await client.delete(`/member/profiles/${id}`)
+        await client.delete(`/user/profiles/${id}`)
         ElMessage.success(t('profile.profileDeleted'))
         await fetchProfiles()
     } catch (e) {
@@ -108,7 +108,7 @@ const handleDelete = async (id) => {
 
 const handleCopy = async (id) => {
     try {
-        const { data } = await client.post(`/member/profiles/${id}/copy`)
+        const { data } = await client.post(`/user/profiles/${id}/copy`)
         ElMessage.success(t('profile.profileCopied').replace('{name}', data.data.name))
         await fetchProfiles()
     } catch {

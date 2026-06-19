@@ -170,6 +170,24 @@ final class MemberWorkspaceController
         return response()->json(['data' => ['updated' => true]]);
     }
 
+    public function email(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:255|unique:App\Models\User,email',
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($validated['password'], $user->password)) {
+            return response()->json(['message' => __('auth.password')], 422);
+        }
+
+        $user->update(['email' => $validated['email']]);
+
+        return response()->json(['data' => ['email' => $user->email]]);
+    }
+
     public function listRules(Request $request, string $listType): JsonResponse
     {
         return response()->json(['data' => $this->workspace->listRules($request->user()->id, $listType, $this->profileId($request))]);

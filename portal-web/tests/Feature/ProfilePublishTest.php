@@ -12,7 +12,7 @@ final class ProfilePublishTest extends TestCase
 
     public function test_registration_and_profile_creation(): void
     {
-        $response = $this->postJson('/api/v1/public/auth/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'Password123',
@@ -26,7 +26,7 @@ final class ProfilePublishTest extends TestCase
         // Create a profile
         $profileResponse = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson('/api/v1/member/profiles', [
+        ])->postJson('/api/v1/user/profiles', [
             'name' => 'Home Profile',
         ]);
 
@@ -38,7 +38,7 @@ final class ProfilePublishTest extends TestCase
         // List profiles
         $listResponse = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->getJson('/api/v1/member/profiles');
+        ])->getJson('/api/v1/user/profiles');
 
         $listResponse->assertStatus(200)
             ->assertJsonStructure(['data', 'meta']);
@@ -46,7 +46,7 @@ final class ProfilePublishTest extends TestCase
         // Add a rule
         $ruleResponse = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
-        ])->postJson("/api/v1/member/profiles/{$profileId}/rules", [
+        ])->postJson("/api/v1/user/profiles/{$profileId}/rules", [
             'list_type' => 'deny',
             'match_type' => 'exact',
             'domain' => 'ads.example.com',

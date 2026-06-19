@@ -116,7 +116,7 @@ const renameTarget = ref(null)
 const renameForm = ref({ name: '' })
 const fetchDevices = async () => {
     try {
-        const { data } = await client.get('/member/member-center/devices')
+        const { data } = await client.get('/user/member-center/devices')
         devices.value = data.data ?? []
     } catch {
         devices.value = []
@@ -125,7 +125,7 @@ const fetchDevices = async () => {
 
 const fetchEndpoints = async () => {
     try {
-        const { data } = await client.get('/member/member-center/dns-endpoints')
+        const { data } = await client.get('/user/member-center/dns-endpoints')
         endpoints.value = data.data
     } catch {
         endpoints.value = null
@@ -153,7 +153,7 @@ const handleDelete = async (row) => {
             t('devices.confirmDelete'),
             { confirmButtonText: t('devices.delete'), cancelButtonText: t('common.cancel'), type: 'warning' }
         )
-        await client.delete(`/member/devices/${row.id}`)
+        await client.delete(`/user/devices/${row.id}`)
         ElMessage.success(t('common.deleteSuccess') || '删除成功')
         fetchDevices()
     } catch { /* cancelled */ }
@@ -169,7 +169,7 @@ const handleRename = async () => {
     if (!renameTarget.value) return
     renaming.value = true
     try {
-        await client.put(`/member/devices/${renameTarget.value.id}`, { name: renameForm.value.name })
+        await client.put(`/user/devices/${renameTarget.value.id}`, { name: renameForm.value.name })
         ElMessage.success(t('common.saveSuccess') || '保存成功')
         showRenameDialog.value = false
         fetchDevices()

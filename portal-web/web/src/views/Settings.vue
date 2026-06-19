@@ -81,6 +81,13 @@
                 </el-card>
 
                 <el-card shadow="never" class="settings-card" style="margin-top:20px">
+                    <template #header><span>{{ $t('settings.currentPlan') || '当前方案' }}</span></template>
+                    <div style="padding: 8px 0;">
+                        <el-tag type="primary" size="large" effect="plain">{{ currentPlan }}</el-tag>
+                    </div>
+                </el-card>
+
+                <el-card shadow="never" class="settings-card" style="margin-top:20px">
                     <template #header><span>{{ $t('settings.changePassword') }}</span></template>
                     <el-form label-position="top">
                         <el-form-item :label="$t('settings.currentPassword')">
@@ -111,6 +118,7 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 
 const { locale, t } = useI18n()
 const saving = ref(false)
+const currentPlan = ref(t('common.default'))
 
 const form = reactive({
     locale: 'zh-CN',
@@ -149,7 +157,7 @@ const copyText = (text) => {
 const handleSave = async () => {
     saving.value = true
     try {
-        await client.put('/member/settings', form)
+        await client.put('/user/settings', form)
         locale.value = form.locale
         localStorage.setItem('locale', form.locale)
         ElMessage.success(t('settings.saved'))
@@ -170,7 +178,7 @@ const handleChangePassword = async () => {
         return
     }
     try {
-        await client.put('/member/password', {
+        await client.put('/user/password', {
             current_password: passwordForm.current,
             new_password: passwordForm.new,
         })
@@ -185,14 +193,21 @@ const handleChangePassword = async () => {
 
 onMounted(async () => {
     try {
-        const { data } = await client.get('/member/settings')
+        const { data } = await client.get('/user/settings')
         if (data.data) Object.assign(form, data.data)
     } catch {}
     // 从公开接口加载后台基本设置中的 DNS 域名
     try {
-        const { data } = await client.get('/public/dns-config')
+        const { data } = await client.get('/dns-config')
         if (data?.data?.dns_domain) {
             dnsDomain.value = data.data.dns_domain
+        }
+    } catch {}
+    // 加载当前方案信息
+    try {
+        const { data } = await client.get('/user/membership')
+        if (data?.data?.name) {
+            currentPlan.value = data.data.name
         }
     } catch {}
 })

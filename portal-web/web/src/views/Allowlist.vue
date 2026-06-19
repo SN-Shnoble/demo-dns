@@ -110,7 +110,7 @@ const editForm = ref({ id: null, domain: '', match_type: 'exact', enabled: true 
 
 const fetchRules = async () => {
     try {
-        const { data } = await client.get('/member/allowlist', { params: { profile_id: currentProfileId.value } })
+        const { data } = await client.get('/user/allowlist', { params: { profile_id: currentProfileId.value } })
         rules.value = data.data
     } catch {
         ElMessage.error(t('common.loadFailed'))
@@ -122,7 +122,7 @@ const handleAdd = async () => {
     if (!valid) return
     saving.value = true
     try {
-        await client.post('/member/allowlist', { ...form.value, profile_id: currentProfileId.value })
+        await client.post('/user/allowlist', { ...form.value, profile_id: currentProfileId.value })
         ElMessage.success(t('allowlist.added'))
         showDialog.value = false
         form.value = { domain: '', match_type: 'exact' }
@@ -137,7 +137,7 @@ const handleAdd = async () => {
 const handleDelete = async (id) => {
     try {
         await ElMessageBox.confirm(t('allowlist.deleteConfirm'), t('common.confirm'))
-        await client.delete(`/member/allowlist/${id}`, { params: { profile_id: currentProfileId.value } })
+        await client.delete(`/user/allowlist/${id}`, { params: { profile_id: currentProfileId.value } })
         ElMessage.success(t('allowlist.deleted'))
         await fetchRules()
     } catch (e) {
@@ -154,7 +154,7 @@ const openEditDialog = (row) => {
 
 const handleToggle = async (row, value) => {
     try {
-        await client.put(`/member/allowlist/${row.id}`, {
+        await client.put(`/user/allowlist/${row.id}`, {
             domain: row.domain,
             match_type: row.match_type,
             enabled: value,
@@ -171,7 +171,7 @@ const handleEditSave = async () => {
     if (!valid) return
     editSaving.value = true
     try {
-        await client.put(`/member/allowlist/${editForm.value.id}`, {
+        await client.put(`/user/allowlist/${editForm.value.id}`, {
             domain: editForm.value.domain, match_type: editForm.value.match_type, enabled: editForm.value.enabled,
             profile_id: currentProfileId.value,
         })

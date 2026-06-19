@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 | Public Routes - 无需认证
 |--------------------------------------------------------------------------
 */
-Route::prefix('public/auth')->group(function (): void {
+Route::prefix('auth')->group(function (): void {
     Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
     Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 });

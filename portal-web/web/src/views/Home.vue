@@ -210,7 +210,7 @@ const switchLocale = (loc) => {
 
 const handleLogout = async () => {
     try {
-        await client.post('/member/logout')
+        await client.post('/user/logout')
     } catch {}
     sessionStorage.removeItem('user_token')
     sessionStorage.removeItem('user')
@@ -225,7 +225,7 @@ onMounted(async () => {
     if (token) {
         isLoggedIn.value = true
         try {
-            const { data } = await client.get('/member/me')
+            const { data } = await client.get('/user/me')
             userName.value = data.data?.name ?? 'User'
         } catch {
             // Token might be invalid, clear storage

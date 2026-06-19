@@ -69,7 +69,7 @@ const getStatusLabel = (status) => {
 
 const fetchOrders = async () => {
     try {
-        const { data } = await client.get('/member/orders')
+        const { data } = await client.get('/user/orders')
         orders.value = data.data || []
     } catch {}
 }

@@ -26,10 +26,11 @@ function getCsrfToken() {
 }
 
 client.interceptors.request.use((config) => {
-    // Sanclum-based token auth (for backward compatibility)
+    // Sanctum-based token auth - 按路由选择 token
+    const isAdminPath = config.url?.startsWith('/admin/')
     const adminToken = sessionStorage.getItem('admin_token')
     const userToken = sessionStorage.getItem('user_token')
-    const token = adminToken || userToken
+    const token = isAdminPath ? adminToken : (userToken || adminToken)
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
@@ -40,7 +41,7 @@ client.interceptors.request.use((config) => {
         config.headers['X-CSRF-TOKEN'] = csrfToken
     }
 
-    const locale = localStorage.getItem('dns_locale') || 'zh-CN'
+    const locale = localStorage.getItem('locale') || 'zh-CN'
     config.headers['Accept-Language'] = locale
 
     return config

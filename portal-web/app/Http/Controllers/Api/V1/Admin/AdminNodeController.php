@@ -138,7 +138,8 @@ final class AdminNodeController
     {
         $actorId = $request->user()?->id;
         $node = Node::query()->findOrFail($nodeId);
-        $node->update(['disabled_at' => null, 'status' => 'online']);
+        // 只允许上线，不直接改 status=online — 等心跳确认真实在线
+        $node->update(['disabled_at' => null]);
 
         AdminAuditLog::record('node.enable', 'node', $nodeId, [], $actorId, null, $request->ip(), $request->userAgent());
 

@@ -240,6 +240,10 @@ const filteredAvailableBlocklists = computed(() => {
 
 const addBlocklist = (list) => {
     form.blocklists[list.key] = true
+    // 添加到 allBlocklists 使其显示
+    if (!allBlocklists.value.find(item => item.key === list.key)) {
+        allBlocklists.value.push({ ...list, daysAgo: list.daysAgo || 0 })
+    }
     ElMessage.success(t('privacy.blocklists.added'))
     showBlocklistModal.value = false
 }
@@ -280,7 +284,7 @@ const autoSave = () => {
     saveTimer = setTimeout(async () => {
         saving.value = true
         try {
-            await client.put('/member/privacy', { ...form, profile_id: currentProfileId.value })
+            await client.put('/user/privacy', { ...form, profile_id: currentProfileId.value })
         } catch {
             ElMessage.error(t('common.saveFailed'))
         } finally {
@@ -326,9 +330,9 @@ const removeDevice = (deviceId) => {
     }
 }
 
-onMounted(async () => {
+const fetchData = async () => {
     try {
-        const catalogResponse = await client.get('/member/catalogs')
+        const catalogResponse = await client.get('/user/catalogs')
         const catalogs = catalogResponse.data?.data || {}
         if (Array.isArray(catalogs.privacy_blocklists) && catalogs.privacy_blocklists.length > 0) {
             availableBlocklists.value = catalogs.privacy_blocklists.map((item) => ({
@@ -347,10 +351,14 @@ onMounted(async () => {
                 desc: displayText(item.desc),
             }))
         }
-        const { data } = await client.get('/member/privacy', { params: { profile_id: currentProfileId.value } })
+        const { data } = await client.get('/user/privacy', { params: { profile_id: currentProfileId.value } })
         Object.assign(form, data.data || form)
     } catch {}
-})
+}
+
+onMounted(fetchData)
+
+watch(currentProfileId, fetchData)
 </script>
 
 <style scoped>

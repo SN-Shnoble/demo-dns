@@ -52,20 +52,22 @@ const routes = [
     { path: '/register', name: 'Register', component: Register, meta: { guest: true } },
     { path: '/admin/login', name: 'AdminLogin', component: AdminLogin, meta: { guest: true } },
 
-    // User / Member Center routes (require auth)
-    { path: '/user', name: 'MemberDashboard', component: Dashboard, meta: { auth: true } },
+    // User / Member Center routes (require auth) - 新 URL 格式 /user/:profile_id/xxx
+    { path: '/user/:profile_id', name: 'MemberDashboard', component: Dashboard, meta: { auth: true } },
+    { path: '/user/:profile_id/security', name: 'Security', component: Security, meta: { auth: true } },
+    { path: '/user/:profile_id/privacy', name: 'Privacy', component: Privacy, meta: { auth: true } },
+    { path: '/user/:profile_id/parental', name: 'ParentalControl', component: ParentalControl, meta: { auth: true } },
+    { path: '/user/:profile_id/denylist', name: 'Denylist', component: Denylist, meta: { auth: true } },
+    { path: '/user/:profile_id/allowlist', name: 'Allowlist', component: Allowlist, meta: { auth: true } },
+    { path: '/user/:profile_id/analytics', name: 'Analytics', component: Analytics, meta: { auth: true } },
+    { path: '/user/:profile_id/logs', name: 'Logs', component: Logs, meta: { auth: true } },
+    { path: '/user/:profile_id/settings', name: 'Settings', component: Settings, meta: { auth: true } },
+    { path: '/user/:profile_id/devices', name: 'Devices', component: Devices, meta: { auth: true } },
+    { path: '/user/:profile_id/api-keys', name: 'APIKeys', component: APIKeys, meta: { auth: true } },
+
+    // 不依赖 profile_id 的页面
     { path: '/user/profiles', name: 'Profiles', component: ProfileList, meta: { auth: true } },
     { path: '/user/profiles/:id', name: 'ProfileDetail', component: ProfileDetail, meta: { auth: true }, props: true },
-    { path: '/user/security', name: 'Security', component: Security, meta: { auth: true } },
-    { path: '/user/privacy', name: 'Privacy', component: Privacy, meta: { auth: true } },
-    { path: '/user/parental', name: 'ParentalControl', component: ParentalControl, meta: { auth: true } },
-    { path: '/user/denylist', name: 'Denylist', component: Denylist, meta: { auth: true } },
-    { path: '/user/allowlist', name: 'Allowlist', component: Allowlist, meta: { auth: true } },
-    { path: '/user/analytics', name: 'Analytics', component: Analytics, meta: { auth: true } },
-    { path: '/user/logs', name: 'Logs', component: Logs, meta: { auth: true } },
-    { path: '/user/devices', name: 'Devices', component: Devices, meta: { auth: true } },
-    { path: '/user/api-keys', name: 'APIKeys', component: APIKeys, meta: { auth: true } },
-    { path: '/user/settings', name: 'Settings', component: Settings, meta: { auth: true } },
     { path: '/user/order', name: 'Order', component: Membership, meta: { auth: true } },
     { path: '/user/account', name: 'Account', component: Account, meta: { auth: true } },
     { path: '/user/teams', name: 'TeamList', component: TeamList, meta: { auth: true } },
@@ -141,6 +143,13 @@ router.beforeEach((to, from, next) => {
     if (to.meta.auth) {
         if (!userToken) {
             return next('/login')
+        }
+        // 如果路由有 :profile_id 参数但没传，跳转到默认 profile
+        if (to.params.profile_id === undefined && to.path.startsWith('/user/') && !to.path.startsWith('/user/profiles') && !to.path.startsWith('/user/teams') && !to.path.startsWith('/user/invitations') && to.path !== '/user/order' && to.path !== '/user/account') {
+            const savedId = localStorage.getItem('current_profile_id')
+            if (savedId) {
+                return next({ path: `/user/${savedId}${to.path.replace(/^\/user/, '') || ''}` })
+            }
         }
         return next()
     }

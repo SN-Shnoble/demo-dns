@@ -38,7 +38,7 @@ const loading = ref(false)
 async function loadInvitations() {
     loading.value = true
     try {
-        const { data } = await client.get('/member/teams/invitations/pending')
+        const { data } = await client.get('/user/teams/invitations/pending')
         invitations.value = data.data || []
     } catch {
         ElMessage.error(t('common.loadFailed'))
@@ -49,7 +49,7 @@ async function loadInvitations() {
 
 async function handleAccept(token) {
     try {
-        await client.post('/member/teams/accept-invitation', { token })
+        await client.post('/user/teams/accept-invitation', { token })
         ElMessage.success(t('team.invitationAccepted') || 'Invitation accepted')
         await loadInvitations()
     } catch (err) {

@@ -111,7 +111,7 @@ const rules = {
 
 const fetchKeys = async () => {
     try {
-        const { data } = await client.get('/member/api-keys')
+        const { data } = await client.get('/user/api-keys')
         keys.value = data.data ?? []
     } catch {
         keys.value = []
@@ -124,7 +124,7 @@ const handleCreate = async () => {
 
     creating.value = true
     try {
-        const { data } = await client.post('/member/api-keys', {
+        const { data } = await client.post('/user/api-keys', {
             name: form.name,
             scopes: form.scopes,
         })
@@ -155,7 +155,7 @@ const handleRevoke = async (row) => {
             t('common.confirm'),
             { confirmButtonText: t('apiKeys.revoke'), cancelButtonText: t('common.cancel'), type: 'warning' }
         )
-        await client.delete(`/member/api-keys/${row.id}`)
+        await client.delete(`/user/api-keys/${row.id}`)
         ElMessage.success(t('apiKeys.apiKeyRevoked'))
         await fetchKeys()
     } catch { /* cancelled */ }
