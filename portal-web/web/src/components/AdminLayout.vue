@@ -66,7 +66,6 @@
                                     <el-dropdown-item command="en">{{ $t('settings.lang.en') }}</el-dropdown-item>
                                     <el-dropdown-item command="zh-CN">{{ $t('settings.lang.zh') }}</el-dropdown-item>
                                     <el-dropdown-item command="ko">{{ $t('settings.lang.ko') }}</el-dropdown-item>
-                                    <el-dropdown-item command="ja">{{ $t('settings.lang.ja') }}</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
                         </el-dropdown>
@@ -103,6 +102,7 @@ import { useI18n } from 'vue-i18n'
 import i18n from '@/locales'
 import enLocale from 'element-plus/dist/locale/en.mjs'
 import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
+import koLocale from 'element-plus/dist/locale/ko.mjs'
 import client from '@/api/client'
 
 const route = useRoute()
@@ -114,7 +114,7 @@ const defaultMenuConfig = {
     mainMenu: [
         { id: 'dashboard', labelKey: 'nav.dashboard', path: '/admin/dashboard', icon: 'DataAnalysis', visible: true, sort: 1 },
         { id: 'nodes', labelKey: 'nav.nodes', path: '/admin/nodes', icon: 'Monitor', visible: true, sort: 2 },
-        { id: 'geo-dns', labelKey: 'nav.geoDns', path: '/admin/geo-dns', icon: 'Connection', visible: true, sort: 3 },
+        { id: 'geo-dns', labelKey: 'nav.geoDns', path: '/admin/geo-dns', icon: 'Connection', visible: false, sort: 3 },
         { id: 'rules', labelKey: 'nav.ruleLibrary', path: '/admin/rules', icon: 'Collection', visible: true, sort: 4, groupKey: 'service' },
         { id: 'alerts', labelKey: 'admin.alerts', path: '/admin/alerts', icon: 'Message', visible: true, sort: 5, groupKey: 'monitor' },
         { id: 'query-logs', labelKey: 'admin.queryLogs', path: '/admin/query-logs', icon: 'Document', visible: true, sort: 6, groupKey: 'monitor' },
@@ -254,7 +254,7 @@ onMounted(async () => {
     }
 })
 
-const localeMap = { 'en': enLocale, 'zh-CN': zhLocale, 'ko': zhLocale, 'ja': zhLocale }
+const localeMap = { 'en': enLocale, 'zh-CN': zhLocale, 'ko': koLocale }
 const elLocale = ref(localeMap[locale.value] || zhLocale)
 
 watch(locale, (val) => {
@@ -406,14 +406,13 @@ const currentLocale = computed(() => {
         'en': i18n.global.t('settings.lang.en'),
         'zh-CN': i18n.global.t('settings.lang.zh'),
         'ko': i18n.global.t('settings.lang.ko'),
-        'ja': i18n.global.t('settings.lang.ja'),
     }
     return map[locale.value] || i18n.global.t('settings.lang.zh')
 })
 
 const switchLocale = (loc) => {
     locale.value = loc
-    localStorage.setItem('dns_locale', loc)
+    localStorage.setItem('locale', loc)
 }
 
 const handleCommand = (cmd) => {

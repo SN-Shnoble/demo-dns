@@ -6,10 +6,10 @@ use App\Models\Device;
 use App\Models\Profile;
 use App\Models\User;
 
-final class MemberCenterService
+final class UserDashboardService
 {
     public function __construct(
-        private readonly MemberWorkspaceService $workspace = new MemberWorkspaceService(),
+        private readonly UserWorkspaceService $workspace = new UserWorkspaceService(),
     ) {
     }
 

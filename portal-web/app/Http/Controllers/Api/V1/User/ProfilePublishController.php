@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Api\V1\Member;
+namespace App\Http\Controllers\Api\V1\User;
 
 use App\Application\Member\ProfilePublishApplicationService;
 use Illuminate\Http\JsonResponse;

@@ -26,11 +26,18 @@ function getCsrfToken() {
 }
 
 client.interceptors.request.use((config) => {
-    // Sanctum-based token auth - 按路由选择 token
+    // Sanctum-based token auth - 严格按路由选择 token，不互相 fallback
     const isAdminPath = config.url?.startsWith('/admin/')
+    const isNodePath = config.url?.startsWith('/node/')
     const adminToken = sessionStorage.getItem('admin_token')
     const userToken = sessionStorage.getItem('user_token')
-    const token = isAdminPath ? adminToken : (userToken || adminToken)
+    let token = null
+    if (isAdminPath) {
+        token = adminToken
+    } else if (!isNodePath) {
+        // 公开路径和用户路径使用 user_token
+        token = userToken
+    }
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }

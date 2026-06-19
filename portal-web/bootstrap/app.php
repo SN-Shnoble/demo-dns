@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'node.token' => \App\Http\Middleware\AuthenticateNodeToken::class,
             'node.hmac' => \App\Http\Middleware\VerifyRequestSignature::class,
             'shared.token' => \App\Http\Middleware\RequireSharedToken::class,
+            'user.only' => \App\Http\Middleware\UserOnly::class,
+            'admin.only' => \App\Http\Middleware\AdminOnly::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

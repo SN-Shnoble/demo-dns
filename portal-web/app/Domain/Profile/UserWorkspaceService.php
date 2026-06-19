@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-final class MemberWorkspaceService
+final class UserWorkspaceService
 {
     private const DEFAULT_SECURITY = [
         'enabled' => true,
@@ -76,7 +76,7 @@ final class MemberWorkspaceService
     public function __construct(
         private readonly ProfileRuleService $profileRuleService = new ProfileRuleService(),
         private readonly QueryLogReadService $queryLogReader = new QueryLogReadService(),
-        private readonly \App\Infrastructure\ClickHouse\MemberAnalyticsService $clickhouseAnalytics = new \App\Infrastructure\ClickHouse\MemberAnalyticsService(),
+        private readonly \App\Infrastructure\ClickHouse\UserAnalyticsService $clickhouseAnalytics = new \App\Infrastructure\ClickHouse\UserAnalyticsService(),
         private readonly PlanCatalogService $planCatalog = new PlanCatalogService(),
     ) {
     }
@@ -350,55 +350,6 @@ final class MemberWorkspaceService
             'plans' => $plans,
             'stats' => $this->analytics($userId),
             'orders' => $this->orders($userId),
-        ];
-    }
-
-    public function upgrade(string $userId, string $planCode, string $billingCycle = 'monthly'): array
-    {
-        $user = User::findOrFail($userId);
-        $plan = $this->planCatalog->activePlan($planCode);
-        $price = $plan->prices->firstWhere('billing_cycle', $billingCycle) ?? $plan->prices->first();
-        if ($price === null) {
-            throw ValidationException::withMessages([
-                'billing_cycle' => 'No active price found for this billing cycle.',
-            ]);
-        }
-
-        DB::transaction(function () use ($user, $plan, $price, $billingCycle): void {
-            $user->update(['plan_code' => $plan->code]);
-
-            DB::table('subscriptions')->updateOrInsert(
-                ['user_id' => $user->id],
-                [
-                    'plan_code' => $plan->code,
-                    'status' => 'active',
-                    'monthly_query_limit' => $plan->limits['monthly_queries'] ?? null,
-                    'current_period_start' => now(),
-                    'current_period_end' => $billingCycle === 'yearly' ? now()->addYear() : now()->addMonth(),
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ],
-            );
-
-            DB::table('invoices')->insert([
-                'user_id' => $user->id,
-                'invoice_no' => 'PLAN-' . now()->format('YmdHis') . '-' . strtoupper($plan->code) . '-' . substr(md5($user->id . microtime()), 0, 6),
-                'amount_minor' => (int) $price->amount_minor,
-                'currency' => $price->currency,
-                'status' => 'paid',
-                'type' => 'subscription',
-                'description' => $plan->name . ' ' . $billingCycle,
-                'finalized' => true,
-                'paid_at' => now(),
-                'finalized_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        });
-
-        return [
-            'plan' => $plan->code,
-            'upgraded' => true,
         ];
     }
 

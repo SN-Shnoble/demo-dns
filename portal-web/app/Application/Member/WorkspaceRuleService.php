@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Application\Member;
 
 use App\Domain\Profile\DomainNormalizer;
-use App\Domain\Profile\MemberWorkspaceService;
+use App\Domain\Profile\UserWorkspaceService;
 use App\Models\ProfileRule;
 
 final class WorkspaceRuleService
 {
     public function __construct(
-        private readonly MemberWorkspaceService $workspaceService,
+        private readonly UserWorkspaceService $workspaceService,
     ) {
     }
 

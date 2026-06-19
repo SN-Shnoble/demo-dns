@@ -1,13 +1,13 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Member\ApiKeyController;
+use App\Http\Controllers\Api\V1\User\ApiKeyController;
 use App\Http\Controllers\Api\V1\Public\AuthController;
-use App\Http\Controllers\Api\V1\Member\MemberCenterController;
-use App\Http\Controllers\Api\V1\Member\MemberWorkspaceController;
-use App\Http\Controllers\Api\V1\Member\ProfileController;
-use App\Http\Controllers\Api\V1\Member\ProfilePublishController;
-use App\Http\Controllers\Api\V1\Member\ProfileRuleController;
-use App\Http\Controllers\Api\V1\Member\TeamController;
+use App\Http\Controllers\Api\V1\User\UserDashboardController;
+use App\Http\Controllers\Api\V1\User\UserWorkspaceController;
+use App\Http\Controllers\Api\V1\User\ProfileController;
+use App\Http\Controllers\Api\V1\User\ProfilePublishController;
+use App\Http\Controllers\Api\V1\User\ProfileRuleController;
+use App\Http\Controllers\Api\V1\User\TeamController;
 use App\Http\Controllers\Api\V1\User\OrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,49 +16,49 @@ use Illuminate\Support\Facades\Route;
 | User Routes - 需要用户认证
 |--------------------------------------------------------------------------
 */
-Route::prefix('user')->middleware('auth:api')->group(function (): void {
+Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function (): void {
     Route::get('me', [AuthController::class, 'me']);
     Route::post('logout', [AuthController::class, 'logout']);
 
-    Route::get('member-center/overview', [MemberCenterController::class, 'overview']);
-    Route::get('member-center/dns-endpoints', [MemberWorkspaceController::class, 'dnsEndpoints']);
-    Route::get('member-center/top-domains', [MemberWorkspaceController::class, 'topDomains']);
-    Route::get('member-center/devices', [MemberWorkspaceController::class, 'devices']);
+    Route::get('member-center/overview', [UserDashboardController::class, 'overview']);
+    Route::get('member-center/dns-endpoints', [UserWorkspaceController::class, 'dnsEndpoints']);
+    Route::get('member-center/top-domains', [UserWorkspaceController::class, 'topDomains']);
+    Route::get('member-center/devices', [UserWorkspaceController::class, 'devices']);
 
-    Route::match(['get', 'put'], 'settings', [MemberWorkspaceController::class, 'settings']);
-    Route::put('settings/security', [MemberWorkspaceController::class, 'updateSecurity']);
-    Route::put('settings/privacy', [MemberWorkspaceController::class, 'updatePrivacy']);
-    Route::put('settings/parental', [MemberWorkspaceController::class, 'updateParental']);
-    Route::match(['get', 'put'], 'security', [MemberWorkspaceController::class, 'security']);
-    Route::match(['get', 'put'], 'privacy', [MemberWorkspaceController::class, 'privacy']);
-    Route::match(['get', 'put'], 'parental', [MemberWorkspaceController::class, 'parental']);
-    Route::put('password', [MemberWorkspaceController::class, 'password']);
-    Route::put('email', [MemberWorkspaceController::class, 'email']);
+    Route::match(['get', 'put'], 'settings', [UserWorkspaceController::class, 'settings']);
+    Route::put('settings/security', [UserWorkspaceController::class, 'updateSecurity']);
+    Route::put('settings/privacy', [UserWorkspaceController::class, 'updatePrivacy']);
+    Route::put('settings/parental', [UserWorkspaceController::class, 'updateParental']);
+    Route::match(['get', 'put'], 'security', [UserWorkspaceController::class, 'security']);
+    Route::match(['get', 'put'], 'privacy', [UserWorkspaceController::class, 'privacy']);
+    Route::match(['get', 'put'], 'parental', [UserWorkspaceController::class, 'parental']);
+    Route::put('password', [UserWorkspaceController::class, 'password']);
+    Route::put('email', [UserWorkspaceController::class, 'email']);
 
-    Route::get('allowlist', [MemberWorkspaceController::class, 'allowlist']);
-    Route::post('allowlist', [MemberWorkspaceController::class, 'createAllowlistRule']);
-    Route::put('allowlist/{rule_id}', [MemberWorkspaceController::class, 'updateAllowlistRule']);
-    Route::delete('allowlist/{rule_id}', [MemberWorkspaceController::class, 'deleteAllowlistRule']);
-    Route::post('allowlist/batch-delete', [MemberWorkspaceController::class, 'batchDeleteAllowlist']);
+    Route::get('allowlist', [UserWorkspaceController::class, 'allowlist']);
+    Route::post('allowlist', [UserWorkspaceController::class, 'createAllowlistRule']);
+    Route::put('allowlist/{rule_id}', [UserWorkspaceController::class, 'updateAllowlistRule']);
+    Route::delete('allowlist/{rule_id}', [UserWorkspaceController::class, 'deleteAllowlistRule']);
+    Route::post('allowlist/batch-delete', [UserWorkspaceController::class, 'batchDeleteAllowlist']);
 
-    Route::get('denylist', [MemberWorkspaceController::class, 'denylist']);
-    Route::post('denylist', [MemberWorkspaceController::class, 'createDenylistRule']);
-    Route::put('denylist/{rule_id}', [MemberWorkspaceController::class, 'updateDenylistRule']);
-    Route::delete('denylist/{rule_id}', [MemberWorkspaceController::class, 'deleteDenylistRule']);
-    Route::post('denylist/batch-delete', [MemberWorkspaceController::class, 'batchDeleteDenylist']);
+    Route::get('denylist', [UserWorkspaceController::class, 'denylist']);
+    Route::post('denylist', [UserWorkspaceController::class, 'createDenylistRule']);
+    Route::put('denylist/{rule_id}', [UserWorkspaceController::class, 'updateDenylistRule']);
+    Route::delete('denylist/{rule_id}', [UserWorkspaceController::class, 'deleteDenylistRule']);
+    Route::post('denylist/batch-delete', [UserWorkspaceController::class, 'batchDeleteDenylist']);
 
-    Route::get('analytics', [MemberWorkspaceController::class, 'analytics']);
-    Route::get('logs', [MemberWorkspaceController::class, 'logs']);
-    Route::get('catalogs', [MemberWorkspaceController::class, 'catalogs']);
-    Route::get('membership', [MemberWorkspaceController::class, 'membership']);
-    Route::post('upgrade', [MemberWorkspaceController::class, 'upgrade']);
-    Route::get('usage', [MemberWorkspaceController::class, 'usage']);
-    Route::get('wallet', [MemberWorkspaceController::class, 'wallet']);
-    Route::post('wallet/recharge', [MemberWorkspaceController::class, 'rechargeWallet']);
-    Route::get('subscription', [MemberWorkspaceController::class, 'subscription']);
-    Route::get('referral-link', [MemberWorkspaceController::class, 'referralLink']);
-    Route::put('devices/{device_id}', [MemberWorkspaceController::class, 'updateDevice']);
-    Route::delete('devices/{device_id}', [MemberWorkspaceController::class, 'deleteDevice']);
+    Route::get('analytics', [UserWorkspaceController::class, 'analytics']);
+    Route::get('logs', [UserWorkspaceController::class, 'logs']);
+    Route::get('catalogs', [UserWorkspaceController::class, 'catalogs']);
+    Route::get('membership', [UserWorkspaceController::class, 'membership']);
+    // upgrade 路由已移除 — 升级必须走订单 + Stripe 支付流程
+    Route::get('usage', [UserWorkspaceController::class, 'usage']);
+    Route::get('wallet', [UserWorkspaceController::class, 'wallet']);
+    Route::post('wallet/recharge', [UserWorkspaceController::class, 'rechargeWallet']);
+    Route::get('subscription', [UserWorkspaceController::class, 'subscription']);
+    Route::get('referral-link', [UserWorkspaceController::class, 'referralLink']);
+    Route::put('devices/{device_id}', [UserWorkspaceController::class, 'updateDevice']);
+    Route::delete('devices/{device_id}', [UserWorkspaceController::class, 'deleteDevice']);
 
     Route::prefix('profiles')->group(function (): void {
         Route::get('', [ProfileController::class, 'index']);

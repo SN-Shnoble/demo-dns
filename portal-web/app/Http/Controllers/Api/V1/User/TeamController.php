@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Member;
+namespace App\Http\Controllers\Api\V1\User;
 
 use App\Domain\Team\TeamService;
 use Illuminate\Http\JsonResponse;

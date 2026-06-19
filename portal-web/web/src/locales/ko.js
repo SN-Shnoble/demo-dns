@@ -455,7 +455,7 @@ export default {
     account: '계정',
     language: '언어',
     timezone: '시간대',
-    lang: { en: '🇬🇧 English', zh: '🇨🇳 简体中文', ko: '🇰🇷 한국어', ja: '🇯🇵 日本語' },
+    lang: { en: '🇬🇧 English', zh: '🇨🇳 简体中文', ko: '🇰🇷 한국어' },
     profile: '프로필 설정',
     profileName: '프로필 이름',
     defaultAction: '기본 동작',

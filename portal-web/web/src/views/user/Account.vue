@@ -554,24 +554,18 @@ const confirmPay = async () => {
             throw new Error('missing redirect_url')
         }
 
-        // 模拟支付：仅开发环境可用
-        if (redirectUrl.startsWith('https://checkout.stripe.com/') === false && import.meta.env.DEV) {
-            // 占位/降级流程：保持当前会话，直接触发一次升级确认
-            await client.post('/user/upgrade', {
-                plan_code: pendingOrder.value.plan_code,
-                billing_cycle: selectedBillingCycle.value,
-            })
+        // 真实 Stripe：跳转到支付页
+        if (redirectUrl.startsWith('https://checkout.stripe.com/')) {
+            window.open(redirectUrl, '_blank')
             showPayDialog.value = false
+            ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
             pendingOrder.value = null
-            ElMessage.success(t('account.pay.simulatedSuccess') || '支付成功（测试模式）')
-            await refreshSubscriptionData()
             return
         }
 
-        // 真实 Stripe：跳转到支付页
-        window.open(redirectUrl, '_blank')
+        // 非 Stripe URL → 无法完成支付，提示配置 Stripe
+        ElMessage.warning(t('account.pay.stripeNotConfigured') || 'Stripe 支付未配置，请联系管理员')
         showPayDialog.value = false
-        ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
         pendingOrder.value = null
     } catch (err) {
         ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed') || '支付失败')

@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 | Admin Routes - 需要 Sanctum 认证 + admin.access 权限
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->middleware(['auth:sanctum', 'permission:admin.access'])->group(function (): void {
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:admin.access'])->group(function (): void {
     Route::get('overview', [AdminStatsController::class, 'overview'])->middleware('permission:admin.dashboard.read');
     Route::get('billing-stats', [AdminBillingStatsController::class, 'overview'])->middleware('permission:admin.dashboard.read');
 

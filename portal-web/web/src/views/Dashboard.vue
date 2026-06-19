@@ -129,20 +129,6 @@
                                 <button class="copy-btn" @click="copyText(dohUrl)">{{ $t('dashboard.copy') }}</button>
                             </div>
                         </div>
-                        <div class="access-item">
-                            <label>{{ $t('dashboard.dnsOverTls') }}</label>
-                            <div class="code-row">
-                                <div class="code">{{ dotUrl || '—' }}</div>
-                                <button class="copy-btn" @click="copyText(dotUrl)">{{ $t('dashboard.copy') }}</button>
-                            </div>
-                        </div>
-                        <div class="access-item">
-                            <label>{{ $t('dashboard.ipv4Dns') }}</label>
-                            <div class="code-row">
-                                <div class="code">{{ ipv4Dns || '—' }}</div>
-                                <button class="copy-btn" @click="copyText(ipv4Dns)">{{ $t('dashboard.copy') }}</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -261,7 +247,6 @@ const { currentProfileId } = useCurrentProfile()
 const overview = ref(null)
 const dohUrl = ref('')
 const dotUrl = ref('')
-const ipv4Dns = ref('')
 const topVisited = ref([])
 const topBlocked = ref([])
 const recentDevices = ref([])
@@ -307,7 +292,6 @@ const fetchData = async () => {
         const ep = data.data || {}
         dohUrl.value = ep.doh || ''
         dotUrl.value = ep.dot || ''
-        ipv4Dns.value = ep.ipv4 || ''
     } catch {
         // Endpoints optional
     }

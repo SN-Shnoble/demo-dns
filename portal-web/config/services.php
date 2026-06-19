@@ -58,7 +58,7 @@ return [
     'stripe' => [
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'fake' => env('STRIPE_FAKE', true),
+        'fake' => env('STRIPE_FAKE', false),
     ],
 
 ];

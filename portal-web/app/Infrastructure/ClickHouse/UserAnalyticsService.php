@@ -13,7 +13,7 @@ namespace App\Infrastructure\ClickHouse;
  * would block a member's dashboard because the analytics store is
  * down.
  */
-final class MemberAnalyticsService
+final class UserAnalyticsService
 {
     public function __construct(
         private readonly ClickHouseClient $client = new ClickHouseClient(),

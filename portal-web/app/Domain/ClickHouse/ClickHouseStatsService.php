@@ -44,17 +44,21 @@ final class ClickHouseStatsService
      */
     public function global24h(): array
     {
-        $rows = $this->client->jsonSelect(
-            'SELECT '
-            . ' count() AS total_queries, '
-            . ' countIf(action = \'blocked\') AS blocked_queries, '
-            . ' countIf(action = \'allowed\') AS allowed_queries, '
-            . ' uniqExact(node_id) AS unique_clients, '
-            . ' min(event_time) AS period_start, '
-            . ' max(event_time) AS period_end '
-            . 'FROM query_logs '
-            . 'WHERE event_time >= now() - INTERVAL 24 HOUR',
-        );
+        try {
+            $rows = $this->client->jsonSelect(
+                'SELECT '
+                . ' count() AS total_queries, '
+                . ' countIf(action = \'blocked\') AS blocked_queries, '
+                . ' countIf(action = \'allowed\') AS allowed_queries, '
+                . ' uniqExact(node_id) AS unique_clients, '
+                . ' min(event_time) AS period_start, '
+                . ' max(event_time) AS period_end '
+                . 'FROM query_logs '
+                . 'WHERE event_time >= now() - INTERVAL 24 HOUR',
+            );
+        } catch (\Throwable) {
+            $rows = [];
+        }
 
         $row = $rows[0] ?? [];
         return [
@@ -77,12 +81,16 @@ final class ClickHouseStatsService
     public function topBlocked(int $limit = 10): array
     {
         $limit = max(1, min(100, $limit));
-        $rows = $this->client->jsonSelect(
-            "SELECT query_name AS domain, count() AS count "
-            . "FROM query_logs "
-            . "WHERE event_time >= now() - INTERVAL 24 HOUR AND action = 'blocked' "
-            . "GROUP BY query_name ORDER BY count DESC LIMIT {$limit}",
-        );
+        try {
+            $rows = $this->client->jsonSelect(
+                "SELECT query_name AS domain, count() AS count "
+                . "FROM query_logs "
+                . "WHERE event_time >= now() - INTERVAL 24 HOUR AND action = 'blocked' "
+                . "GROUP BY query_name ORDER BY count DESC LIMIT {$limit}",
+            );
+        } catch (\Throwable) {
+            $rows = [];
+        }
 
         return [
             'source' => 'clickhouse',

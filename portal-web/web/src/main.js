@@ -4,7 +4,6 @@ import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import en from 'element-plus/dist/locale/en.mjs'
 import ko from 'element-plus/dist/locale/ko.mjs'
-import ja from 'element-plus/dist/locale/ja.mjs'
 import {
     Aim,
     ArrowDown,
@@ -48,6 +47,15 @@ import './assets/theme.css'
 import App from './App.vue'
 import router from './router'
 import i18n from './locales'
+
+const elementLocaleMap = {
+    'en': en,
+    'zh-CN': zhCn,
+    'zh': zhCn,
+    'ko': ko,
+}
+const savedLocale = localStorage.getItem('locale') || navigator.language || 'zh-CN'
+const elementLocale = elementLocaleMap[savedLocale] || zhCn
 
 const app = createApp(App)
 

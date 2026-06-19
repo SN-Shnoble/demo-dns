@@ -23,7 +23,6 @@
                                 <el-dropdown-item command="en">{{ $t('settings.lang.en') }}</el-dropdown-item>
                                 <el-dropdown-item command="zh-CN">{{ $t('settings.lang.zh') }}</el-dropdown-item>
                                 <el-dropdown-item command="ko">{{ $t('settings.lang.ko') }}</el-dropdown-item>
-                                <el-dropdown-item command="ja">{{ $t('settings.lang.ja') }}</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -199,7 +198,7 @@ const userName = ref('User')
 const userAvatar = ref('')
 
 const currentLocale = computed(() => {
-    const map = { 'en': '🇬🇧', 'zh-CN': '🇨🇳', 'ko': '🇰🇷', 'ja': '🇯🇵' }
+    const map = { 'en': '🇬🇧', 'zh-CN': '🇨🇳', 'ko': '🇰🇷' }
     return map[locale.value] || '🇨🇳'
 })
 
@@ -249,7 +248,7 @@ const archItems = computed(() => [
     { name: 'Laravel', role: t('home.archLaravel') },
     { name: 'NATS', role: t('home.archNats') },
     { name: t('home.archDnsAgent'), role: t('home.archNodeManager') },
-    { name: 'CoreDNS', role: t('home.archResolver') },
+    { name: 'dns-resolver', role: t('home.archResolver') },
     { name: 'ClickHouse', role: t('home.archAnalytics') },
 ])
 

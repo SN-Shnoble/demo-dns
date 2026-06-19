@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Member;
+namespace App\Http\Controllers\Api\V1\User;
 
 use App\Application\Member\MemberCenterOverviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-final class MemberCenterController
+final class UserDashboardController
 {
     public function __construct(
         private readonly MemberCenterOverviewService $service,

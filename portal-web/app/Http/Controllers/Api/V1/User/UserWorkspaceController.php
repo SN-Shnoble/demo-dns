@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Member;
+namespace App\Http\Controllers\Api\V1\User;
 
 use App\Application\Member\WorkspaceRuleService;
 use App\Domain\Profile\MemberCatalogService;
-use App\Domain\Profile\MemberWorkspaceService;
+use App\Domain\Profile\UserWorkspaceService;
 use App\Domain\Billing\OrderService;
 use App\Domain\Billing\PaymentService;
 use App\Models\User;
@@ -13,10 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
-final class MemberWorkspaceController
+final class UserWorkspaceController
 {
     public function __construct(
-        private readonly MemberWorkspaceService $workspace,
+        private readonly UserWorkspaceService $workspace,
         private readonly WorkspaceRuleService $workspaceRuleService,
         private readonly MemberCatalogService $catalogs = new MemberCatalogService(),
     ) {
@@ -302,21 +302,6 @@ final class MemberWorkspaceController
     public function membership(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->workspace->membership($request->user()->id)]);
-    }
-
-    public function upgrade(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'plan' => 'required_without:plan_code|string|max:30',
-            'plan_code' => 'required_without:plan|string|max:30',
-            'billing_cycle' => ['sometimes', Rule::in(['monthly', 'yearly'])],
-        ]);
-
-        return response()->json(['data' => $this->workspace->upgrade(
-            $request->user()->id,
-            $validated['plan_code'] ?? $validated['plan'],
-            $validated['billing_cycle'] ?? 'monthly',
-        )]);
     }
 
     public function dnsEndpoints(Request $request): JsonResponse

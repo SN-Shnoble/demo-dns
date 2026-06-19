@@ -1,4 +1,5 @@
 <template>
+    <el-config-provider :locale="elLocale">
     <div class="layout-root">
         <el-menu
             mode="horizontal"
@@ -87,7 +88,6 @@
                                 <el-dropdown-item command="en">{{ $t('settings.lang.en') }}</el-dropdown-item>
                                 <el-dropdown-item command="zh-CN">{{ $t('settings.lang.zh') }}</el-dropdown-item>
                                 <el-dropdown-item command="ko">{{ $t('settings.lang.ko') }}</el-dropdown-item>
-                                <el-dropdown-item command="ja">{{ $t('settings.lang.ja') }}</el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
@@ -132,19 +132,30 @@
             </template>
         </el-dialog>
     </div>
+    </el-config-provider>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { ArrowRight, ArrowDown, Plus, Select, Monitor } from '@element-plus/icons-vue'
 import client from '@/api/client'
+import enLocale from 'element-plus/dist/locale/en.mjs'
+import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
+import koLocale from 'element-plus/dist/locale/ko.mjs'
 
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
+
+const elLocaleMap = { 'en': enLocale, 'zh-CN': zhLocale, 'ko': koLocale }
+const elLocale = ref(elLocaleMap[locale.value] || zhLocale)
+
+watch(locale, (val) => {
+    elLocale.value = elLocaleMap[val] || zhLocale
+})
 
 const activeRoute = computed(() => {
     const p = route.params.profile_id
@@ -251,7 +262,7 @@ const handleCreateProfile = async () => {
 }
 
 const currentLocale = computed(() => {
-    const map = { en: '🇬🇧', 'zh-CN': '🇨🇳', ko: '🇰🇷', ja: '🇯🇵' }
+    const map = { en: '🇬🇧', 'zh-CN': '🇨🇳', ko: '🇰🇷' }
     return map[locale.value] || '🇨🇳'
 })
 

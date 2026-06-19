@@ -348,10 +348,8 @@ class ApiTest extends TestCase
 
     public function test_15_member_upgrade()
     {
-        $this->callMemberApi('POST', '/api/v1/user/upgrade', [
-            'plan_code' => 'pro',
-            'billing_cycle' => 'monthly',
-        ], 200);
+        // upgrade 端点已移除 — 升级必须走订单 + Stripe 支付
+        $this->callMemberApi('POST', '/api/v1/user/upgrade', [], 404);
     }
 
     public function test_12_member_analytics()

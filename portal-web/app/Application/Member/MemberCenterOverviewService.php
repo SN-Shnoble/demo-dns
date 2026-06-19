@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Application\Member;
 
-use App\Domain\Profile\MemberCenterService;
+use App\Domain\Profile\UserDashboardService;
 
 final class MemberCenterOverviewService
 {
     public function __construct(
-        private readonly MemberCenterService $memberCenterService,
+        private readonly UserDashboardService $memberCenterService,
     ) {
     }
 
