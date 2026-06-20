@@ -2,7 +2,7 @@
 # =============================================================================
 #  OcerDNS 解析器 一键安装脚本
 #  用法:
-#    curl -sSL https://<host>/dist/install.sh | sh -s -- \
+#    curl -fsSL https://<host>/dist/install.sh | sh -s -- \
 #         --server=https://<host> \
 #         --token=ocnd_xxxxx \
 #         --node-id=nd_xxxxx

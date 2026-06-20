@@ -10,15 +10,23 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('nodes', function (Blueprint $table) {
-            $table->enum('node_type', ['resolver', 'geodns'])
-                ->default('resolver')
-                ->after('node_code');
-            $table->string('domain')->nullable()
-                ->after('name');
-            $table->string('city')->nullable()
-                ->after('country');
-            $table->integer('weight')->default(100)
-                ->after('city');
+            if (! Schema::hasColumn('nodes', 'node_type')) {
+                $table->enum('node_type', ['resolver', 'geodns'])
+                    ->default('resolver')
+                    ->after('node_code');
+            }
+            if (! Schema::hasColumn('nodes', 'domain')) {
+                $table->string('domain')->nullable()
+                    ->after('name');
+            }
+            if (! Schema::hasColumn('nodes', 'city')) {
+                $table->string('city')->nullable()
+                    ->after('country');
+            }
+            if (! Schema::hasColumn('nodes', 'weight')) {
+                $table->integer('weight')->default(100)
+                    ->after('city');
+            }
         });
     }
 
