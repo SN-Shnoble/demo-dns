@@ -533,7 +533,7 @@ watch(currentProfileId, fetchData)
     gap: 24px;
 }
 
-/* ========== Endpoints (NextDNS 风格) ========== */
+/* ========== Endpoints () ========== */
 .badge-endpoint {
     background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
     color: #fff;

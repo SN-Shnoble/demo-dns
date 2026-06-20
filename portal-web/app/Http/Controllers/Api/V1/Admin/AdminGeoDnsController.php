@@ -17,17 +17,21 @@ final class AdminGeoDnsController
     {
         $query = GeoDnsMapping::query()->with('node');
 
-        if ($request->filled('country')) {
-            $query->where('country', strtoupper((string) $request->input('country')));
+        if ($request->filled('region')) {
+            $query->where('region', 'like', '%' . $request->input('region') . '%');
         }
 
         if ($request->filled('enabled')) {
             $query->where('enabled', filter_var($request->input('enabled'), FILTER_VALIDATE_BOOLEAN));
         }
 
-        $mappings = $query->orderBy('country')->orderBy('priority')->get()->map(function (GeoDnsMapping $mapping): array {
+        $mappings = $query->orderByDesc('id')->get()->map(function (GeoDnsMapping $mapping): array {
             $row = $mapping->toArray();
-            $row['node_name'] = $mapping->node?->node_name;
+            // 优先使用映射表自身的字段，否则回退到关联节点
+            $row['node_name'] = $mapping->node_name ?? $mapping->node?->node_name;
+            $row['node_alias'] = $mapping->node_alias;
+            $row['public_ipv4'] = $mapping->public_ipv4 ?? $mapping->node?->public_ipv4;
+            $row['node_count'] = 1;
 
             return $row;
         })->all();
@@ -54,21 +58,19 @@ final class AdminGeoDnsController
     {
         $actorId = $request->user()?->admin_id;
         $validated = $request->validate([
-            'country' => 'required|string|size:2',
             'region' => 'required|string|max:80',
-            'node_id' => 'required|exists:nodes,id',
-            'priority' => 'integer|min:0|max:1000',
-            'weight' => 'integer|min:0|max:10000',
+            'node_name' => 'required|string|max:100',
+            'public_ipv4' => 'nullable|string|max:45',
+            'node_alias' => 'nullable|string|max:100',
             'enabled' => 'boolean',
         ]);
 
         $mapping = GeoDnsMapping::create([
             'domain' => $request->input('domain', 'resolver.ocerlink.com'),
-            'country' => strtoupper($validated['country']),
             'region' => $validated['region'],
-            'target_node_id' => (int) $validated['node_id'],
-            'priority' => $validated['priority'] ?? 0,
-            'weight' => $validated['weight'] ?? 100,
+            'node_name' => $validated['node_name'],
+            'public_ipv4' => $validated['public_ipv4'] ?? null,
+            'node_alias' => $validated['node_alias'] ?? null,
             'enabled' => $validated['enabled'] ?? true,
         ]);
 
@@ -83,21 +85,12 @@ final class AdminGeoDnsController
         $mapping = GeoDnsMapping::findOrFail($id);
 
         $validated = $request->validate([
-            'country' => 'string|size:2',
             'region' => 'string|max:80',
-            'node_id' => 'exists:nodes,id',
-            'priority' => 'integer|min:0|max:1000',
-            'weight' => 'integer|min:0|max:10000',
+            'node_name' => 'string|max:100',
+            'public_ipv4' => 'nullable|string|max:45',
+            'node_alias' => 'nullable|string|max:100',
             'enabled' => 'boolean',
         ]);
-
-        if (isset($validated['country'])) {
-            $validated['country'] = strtoupper($validated['country']);
-        }
-        if (array_key_exists('node_id', $validated)) {
-            $validated['target_node_id'] = (int) $validated['node_id'];
-            unset($validated['node_id']);
-        }
 
         $mapping->update($validated);
 

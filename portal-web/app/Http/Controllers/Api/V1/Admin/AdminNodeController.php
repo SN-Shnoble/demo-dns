@@ -60,8 +60,9 @@ final class AdminNodeController
         $validated = $request->validate([
             'node_code' => 'required|string|max:64|unique:nodes,node_code',
             'name' => 'required|string|max:120',
+            'node_name' => 'nullable|string|max:120',
+            'node_alias' => 'nullable|string|max:100',
             'region' => 'nullable|string|max:40',
-            'country' => 'nullable|string|size:2',
             'city' => 'nullable|string|max:80',
             'public_ipv4' => 'nullable|string|max:45',
             'public_ipv6' => 'nullable|string|max:64',
@@ -92,8 +93,9 @@ final class AdminNodeController
         $validated = $request->validate([
             'node_code' => 'string|max:64|unique:nodes,node_code,' . $nodeId,
             'name' => 'string|max:120',
+            'node_name' => 'nullable|string|max:120',
+            'node_alias' => 'nullable|string|max:100',
             'region' => 'nullable|string|max:40',
-            'country' => 'nullable|string|size:2',
             'city' => 'nullable|string|max:80',
             'public_ipv4' => 'nullable|string|max:45',
             'public_ipv6' => 'nullable|string|max:64',

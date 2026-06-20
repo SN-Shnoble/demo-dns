@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const target = env.VITE_API_PROXY_TARGET
 
   return {
-    base: '/dist/', // ✔ 修复 assets 路径问题
+    base: isDev ? '/' : '/dist/',
 
     plugins: [vue()],
 
@@ -26,10 +26,9 @@ export default defineConfig(({ mode }) => {
 
       proxy: isDev && target
         ? {
-            '/admin': {
+            '/api': {
               target,
-              changeOrigin: true,
-              rewrite: (path) => path.replace(/^\/admin/, '')
+              changeOrigin: true
             }
           }
         : undefined

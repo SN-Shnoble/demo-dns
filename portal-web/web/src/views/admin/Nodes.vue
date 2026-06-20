@@ -50,11 +50,11 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="node_name" :label="t('admin.nodes.nodeName')" min-width="160">
+            <el-table-column :label="t('admin.nodes.nodeName')" min-width="160">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
                         <el-icon :color="row.status === 'online' ? '#67c23a' : '#f56c6c'" size="14"><Connection /></el-icon>
-                        <span>{{ row.node_name }}</span>
+                        <span>{{ row.node_alias || row.node_name }}</span>
                     </div>
                 </template>
             </el-table-column>
@@ -104,20 +104,14 @@
 
     <el-dialog v-model="showEditDialog" :title="editingId ? t('admin.nodes.edit') : t('admin.nodes.create')" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="t('admin.nodes.nodeName')" prop="node_name">
-                <el-input v-model="form.node_name" />
+            <el-form-item :label="t('admin.nodes.nodeAlias')" prop="node_alias">
+                <el-input v-model="form.node_alias" />
             </el-form-item>
-            <el-form-item :label="t('admin.nodes.region')" prop="region">
+            <el-form-item :label="t('admin.nodes.region')">
                 <el-input v-model="form.region" />
-            </el-form-item>
-            <el-form-item :label="t('admin.nodes.country')">
-                <el-input v-model="form.country" maxlength="2" />
             </el-form-item>
             <el-form-item :label="t('admin.nodes.ipv4')">
                 <el-input v-model="form.public_ipv4" />
-            </el-form-item>
-            <el-form-item :label="t('admin.nodes.hostname')">
-                <el-input v-model="form.hostname" />
             </el-form-item>
             <el-form-item :label="t('admin.nodes.weight')">
                 <el-input-number v-model="form.weight" :min="0" :max="10000" />
@@ -207,9 +201,9 @@ const copyDeployCmd = async () => {
         ElMessage.error('复制失败')
     }
 }
-const form = reactive({ node_name: '', region: '', country: '', public_ipv4: '', hostname: '', weight: 100, capacity_qps: 5000 })
+const form = reactive({ node_alias: '', region: '', public_ipv4: '', weight: 100, capacity_qps: 5000 })
 const rules = {
-    node_name: [{ required: true, message: t('admin.nodes.nodeNameRequired') || 'Node name is required', trigger: 'blur' }],
+    node_alias: [{ required: true, message: t('admin.nodes.nodeAliasRequired') || 'Node alias is required', trigger: 'blur' }],
     region: [{ required: true, message: t('admin.nodes.regionRequired') || 'Region is required', trigger: 'blur' }],
 }
 
@@ -254,11 +248,9 @@ const handleExport = async () => {
 const onSelectionChange = (rows) => { selected.value = rows }
 
 const resetForm = () => {
-    form.node_name = ''
+    form.node_alias = ''
     form.region = ''
-    form.country = ''
     form.public_ipv4 = ''
-    form.hostname = ''
     form.weight = 100
     form.capacity_qps = 5000
 }
@@ -271,11 +263,9 @@ const openCreateDialog = () => {
 
 const openEditDialog = (row) => {
     editingId.value = row.id
-    form.node_name = row.node_name
+    form.node_alias = row.node_alias || row.node_name || ''
     form.region = row.region
-    form.country = row.country ?? ''
     form.public_ipv4 = row.public_ipv4 ?? ''
-    form.hostname = row.hostname ?? ''
     form.weight = row.weight ?? 100
     form.capacity_qps = row.capacity_qps ?? 5000
     showEditDialog.value = true

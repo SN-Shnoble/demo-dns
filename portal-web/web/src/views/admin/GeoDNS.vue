@@ -10,8 +10,8 @@
     >
         <template #actions>
             <el-input
-                v-model="filterCountry"
-                :placeholder="$t('admin.geoDns.filterCountry') || '搜索国家'"
+                v-model="filterRegion"
+                :placeholder="$t('admin.geoDns.filterRegion') || '搜索区域'"
                 size="small"
                 style="width:220px"
                 clearable
@@ -20,38 +20,9 @@
             >
                 <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
-            <el-button
-                type="warning"
-                plain
-                size="small"
-                :loading="seeding"
-                @click="handleSeedDemo"
-            >
-                <el-icon class="el-icon--left"><MagicStick /></el-icon>
-                <span>{{ $t('admin.geoDns.seedDemo') || '填充演示数据' }}</span>
-            </el-button>
-            <el-button
-                type="success"
-                plain
-                size="small"
-                :loading="bindingLocal"
-                @click="handleBindLocal"
-            >
-                <el-icon class="el-icon--left"><Connection /></el-icon>
-                <span>{{ $t('admin.geoDns.bindLocal') || '绑定本地节点' }}</span>
-            </el-button>
-            <el-button
-                type="danger"
-                plain
-                size="small"
-                :disabled="selected.length === 0"
-                @click="handleBatchDelete"
-            >
-                <span>{{ $t('admin.geoDns.batchDelete') }} ({{ selected.length }})</span>
-            </el-button>
             <el-button type="primary" size="small" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.geoDns.create') }}</span>
+                <span>{{ $t('admin.geoDns.addServer') || '添加解析服务器' }}</span>
             </el-button>
         </template>
 
@@ -64,24 +35,22 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="country" :label="$t('admin.geoDns.country')" min-width="120">
+            <el-table-column prop="id" :label="$t('admin.geoDns.id')" width="100" align="center">
                 <template #default="{ row }">
-                    <el-tag size="small" effect="light">{{ row.country }}</el-tag>
+                    <el-tag size="small" effect="light">{{ row.id }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="region" :label="$t('admin.geoDns.region')" min-width="140" />
-            <el-table-column prop="node_name" :label="$t('admin.geoDns.node')" min-width="180">
+            <el-table-column prop="region" :label="$t('admin.geoDns.region')" min-width="160" />
+            <el-table-column :label="$t('admin.geoDns.ipAddress')" min-width="160">
                 <template #default="{ row }">
-                    <span>{{ row.node_name || row.node_id }}</span>
+                    <span v-if="row.public_ipv4">{{ row.public_ipv4 }}</span>
+                    <span v-else-if="row.node_alias" class="text-gray-400">{{ row.node_alias }}</span>
+                    <span v-else class="text-gray-400">-</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="priority" :label="$t('admin.geoDns.priority')" width="100" align="center" />
-            <el-table-column prop="weight" :label="$t('admin.geoDns.weight')" width="100" align="center" />
-            <el-table-column :label="$t('admin.geoDns.health')" width="100">
+            <el-table-column :label="$t('admin.geoDns.nodeCount')" width="100" align="center">
                 <template #default="{ row }">
-                    <el-tag :type="row.healthy ? 'success' : 'danger'" size="small" effect="light">
-                        {{ row.healthy ? $t('admin.geoDns.healthy') : $t('admin.geoDns.unhealthy') }}
-                    </el-tag>
+                    <el-tag size="small" effect="light">{{ row.node_count || 1 }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.status')" width="100">
@@ -104,24 +73,19 @@
         </el-table>
     </ListPage>
 
-    <el-dialog v-model="showDialog" :title="editingId ? $t('admin.geoDns.edit') : $t('admin.geoDns.create')" width="600">
+    <el-dialog v-model="showDialog" :title="editingId ? $t('admin.geoDns.edit') : $t('admin.geoDns.addServer')" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="$t('admin.geoDns.country')" prop="country">
-                <el-input v-model="form.country" maxlength="2" placeholder="e.g. US" style="text-transform:uppercase" />
-            </el-form-item>
             <el-form-item :label="$t('admin.geoDns.region')" prop="region">
                 <el-input v-model="form.region" maxlength="80" />
             </el-form-item>
-            <el-form-item :label="$t('admin.geoDns.node')" prop="node_id">
-                <el-select v-model="form.node_id" filterable style="width:100%" :placeholder="$t('admin.geoDns.selectNode')">
-                    <el-option v-for="n in availableNodes" :key="n.id" :label="n.node_name" :value="n.id" />
-                </el-select>
+            <el-form-item :label="$t('admin.geoDns.nodeName')" prop="node_name">
+                <el-input v-model="form.node_name" maxlength="100" />
             </el-form-item>
-            <el-form-item :label="$t('admin.geoDns.priority')">
-                <el-input-number v-model="form.priority" :min="0" :max="1000" />
+            <el-form-item :label="$t('admin.geoDns.ipAddress')">
+                <el-input v-model="form.public_ipv4" maxlength="45" />
             </el-form-item>
-            <el-form-item :label="$t('admin.geoDns.weight')">
-                <el-input-number v-model="form.weight" :min="0" :max="10000" />
+            <el-form-item :label="$t('admin.geoDns.alias')">
+                <el-input v-model="form.node_alias" maxlength="100" :placeholder="$t('admin.geoDns.aliasPlaceholder') || '可选，解析服务器的别名'" />
             </el-form-item>
             <el-form-item :label="$t('admin.geoDns.enabled')">
                 <el-switch v-model="form.enabled" />
@@ -138,7 +102,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim, Delete, Edit, Plus, Search, MagicStick, Connection } from '@element-plus/icons-vue'
+import { Aim, Delete, Edit, Plus, Search } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 
@@ -146,20 +110,16 @@ const { t } = useI18n()
 const mappings = ref([])
 const meta = ref({})
 const selected = ref([])
-const availableNodes = ref([])
-const filterCountry = ref('')
-const seeding = ref(false)
-const bindingLocal = ref(false)
+const filterRegion = ref('')
 
 const showDialog = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
 const formRef = ref(null)
-const form = reactive({ country: '', region: '', node_id: '', priority: 0, weight: 100, enabled: true })
+const form = reactive({ region: '', node_name: '', public_ipv4: '', node_alias: '', enabled: true })
 const rules = {
-    country: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
     region: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
-    node_id: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'change' }],
+    node_name: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
 }
 
 const onSelectionChange = (rows) => { selected.value = rows }
@@ -167,26 +127,18 @@ const onSelectionChange = (rows) => { selected.value = rows }
 const fetchMappings = async () => {
     try {
         const params = {}
-        if (filterCountry.value) params.country = filterCountry.value
+        if (filterRegion.value) params.region = filterRegion.value
         const { data } = await client.get('/admin/geo-dns', { params }).catch(() => ({ data: { data: [] } }))
         mappings.value = data.data ?? []
         meta.value = data.meta ?? {}
     } catch {}
 }
 
-const fetchAvailableNodes = async () => {
-    try {
-        const { data } = await client.get('/admin/nodes').catch(() => ({ data: { data: [] } }))
-        availableNodes.value = data.data ?? []
-    } catch {}
-}
-
 const resetForm = () => {
-    form.country = ''
     form.region = ''
-    form.node_id = ''
-    form.priority = 0
-    form.weight = 100
+    form.node_name = ''
+    form.public_ipv4 = ''
+    form.node_alias = ''
     form.enabled = true
 }
 
@@ -198,11 +150,10 @@ const openCreateDialog = () => {
 
 const openEditDialog = (row) => {
     editingId.value = row.id
-    form.country = row.country
     form.region = row.region
-    form.node_id = row.node_id
-    form.priority = row.priority ?? 0
-    form.weight = row.weight ?? 100
+    form.node_name = row.node_name || ''
+    form.public_ipv4 = row.public_ipv4 || ''
+    form.node_alias = row.node_alias || ''
     form.enabled = row.enabled !== false
     showDialog.value = true
 }
@@ -256,39 +207,8 @@ const handleBatchDelete = async () => {
     }
 }
 
-const handleSeedDemo = async () => {
-    seeding.value = true
-    try {
-        const { data } = await client.post('/admin/geo-dns/seed-demo')
-        const nodes = data.data?.nodes?.length ?? 0
-        const mappingsCount = data.data?.mappings?.length ?? 0
-        ElMessage.success(t('admin.geoDns.seedDemoSuccess', { nodes, mappings: mappingsCount }) || `已插入 ${nodes} 个节点、${mappingsCount} 条映射`)
-        await Promise.all([fetchMappings(), fetchAvailableNodes()])
-    } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || t('admin.geoDns.seedDemoFailed') || '填充演示数据失败')
-    } finally {
-        seeding.value = false
-    }
-}
-
-const handleBindLocal = async () => {
-    bindingLocal.value = true
-    try {
-        const { data } = await client.post('/admin/geo-dns/bind-local', {
-            public_ipv4: '127.0.0.1',
-        })
-        ElMessage.success(t('admin.geoDns.bindLocalSuccess', { code: data.data.node_code }) || `已绑定本地节点: ${data.data.node_code}`)
-        await Promise.all([fetchMappings(), fetchAvailableNodes()])
-    } catch (e) {
-        ElMessage.error(e.response?.data?.error?.message || t('admin.geoDns.bindLocalFailed') || '绑定本地节点失败')
-    } finally {
-        bindingLocal.value = false
-    }
-}
-
 onMounted(() => {
     fetchMappings()
-    fetchAvailableNodes()
 })
 </script>
 

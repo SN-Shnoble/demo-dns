@@ -16,10 +16,12 @@ class GeoDnsMapping extends Model
 
     protected $fillable = [
         'domain',
-        'country',
         'region',
         'target_node_id',
         'node_id',
+        'node_name',
+        'public_ipv4',
+        'node_alias',
         'target_endpoint',
         'priority',
         'weight',
