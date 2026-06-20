@@ -21,6 +21,7 @@ class Device extends Model
         'user_agent',
         'sni',
         'ip_hash',
+        'source_ip',
         'country',
         'first_seen_at',
         'last_seen_at',

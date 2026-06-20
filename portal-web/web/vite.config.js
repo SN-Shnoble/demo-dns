@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
     const fullApiTarget = apiBase
         ? `${apiBase.replace(/\/+$/, '')}/${apiPrefix}`
         : `/${apiPrefix}`
+    const devPort = env.VITE_DEV_PORT ? Number(env.VITE_DEV_PORT) : undefined
+    const proxyTarget = process.env.VITE_DEV_PROXY_TARGET
 
     return {
         plugins: [vue()],
@@ -18,23 +20,25 @@ export default defineConfig(({ mode }) => {
             },
         },
         server: {
-            port: 5173,
-            proxy: {
-                // portal-web API (member control plane + admin / agent / internal;
-                // dns-console-web was merged into portal-web on 2026-06-15).
-                '/api/v1': {
-                    target: process.env.VITE_DEV_PROXY_TARGET || 'http://localhost:8081',
-                    changeOrigin: true,
-                    configure: (proxy) => {
-                        proxy.on('proxyReq', (proxyReq, req) => {
-                            console.log(`[Vite Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`)
-                        })
-                        proxy.on('proxyReqWs', (proxyReq, req) => {
-                            console.log(`[Vite Proxy WS] ${req.method} ${req.url}`)
-                        })
-                    },
-                },
-            },
+            ...(devPort ? { port: devPort } : {}),
+            proxy: proxyTarget
+                ? {
+                      // portal-web API (member control plane + admin / agent / internal;
+                      // dns-console-web was merged into portal-web on 2026-06-15).
+                      [`/${apiPrefix}`]: {
+                          target: proxyTarget,
+                          changeOrigin: true,
+                          configure: (proxy) => {
+                              proxy.on('proxyReq', (proxyReq, req) => {
+                                  console.log(`[Vite Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`)
+                              })
+                              proxy.on('proxyReqWs', (proxyReq, req) => {
+                                  console.log(`[Vite Proxy WS] ${req.method} ${req.url}`)
+                              })
+                          },
+                      },
+                  }
+                : {},
         },
         define: {
             // 注入环境变量到运行时（生产环境可见）

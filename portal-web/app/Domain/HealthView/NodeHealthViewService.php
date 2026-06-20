@@ -37,7 +37,7 @@ final class NodeHealthViewService
         }
 
         return [
-            'node_id' => $node['id'],
+            'node_id' => (string) ($node['id'] ?? ''),
             'region' => $node['region'],
             'country' => $node['country'] ?? null,
             'city' => $node['city'] ?? null,

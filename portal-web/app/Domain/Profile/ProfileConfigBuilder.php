@@ -13,6 +13,9 @@ final class ProfileConfigBuilder
      */
     public function build(array $profile, array $rules, array $featureSettings, array $quota): array
     {
+        // resolver expects quota as JSON object (map), not array.
+        // Convert empty array to stdClass so json_encode emits {} instead of [].
+        $quotaObject = (object) $quota;
         return [
             'profile_id' => (string) ($profile['profile_uid'] ?? $profile['id']),
             'user_id' => (string) ($profile['user_id']),
@@ -28,7 +31,7 @@ final class ProfileConfigBuilder
             'parental' => $featureSettings['parental'] ?? ['enabled' => false],
             'devices' => array_map([$this, 'mapDevice'], $profile['devices'] ?? []),
             'rules' => array_map([$this, 'mapRule'], $rules),
-            'quota' => $quota,
+            'quota' => $quotaObject,
         ];
     }
 
@@ -39,7 +42,7 @@ final class ProfileConfigBuilder
     private function mapRule(array $rule): array
     {
         return [
-            'rule_id' => $rule['id'],
+            'rule_id' => (string) $rule['id'],
             'list_type' => $rule['list_type'],
             'match_type' => $rule['match_type'],
             'domain' => $rule['domain'],

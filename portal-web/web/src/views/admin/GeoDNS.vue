@@ -91,10 +91,14 @@
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.actions')" width="160" fixed="right">
+            <el-table-column :label="$t('admin.geoDns.actions')" width="100" fixed="right">
                 <template #default="{ row }">
-                    <el-button size="small" @click="openEditDialog(row)">{{ $t('admin.geoDns.edit') }}</el-button>
-                    <el-button size="small" type="danger" @click="handleDelete(row.id)">{{ $t('admin.geoDns.delete') }}</el-button>
+                    <el-button size="small" text type="primary" @click="openEditDialog(row)">
+                        <el-icon><Edit /></el-icon>
+                    </el-button>
+                    <el-button size="small" text type="danger" @click="handleDelete(row.id)">
+                        <el-icon><Delete /></el-icon>
+                    </el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -134,7 +138,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim, Plus, Search, MagicStick, Connection } from '@element-plus/icons-vue'
+import { Aim, Delete, Edit, Plus, Search, MagicStick, Connection } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 

@@ -15,7 +15,7 @@ control_plane:
     secret: hmk_mfbkds0n7pb4jbunr7k7jroz2izojvnd
     node_id: 1
     heartbeat_interval: 30
-    config_poll_interval: 30
+    config_poll_interval: 5
     profiles_path: ./configs
 upstream:
     - 1.1.1.1

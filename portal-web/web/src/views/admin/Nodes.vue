@@ -89,14 +89,9 @@
                         <el-button size="small" text type="primary" @click="openEditDialog(row)">
                             <el-icon><Edit /></el-icon>
                         </el-button>
-                        <el-button v-if="!row.disabled_at" size="small" text type="warning" @click="handleDisable(row.id)">
-                            <el-icon><VideoPause /></el-icon>
-                        </el-button>
-                        <el-button v-else size="small" text type="success" @click="handleEnable(row.id)">
-                            <el-icon><VideoPlay /></el-icon>
-                        </el-button>
-                        <el-button size="small" text type="primary" plain @click="openTokenDialog(row)">
+                        <el-button v-if="row.status !== 'online'" size="small" text type="primary" plain @click="openKeyDialog(row)">
                             <el-icon><Key /></el-icon>
+                            <span>{{ t('admin.nodes.deploy') }}</span>
                         </el-button>
                         <el-button size="small" text type="danger" @click="handleDelete(row.id)">
                             <el-icon><Delete /></el-icon>
@@ -137,73 +132,29 @@
         </template>
     </el-dialog>
 
-    <el-dialog v-model="showTokenDialog" :title="t('admin.nodes.tokenTitle')" width="600">
-        <el-form label-position="top">
-            <el-form-item :label="t('admin.nodes.tokenName')">
-                <el-input v-model="tokenForm.name" />
-            </el-form-item>
-            <el-form-item :label="t('admin.nodes.tokenExpiry')">
-                <el-input-number v-model="tokenForm.expires_in_days" :min="1" :max="3650" />
-                <span style="margin-left:8px">{{ t('common.days') }}</span>
-            </el-form-item>
-        </el-form>
-        <template #footer>
-            <el-button @click="showTokenDialog = false">{{ t('common.cancel') }}</el-button>
-            <el-button type="primary" :loading="issuingToken" @click="handleIssueToken">{{ t('admin.nodes.tokenIssue') }}</el-button>
-        </template>
-    </el-dialog>
-
-    <el-dialog v-model="showTokenResultDialog" :title="t('admin.nodes.tokenResult')" width="680" :close-on-click-modal="false" class="token-result-dialog">
-        <el-alert type="warning" :closable="false" style="margin-bottom:16px">
-            <template #title>
-                <el-icon style="margin-right:4px"><WarningFilled /></el-icon>
-                {{ t('admin.nodes.tokenWarning') }}
-            </template>
-        </el-alert>
-
-        <!-- 凭据卡片 -->
+    <el-dialog v-model="showTokenResultDialog" :title="t('admin.nodes.deployTitle')" width="680" :close-on-click-modal="false" class="token-result-dialog">
+        <!-- 一键部署命令 -->
         <el-card shadow="never" class="token-section">
             <template #header>
                 <div class="section-header">
-                    <span>节点凭据</span>
-                    <el-button size="small" text type="primary" @click="copyCredentials">
-                        <el-icon><CopyDocument /></el-icon> 复制凭据
-                    </el-button>
-                </div>
-            </template>
-            <div class="cred-grid">
-                <div class="cred-item">
-                    <div class="cred-label">Token</div>
-                    <div class="cred-value mono">{{ maskedToken }}</div>
-                </div>
-                <div class="cred-item">
-                    <div class="cred-label">说明</div>
-                    <div class="cred-value">页面不再明文展示令牌，请立即复制并妥善保存。</div>
-                </div>
-            </div>
-        </el-card>
-
-        <!-- 部署命令 -->
-        <el-card shadow="never" class="token-section">
-            <template #header>
-                <div class="section-header">
-                    <span>一键部署命令</span>
+                    <span>{{ t('admin.nodes.deployTitle') }}</span>
                     <el-button size="small" text type="primary" @click="copyDeployCmd">
-                        <el-icon><CopyDocument /></el-icon> 复制全部
+                        <el-icon><CopyDocument /></el-icon>
+                        <span>{{ t('admin.nodes.copyDeployCmd') }}</span>
                     </el-button>
                 </div>
             </template>
             <pre class="deploy-code">{{ deployCmdPreview }}</pre>
         </el-card>
 
-        <!-- 底部提示 -->
         <div class="token-footer-tip">
             <el-icon><InfoFilled /></el-icon>
-            <span>部署后节点会自动向控制面发送心跳，稍后在节点列表刷新状态。</span>
+            <span>{{ t('admin.nodes.deployTip') }}</span>
         </div>
 
         <template #footer>
             <el-button @click="showTokenResultDialog = false">{{ t('common.close') }}</el-button>
+            <el-button type="warning" :loading="issuingToken" @click="handleRegenerate">{{ t('admin.nodes.regenerate') }}</el-button>
         </template>
     </el-dialog>
 </template>
@@ -227,54 +178,35 @@ const exporting = ref(false)
 const loading = ref(false)
 
 const showEditDialog = ref(false)
-const showTokenDialog = ref(false)
 const showTokenResultDialog = ref(false)
 const saving = ref(false)
 const issuingToken = ref(false)
 const editingId = ref(null)
 const formRef = ref(null)
-const issuedToken = ref('')
 const tokenData = reactive({ node_id: '', api_key: '', secret: '' })
-const maskedToken = computed(() => {
-    if (!tokenData.api_key) return ''
-    if (tokenData.api_key.length <= 10) return '********'
-    return `${tokenData.api_key.slice(0, 4)}********${tokenData.api_key.slice(-4)}`
-})
-const deployCmd = computed(() => {
-    const nid = tokenData.node_id
-    const ak = tokenData.api_key
-    if (!nid || !ak) return ''
-    const loc = window.location
-    const backend = loc.protocol + '//' + loc.hostname + ':8081'
-    return `./dns-resolver install --server=${backend} --token=${ak} --node-id=${nid}`
-})
+const KEY_TTL_MS = 24 * 60 * 60 * 1000
+const nodeTokenCache = new Map()
+const keyExpiresAt = ref(null)
+const keyNodeId = ref(null)
+const stripPrefix = (s, p) => (s ? s.replace(new RegExp('^' + p), '') : '')
 const deployCmdPreview = computed(() => {
     const nid = tokenData.node_id
     if (!nid || !tokenData.api_key) return ''
     const loc = window.location
     const backend = loc.protocol + '//' + loc.hostname + ':8081'
-    return `./dns-resolver install --server=${backend} --token=${maskedToken.value} --node-id=${nid}`
+    const tokenPart = stripPrefix(tokenData.api_key, 'ocnd_')
+    const nidPart = stripPrefix(nid, 'nd_')
+    return `./dns-resolver install --server=${backend} --token=${tokenPart} --node-id=${nidPart}`
 })
-
-const copyCredentials = async () => {
-    try {
-        const text = `Node ID: ${tokenData.node_id}\nAPI Key: ${tokenData.api_key}\nSecret: ${tokenData.secret}`
-        await navigator.clipboard.writeText(text)
-        ElMessage.success('凭据已复制')
-    } catch {
-        ElMessage.error('复制失败')
-    }
-}
 
 const copyDeployCmd = async () => {
     try {
-        await navigator.clipboard.writeText(deployCmd.value)
+        await navigator.clipboard.writeText(deployCmdPreview.value)
         ElMessage.success('部署命令已复制')
     } catch {
         ElMessage.error('复制失败')
     }
 }
-const tokenForm = reactive({ name: 'default', expires_in_days: 365, node_id: null })
 const form = reactive({ node_name: '', region: '', country: '', public_ipv4: '', hostname: '', weight: 100, capacity_qps: 5000 })
 const rules = {
     node_name: [{ required: true, message: t('admin.nodes.nodeNameRequired') || 'Node name is required', trigger: 'blur' }],
@@ -418,24 +350,38 @@ const handleEnable = async (id) => {
     }
 }
 
-const openTokenDialog = (row) => {
-    tokenForm.node_id = row.id
-    tokenForm.name = 'default'
-    tokenForm.expires_in_days = 365
-    showTokenDialog.value = true
+const openKeyDialog = async (row) => {
+    keyNodeId.value = row.id
+    tokenData.node_id = row.node_code ?? row.id
+    const cached = nodeTokenCache.get(row.id)
+    const expired = !cached || (Date.now() - cached.issuedAt >= KEY_TTL_MS)
+    if (expired) {
+        await issueKeyFor(row.id)
+    } else {
+        tokenData.api_key = cached.apiKey
+        tokenData.secret = cached.secret
+        keyExpiresAt.value = cached.expiresAt
+        showTokenResultDialog.value = true
+    }
 }
 
-const handleIssueToken = async () => {
+const issueKeyFor = async (nodePkId) => {
     issuingToken.value = true
     try {
-        const { data } = await client.post(`/admin/nodes/${tokenForm.node_id}/tokens`, {
-            name: tokenForm.name,
-            expires_in_days: tokenForm.expires_in_days,
+        const { data } = await client.post(`/admin/nodes/${nodePkId}/tokens`, {
+            expires_in_days: 1,
         })
-        tokenData.node_id = data.data.node_id
-        tokenData.api_key = data.data.api_key
-        tokenData.secret = data.data.secret
-            '━━━ 节点凭据 ━━━',
+        const payload = data.data
+        tokenData.api_key = payload.api_key
+        tokenData.secret = payload.hmac_secret ?? ''
+        const expiresAt = payload.expires_at ? new Date(payload.expires_at) : new Date(Date.now() + KEY_TTL_MS)
+        keyExpiresAt.value = expiresAt
+        nodeTokenCache.set(nodePkId, {
+            apiKey: tokenData.api_key,
+            secret: tokenData.secret,
+            issuedAt: Date.now(),
+            expiresAt,
+        })
         showTokenResultDialog.value = true
     } catch {
         ElMessage.error(t('admin.nodes.tokenFailed'))
@@ -444,11 +390,19 @@ const handleIssueToken = async () => {
     }
 }
 
+const handleRegenerate = async () => {
+    if (keyNodeId.value) {
+        await issueKeyFor(keyNodeId.value)
+    }
+}
+
 onMounted(fetchNodes)
 </script>
 
 <style scoped>
 .status-summary { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.status-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.status-toggle { line-height: 1; }
 .empty-state { padding: 40px 0; text-align: center; color: #64748b; }
 .empty-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 12px; }
 .empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }

@@ -69,6 +69,7 @@ final class PublishService
         if ($targetNodes->isNotEmpty()) {
             $now = now();
             $rows = $targetNodes->map(fn (Node $node): array => [
+                'id' => 'texec_' . bin2hex(random_bytes(8)),
                 'publish_task_id' => $publishTask->id,
                 'node_id' => $node->id,
                 'config_version' => $globalVersion,

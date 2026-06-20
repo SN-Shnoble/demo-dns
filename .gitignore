@@ -20,3 +20,7 @@
 /*.key
 /.envrc
 portal-web/web/node_modules
+# 日志文件不提交
+/logs/
+*.log
+!/logs/.gitkeep

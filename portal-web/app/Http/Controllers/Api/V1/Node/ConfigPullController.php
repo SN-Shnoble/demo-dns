@@ -60,10 +60,31 @@ final class ConfigPullController
             return response()->noContent();
         }
 
+        // Read raw config_json bypassing Eloquent's `array` cast so the
+        // nested `quota: {}` object is preserved as stdClass instead of
+        // collapsing to []. The resolver expects quota as map[string]any.
+        $rawConfigJson = $configVersion->getRawOriginal('config_json');
+        $configJson = is_string($rawConfigJson)
+            ? json_decode($rawConfigJson, true)
+            : (array) $rawConfigJson;
+        if (is_array($configJson) && array_key_exists('quota', $configJson)) {
+            $configJson['quota'] = (object) $configJson['quota'];
+        } else {
+            $configJson['quota'] = (object) [];
+        }
+        // Backfill rule_id to string for legacy bundles (resolver expects string type).
+        if (is_array($configJson) && isset($configJson['rules']) && is_array($configJson['rules'])) {
+            foreach ($configJson['rules'] as $i => $r) {
+                if (is_array($r) && array_key_exists('rule_id', $r)) {
+                    $configJson['rules'][$i]['rule_id'] = (string) $r['rule_id'];
+                }
+            }
+        }
+
         $bundle = $service->buildBundle(
             [
                 'profile_version' => $configVersion->version,
-                'config_json' => $configVersion->config_json,
+                'config_json' => $configJson,
             ],
             [$this->defaultUpstream()],
         );
