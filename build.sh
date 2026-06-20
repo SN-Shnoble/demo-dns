@@ -12,11 +12,9 @@ set -euo pipefail
 
 # ---------- 路径与基础变量 ----------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# 输出到 portal-web/public/dist/bin/
-#   - 与 vite.config.js 的 build.outDir (= ../public/dist) 同根目录，
-#     由 Nginx/Apache 直接作为静态目录分发
-#   - 子目录 bin/ 避开 vite build 的 emptyOutDir: true 清空逻辑
-#   - 下载 URL 形如: https://<host>/dist/bin/dns-resolver-linux-amd64
+# 输出到 public/build/
+#   - 由 Nginx/Apache 直接作为静态目录分发
+#   - 下载 URL 形如: https://<host>/build/dns-resolver-linux-amd64
 OUT="$ROOT/public/build"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
@@ -119,8 +117,8 @@ if [ "${#BUILT[@]}" -gt 0 ]; then
 
   echo "✓ 成功: ${#BUILT[@]} 个二进制"
   echo "  下载示例:"
-  echo "    curl -O https://<host>/dist/bin/dns-resolver-linux-amd64"
-  echo "    curl -O https://<host>/dist/bin/SHA256SUMS"
+  echo "    curl -O https://<host>/build/dns-resolver-linux-amd64"
+  echo "    curl -O https://<host>/build/SHA256SUMS"
   echo "    sha256sum -c SHA256SUMS"
 else
   echo "✗ 没有任何产物"
