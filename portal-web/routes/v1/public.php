@@ -22,3 +22,13 @@ Route::get('dns-config', [PublicConfigController::class, 'dnsConfig']);
 
 // UI.md #74/#75 — Stripe Webhook 入口（无需 Sanctum，靠签名校验）
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle'])->middleware('throttle:120,1');
+
+// Build artifacts (installer binaries)
+Route::get('build/{path}', function ($path) {
+    $filePath = base_path('../public/build/' . $path);
+    if (!file_exists($filePath) || !is_file($filePath)) {
+        abort(404);
+    }
+    $mime = mime_content_type($filePath);
+    return response()->file($filePath, ['Content-Type' => $mime]);
+})->where('path', '.*');

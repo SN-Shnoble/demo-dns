@@ -102,8 +102,8 @@ if [ "${#BUILT[@]}" -gt 0 ]; then
   echo ""
 
   # 拷贝 install.sh（如果存在）— 一键安装脚本
-  if [ -f "$ROOT/portal-web/public/dist/install.sh" ]; then
-    cp -f "$ROOT/portal-web/public/dist/install.sh" "$OUT/install.sh"
+  if [ -f "$ROOT/install.sh" ]; then
+    cp -f "$ROOT/install.sh" "$OUT/install.sh"
     chmod +x "$OUT/install.sh"
     echo "✓ install.sh 已就绪"
   fi

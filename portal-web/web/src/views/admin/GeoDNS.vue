@@ -35,41 +35,45 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="id" :label="$t('admin.geoDns.id')" width="100" align="center">
+            <el-table-column :label="$t('admin.geoDns.nodeName')" :min-width="160">
                 <template #default="{ row }">
-                    <el-tag size="small" effect="light">{{ row.id }}</el-tag>
+                    <div class="name-cell" style="white-space:nowrap">
+                        <el-icon :color="row.node_status === 'online' ? '#67c23a' : '#f56c6c'" size="14"><Connection /></el-icon>
+                        <span>{{ row.node_name || row.region || ('#' + row.id) }}</span>
+                    </div>
                 </template>
             </el-table-column>
-            <el-table-column prop="region" :label="$t('admin.geoDns.region')" min-width="160" />
-            <el-table-column :label="$t('admin.geoDns.ipAddress')" min-width="160">
+            <el-table-column :label="$t('admin.geoDns.installStatus')" :min-width="110">
+                <template #default="{ row }">
+                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain" style="white-space:nowrap">{{ $t('admin.geoDns.notLinked') || '未关联' }}</el-tag>
+                    <el-tag v-else-if="row.node_status === 'pending'" type="warning" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusPending') || '待安装' }}</el-tag>
+                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusOnline') || '已安装' }}</el-tag>
+                    <el-tag v-else-if="row.node_status === 'offline'" type="danger" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusOffline') || '已下线' }}</el-tag>
+                    <el-tag v-else type="info" size="small" effect="light" style="white-space:nowrap">{{ row.node_status }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.geoDns.onlineStatus')" :min-width="100">
+                <template #default="{ row }">
+                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain" style="white-space:nowrap">-</el-tag>
+                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:4px"></span>
+                        {{ $t('admin.geoDns.online') || '在线' }}
+                    </el-tag>
+                    <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="region" :label="$t('admin.geoDns.region')" :min-width="100" />
+            <el-table-column prop="public_ipv4" :label="$t('admin.geoDns.ipAddress')" :min-width="130">
                 <template #default="{ row }">
                     <span v-if="row.public_ipv4">{{ row.public_ipv4 }}</span>
                     <span v-else-if="row.node_alias" class="text-gray-400">{{ row.node_alias }}</span>
                     <span v-else class="text-gray-400">-</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.nodeCount')" width="100" align="center">
-                <template #default="{ row }">
-                    <el-tag size="small" effect="light">{{ row.node_count || 1 }}</el-tag>
-                </template>
+            <el-table-column :label="$t('admin.geoDns.heartbeat')" :min-width="150">
+                <template #default="{ row }">{{ formatTime(row.node_last_heartbeat_at) }}</template>
             </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.installStatus') || '安装状态'" width="110">
-                <template #default="{ row }">
-                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain">{{ $t('admin.geoDns.notLinked') || '未关联' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'pending'" type="warning" size="small" effect="light">{{ $t('admin.geoDns.statusPending') || '待安装' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="light">{{ $t('admin.geoDns.statusOnline') || '已安装' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'offline'" type="danger" size="small" effect="light">{{ $t('admin.geoDns.statusOffline') || '已下线' }}</el-tag>
-                    <el-tag v-else type="info" size="small" effect="light">{{ row.node_status }}</el-tag>
-                </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.onlineStatus') || '在线状态'" width="100">
-                <template #default="{ row }">
-                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain">-</el-tag>
-                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="light">{{ $t('admin.geoDns.online') || '在线' }}</el-tag>
-                    <el-tag v-else type="danger" size="small" effect="light">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
-                </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.actions')" width="140" fixed="right">
+            <el-table-column :label="$t('admin.geoDns.actions')" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" text type="success" :disabled="!row.target_node_id" @click="handleDeploy(row)">
                         <el-icon><Connection /></el-icon>
@@ -133,7 +137,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Aim, Connection, CopyDocument, Delete, Edit, InfoFilled, Plus, Search } from '@element-plus/icons-vue'
@@ -163,7 +167,7 @@ const { siteUrl, loadSystemConfig } = useSystemConfig()
 const deployCmdPreview = computed(() => {
     if (!deployData.node_id || !deployData.api_key) return ''
     const base = siteUrl.value || (window.location.protocol + '//' + window.location.host)
-    return `curl -sSL ${base}/dist/install.sh | sh -s -- --server=${base} --token=${stripPrefix(deployData.api_key, 'ocnd_')} --node-id=${stripPrefix(deployData.node_id, 'nd_')}`
+    return `curl -fsSL ${base}/dist/install.sh | sh -s -- --server=${base} --token=${stripPrefix(deployData.api_key, 'ocnd_')} --node-id=${stripPrefix(deployData.node_id, 'nd_')}`
 })
 const copyDeployCmd = async () => {
     try {
@@ -175,6 +179,14 @@ const copyDeployCmd = async () => {
 }
 
 const onSelectionChange = (rows) => { selected.value = rows }
+
+let heartbeatTimer = null
+
+// 与节点列表一致：toLocaleString 显示完整时间
+const formatTime = (ts) => {
+    if (!ts) return '-'
+    return new Date(ts).toLocaleString()
+}
 
 const fetchMappings = async () => {
     try {
@@ -278,6 +290,12 @@ const handleBatchDelete = async () => {
 onMounted(() => {
     loadSystemConfig()
     fetchMappings()
+    // 每 30 秒自动刷新心跳状态
+    heartbeatTimer = setInterval(fetchMappings, 30000)
+})
+
+onUnmounted(() => {
+    if (heartbeatTimer) clearInterval(heartbeatTimer)
 })
 </script>
 

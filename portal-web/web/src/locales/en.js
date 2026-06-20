@@ -1072,6 +1072,7 @@ export default {
       online: 'Online',
       offline: 'Offline',
       noNodeLinked: 'This mapping is not linked to a node, cannot generate deploy command',
+      heartbeat: 'Heartbeat',
     },
     ruleLibrary: {
       title: 'Rule Library',

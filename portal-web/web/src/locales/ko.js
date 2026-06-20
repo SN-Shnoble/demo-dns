@@ -980,6 +980,7 @@ export default {
       online: '온라인',
       offline: '오프라인',
       noNodeLinked: '이 매핑은 노드에 연결되어 있지 않아 배포 명령을 생성할 수 없습니다',
+      heartbeat: '하트비트',
     },
     ruleLibrary: {
       title: '규칙 라이브러리',

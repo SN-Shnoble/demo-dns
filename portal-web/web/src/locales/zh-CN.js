@@ -1183,6 +1183,7 @@ export default {
       online: '在线',
       offline: '离线',
       noNodeLinked: '该映射未关联节点，无法生成部署命令',
+      heartbeat: '心跳',
     },
     ruleLibrary: {
       title: '规则库',
