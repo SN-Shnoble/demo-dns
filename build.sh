@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 输出到 public/build/
 #   - 由 Nginx/Apache 直接作为静态目录分发
 #   - 下载 URL 形如: https://<host>/build/dns-resolver-linux-amd64
-OUT="$ROOT/public/build"
+OUT="$ROOT/portal-web/public/build"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 # 客户端清单: "源目录:输出名:入口子路径"
