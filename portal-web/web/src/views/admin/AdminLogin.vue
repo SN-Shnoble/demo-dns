@@ -5,10 +5,8 @@
                 <div class="login-header">
                     <div class="logo">
                         <el-icon :size="32"><Monitor /></el-icon>
-                        <span class="logo-text">OcerDNS</span>
                     </div>
                     <h1>{{ $t('admin.loginTitle') }}</h1>
-                    <p class="subtitle">{{ $t('admin.loginSubtitle') }}</p>
                 </div>
 
                 <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="handleLogin">

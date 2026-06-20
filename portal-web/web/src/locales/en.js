@@ -759,7 +759,7 @@ export default {
     failedToCreate: 'Failed to create API key',
   },
   admin: {
-    title: 'Admin Dashboard',
+    title: 'Console',
     desc: 'DNS Operations Management Console',
     admin: 'Admin',
     menuGroup: {
@@ -827,7 +827,7 @@ export default {
       systemConfig: 'System Config',
       systemConfigDesc: 'DNS and system parameters',
     },
-    loginTitle: 'Admin · OcerDNS Admin',
+    loginTitle: 'OcerDNS',
     login: 'Admin Login',
     loginDesc: 'For administrators only',
     userLogin: 'Users please go to',

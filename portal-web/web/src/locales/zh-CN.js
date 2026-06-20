@@ -788,7 +788,7 @@ export default {
     failedToCreate: '创建 API 密钥失败',
   },
   admin: {
-    title: '管理后台',
+    title: '控制台',
     desc: 'DNS 运营管理控制台',
     admin: '管理员',
     menuGroup: {
@@ -880,7 +880,7 @@ export default {
       systemConfig: '系统配置',
       systemConfigDesc: 'DNS 和系统参数',
     },
-    loginTitle: '管理后台 · OcerDNS Admin',
+    loginTitle: 'OcerDNS',
     login: '管理员登录',
     loginDesc: '仅供后台运维与平台管理员使用',
     userLogin: '用户请前往',

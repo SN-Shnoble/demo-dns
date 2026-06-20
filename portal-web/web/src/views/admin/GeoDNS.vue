@@ -113,7 +113,7 @@
         <el-card shadow="never" class="token-section">
             <template #header>
                 <div class="section-header">
-                    <span>{{ $t('admin.nodes.deployTitle') || '部署命令' }} · {{ deployData.node_id }}</span>
+                    <span>{{ $t('admin.nodes.deployTitle') || '部署命令' }}</span>
                     <el-button size="small" text type="primary" @click="copyDeployCmd">
                         <el-icon><CopyDocument /></el-icon>
                         <span>{{ $t('admin.nodes.copyDeployCmd') || '复制命令' }}</span>

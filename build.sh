@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #     由 Nginx/Apache 直接作为静态目录分发
 #   - 子目录 bin/ 避开 vite build 的 emptyOutDir: true 清空逻辑
 #   - 下载 URL 形如: https://<host>/dist/bin/dns-resolver-linux-amd64
-OUT="$ROOT/portal-web/public/dist/bin"
+OUT="$ROOT/public/build"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 # 客户端清单: "源目录:输出名:入口子路径"

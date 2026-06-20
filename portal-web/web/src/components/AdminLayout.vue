@@ -47,7 +47,6 @@
             <div class="admin-shell__main">
                 <header class="admin-topbar">
                     <div>
-                        <span class="admin-topbar__eyebrow">Admin Workspace</span>
                         <div class="admin-topbar__breadcrumb">
                             <span>{{ $t('admin.title') }}</span>
                             <el-icon><CaretRight /></el-icon>

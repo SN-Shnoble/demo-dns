@@ -19,8 +19,7 @@ set -euo pipefail
 # ---- 路径与常量（不依赖外部 env） -------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="${SCRIPT_DIR}/.run"
-LOG_DIR="${SCRIPT_DIR}/logs"
-mkdir -p "${RUN_DIR}" "${LOG_DIR}"
+mkdir -p "${RUN_DIR}"
 
 # 端口定义（与 vite.config.js / server.yaml / config.example.yaml 保持一致）
 PORT_PORTAL_API=8081

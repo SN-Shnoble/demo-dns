@@ -680,7 +680,7 @@ export default {
     copy: '키 복사',
   },
   admin: {
-    title: '관리 대시보드',
+    title: '콘솔',
     desc: 'DNS 운영 관리 콘솔',
     menuGroup: {
       service: '서비스',
@@ -747,7 +747,7 @@ export default {
       systemConfig: '시스템 설정',
       systemConfigDesc: 'DNS 및 시스템 매개변수',
     },
-    loginTitle: '관리자 · OcerDNS Admin',
+    loginTitle: 'OcerDNS',
     login: '관리자 로그인',
     loginDesc: '관리자 전용',
     userLogin: '사용자는',
