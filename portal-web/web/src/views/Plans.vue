@@ -120,8 +120,8 @@ const handleBuy = async (plan) => {
     try {
         const { data } = await client.post('/user/orders', {
             plan_code: plan.code,
+            billing_cycle: paidPrice.billing_cycle,
             currency: paidPrice.currency,
-            meta: { billing_cycle: paidPrice.billing_cycle },
         })
         ElMessage.success('订单创建成功，正在跳转到支付...')
         // 跳转到订单详情 / 支付

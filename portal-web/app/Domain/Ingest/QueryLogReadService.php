@@ -30,6 +30,10 @@ final class QueryLogReadService
             $query->where('query_name', 'like', '%' . strtolower((string) $filters['domain']) . '%');
         }
 
+        if (isset($filters['profile_pk']) && (int) $filters['profile_pk'] > 0) {
+            $query->where('profile_id', (int) $filters['profile_pk']);
+        }
+
         $page = max(1, (int) ($filters['page'] ?? 1));
         $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 20)));
         $total = (clone $query)->count();
@@ -64,13 +68,16 @@ final class QueryLogReadService
     /**
      * @return array<string, mixed>
      */
-    public function analytics(string $userId): array
+    public function analytics(string $userId, ?string $profileId = null): array
     {
         try {
-            $entries = QueryLogEntry::query()
+            $query = QueryLogEntry::query()
                 ->where('user_id', $userId)
-                ->orderByDesc('queried_at')
-                ->get(['query_name', 'action']);
+                ->orderByDesc('queried_at');
+            if ($profileId !== null && $profileId !== '') {
+                $query->where('profile_id', $profileId);
+            }
+            $entries = $query->get(['query_name', 'action']);
         } catch (QueryException) {
             return [
                 'today_queries' => 0,

@@ -217,11 +217,6 @@ const form = reactive({
     deep_tracking_devices: [],
 })
 
-const allBlocklists = ref([
-    { key: 'ads_tracking', name: 'Ads & Tracking', desc: 'Ad and tracker protection', entries: 86222, daysAgo: 5 },
-    { key: 'third_party_tracking', name: 'Third-party Tracking', desc: 'Cross-site tracking protection', entries: 45678, daysAgo: 3 },
-])
-
 const availableBlocklists = ref([
     { key: 'ads_tracking', name: 'Ads & Tracking', desc: 'Ad and tracker protection', entries: 86222 },
     { key: 'third_party_tracking', name: 'Third-party Tracking', desc: 'Cross-site tracking protection', entries: 45678 },
@@ -238,18 +233,9 @@ const filteredAvailableBlocklists = computed(() => {
     )
 })
 
-const addBlocklist = (list) => {
-    form.blocklists[list.key] = true
-    // 添加到 allBlocklists 使其显示
-    if (!allBlocklists.value.find(item => item.key === list.key)) {
-        allBlocklists.value.push({ ...list, daysAgo: list.daysAgo || 0 })
-    }
-    ElMessage.success(t('privacy.blocklists.added'))
-    showBlocklistModal.value = false
-}
-
+// 单一数据源：已添加的拦截列表 = 全部可用列表 × form.blocklists[key] = true
 const activeBlocklists = computed(() => {
-    return allBlocklists.value.filter(list => form.blocklists[list.key])
+    return availableBlocklists.value.filter(list => !!form.blocklists?.[list.key])
 })
 
 const devices = ref([
@@ -279,18 +265,21 @@ const displayText = (value) => {
     return value
 }
 
+const savePrivacy = async () => {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
+    saving.value = true
+    try {
+        await client.put('/user/privacy', { ...form, profile_id: currentProfileId.value })
+    } catch {
+        ElMessage.error(t('common.saveFailed'))
+    } finally {
+        saving.value = false
+    }
+}
+
 const autoSave = () => {
     if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(async () => {
-        saving.value = true
-        try {
-            await client.put('/user/privacy', { ...form, profile_id: currentProfileId.value })
-        } catch {
-            ElMessage.error(t('common.saveFailed'))
-        } finally {
-            saving.value = false
-        }
-    }, 600)
+    saveTimer = setTimeout(savePrivacy, 600)
 }
 
 // Watch all form fields for changes and auto-save
@@ -300,34 +289,39 @@ watch(
     { deep: true }
 )
 
-const removeBlocklist = (key) => {
+const removeBlocklist = async (key) => {
     form.blocklists[key] = false
-    ElMessage.success(t('privacy.blocklists.removed'))
+    // 立即同步到后端，绕过 watch 的 600ms debounce
+    await savePrivacy()
 }
-
-const addDevice = (device) => {
+const addBlocklist = async (list) => {
+    form.blocklists[list.key] = true
+    showBlocklistModal.value = false
+    // 立即同步到后端
+    await savePrivacy()
+}
+const addDevice = async (device) => {
     if (!form.deep_tracking_devices.includes(device.id)) {
         form.deep_tracking_devices.push(device.id)
         form.blocklists.deep_tracking = true
-        ElMessage.success(`${device.name} ${t('privacy.blocklists.added')}`)
     } else {
         form.deep_tracking_devices.splice(form.deep_tracking_devices.indexOf(device.id), 1)
         if (form.deep_tracking_devices.length === 0) {
             form.blocklists.deep_tracking = false
         }
-        ElMessage.success(`${device.name} ${t('privacy.blocklists.removed')}`)
     }
+    await savePrivacy()
 }
 
-const removeDevice = (deviceId) => {
+const removeDevice = async (deviceId) => {
     const index = form.deep_tracking_devices.indexOf(deviceId)
     if (index > -1) {
         form.deep_tracking_devices.splice(index, 1)
         if (form.deep_tracking_devices.length === 0) {
             form.blocklists.deep_tracking = false
         }
-        ElMessage.success(t('privacy.blocklists.deviceRemoved'))
     }
+    await savePrivacy()
 }
 
 const fetchData = async () => {
@@ -342,7 +336,6 @@ const fetchData = async () => {
                 entries: Number(item.entries || 0),
                 daysAgo: Number(item.days_ago || 0),
             }))
-            allBlocklists.value = availableBlocklists.value.slice(0, Math.min(availableBlocklists.value.length, 3))
         }
         if (Array.isArray(catalogs.device_models) && catalogs.device_models.length > 0) {
             devices.value = catalogs.device_models.map((item) => ({
@@ -352,7 +345,16 @@ const fetchData = async () => {
             }))
         }
         const { data } = await client.get('/user/privacy', { params: { profile_id: currentProfileId.value } })
-        Object.assign(form, data.data || form)
+        const incoming = data.data || {}
+        // 重新包装 blocklists 为响应式对象，保证 form.blocklists[key] 修改可追踪
+        const incomingBlocklists = { ...(incoming.blocklists || {}) }
+        // 为 known blocklist key 设置默认值（false），让 activeBlocklists 派生时空白状态可见
+        for (const item of availableBlocklists.value) {
+            if (!(item.key in incomingBlocklists)) {
+                incomingBlocklists[item.key] = false
+            }
+        }
+        Object.assign(form, incoming, { blocklists: incomingBlocklists })
     } catch {}
 }
 

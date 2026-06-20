@@ -97,6 +97,25 @@ final class UserWorkspaceController
             'deep_tracking_devices.*' => 'string',
         ]);
 
+        // 手动合并动态 blocklist 类别 (phishing/malware/ads_tracking/third_party_tracking/deep_tracking/...)
+        // 因为 blocklists.* boolean 与 array 子键规则同时存在会冲突，故单独处理
+        $rawBlocklists = $request->input('blocklists', []);
+        $knownKeys = ['allowlist_ids', 'denylist_ids', 'parental'];
+        $dynamic = [];
+        foreach ($rawBlocklists as $k => $v) {
+            if (!in_array($k, $knownKeys, true)) {
+                $dynamic[$k] = filter_var($v, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+        $validated['blocklists'] = array_merge(
+            $dynamic,
+            [
+                'allowlist_ids' => $request->input('blocklists.allowlist_ids', []),
+                'denylist_ids' => $request->input('blocklists.denylist_ids', []),
+                'parental' => $request->boolean('blocklists.parental'),
+            ]
+        );
+
         return response()->json(['data' => $this->workspace->updatePrivacy($request->user()->uid, $validated, $this->profileId($request))]);
     }
 
@@ -289,7 +308,7 @@ final class UserWorkspaceController
 
     public function analytics(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->workspace->analytics($request->user()->uid)]);
+        return response()->json(['data' => $this->workspace->analytics($request->user()->uid, $this->profileId($request))]);
     }
 
     public function logs(Request $request): JsonResponse

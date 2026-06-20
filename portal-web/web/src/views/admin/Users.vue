@@ -33,7 +33,7 @@
             >
                 <el-option :label="$t('admin.usersPage.all') || '全部'" value="" />
                 <el-option :label="$t('admin.usersPage.enabled') || '启用'" value="active" />
-                <el-option :label="$t('admin.usersPage.disabled') || '禁用'" value="disabled" />
+                <el-option :label="$t('admin.usersPage.disabled') || '禁用'" value="suspended" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchUsers">
                 <el-icon class="el-icon--left"><Search /></el-icon>
@@ -70,7 +70,7 @@
             </el-table-column>
             <el-table-column prop="status" :label="$t('admin.usersPage.status') || '状态'" width="100">
                 <template #default="{ row }">
-                    <el-tag :type="row.status === 'active' ? 'success' : 'danger'" size="small" effect="light">{{ row.status === 'active' ? ($t('admin.usersPage.enabled') || '启用') : ($t('admin.usersPage.disabled') || '禁用') }}</el-tag>
+                    <el-tag :type="row.status === 'active' ? 'success' : (row.status === 'suspended' ? 'warning' : 'info')" size="small" effect="light">{{ statusLabel(row.status) }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="plan_code" :label="$t('admin.usersPage.plan') || '套餐'" width="100">
@@ -178,6 +178,15 @@ const formatBalance = (minor, currency) => {
     const amount = (minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     return symbol + amount
 }
+
+const statusLabel = (status) => {
+    if (status === 'active') return t('admin.usersPage.enabled') || '启用'
+    if (status === 'suspended') return t('admin.usersPage.disabled') || '禁用'
+    if (status === 'closed') return t('admin.usersPage.closed') || '关闭'
+    return status || '-'
+}
+
+const extractError = (err, fallback) => err?.response?.data?.error?.message || err?.response?.data?.message || err?.message || fallback
 
 const users = ref([])
 const meta = ref(null)
@@ -295,7 +304,7 @@ const handleSave = async () => {
         showDialog.value = false
         await fetchUsers()
     } catch (err) {
-        ElMessage.error(err.response?.data?.error?.message || t('admin.usersPage.operationFailed') || 'Operation failed')
+        ElMessage.error(extractError(err, t('admin.usersPage.operationFailed') || 'Operation failed'))
     } finally {
         saving.value = false
     }
@@ -306,8 +315,8 @@ const handleToggle = async (row, newStatus) => {
         await client.post(`/admin/users/${row.id}/${newStatus === 'active' ? 'enable' : 'disable'}`)
         ElMessage.success(t(newStatus === 'active' ? 'admin.usersPage.userEnabled' : 'admin.usersPage.userDisabled'))
         await fetchUsers()
-    } catch {
-        ElMessage.error(t('admin.usersPage.operationFailed'))
+    } catch (err) {
+        ElMessage.error(extractError(err, t('admin.usersPage.operationFailed') || 'Operation failed'))
     }
 }
 
@@ -323,7 +332,7 @@ const handleDelete = async (row) => {
         await fetchUsers()
     } catch (e) {
         if (e !== 'cancel') {
-            ElMessage.error(e.response?.data?.error?.message || t('admin.usersPage.operationFailed'))
+            ElMessage.error(extractError(e, t('admin.usersPage.operationFailed') || 'Operation failed'))
         }
     }
 }

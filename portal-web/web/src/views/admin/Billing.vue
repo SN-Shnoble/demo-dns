@@ -138,6 +138,28 @@ const formatMoney = (minor) => {
     return `¥${(Number(minor) / 100).toFixed(2)}`
 }
 
+const transactionTypeLabel = (type) => {
+    const map = {
+        charge: t('admin.billing.typeCharge') || '充值',
+        refund: t('admin.billing.typeRefund') || '退款',
+        payment: t('admin.billing.typePayment') || '支付',
+        order: t('admin.billing.typeOrder') || '订单',
+        deduction: t('admin.billing.typeDeduction') || '扣款',
+        adjust: t('admin.billing.typeAdjust') || '调整',
+    }
+    return map[type] || type || '-'
+}
+
+const transactionStatusLabel = (status) => {
+    const map = {
+        completed: t('admin.billing.statusCompleted') || '已完成',
+        pending: t('admin.billing.statusPending') || '待处理',
+        failed: t('admin.billing.statusFailed') || '失败',
+        canceled: t('admin.billing.statusCanceled') || '已取消',
+    }
+    return map[status] || status || '-'
+}
+
 const handleCharge = async () => {
     charging.value = true
     try {

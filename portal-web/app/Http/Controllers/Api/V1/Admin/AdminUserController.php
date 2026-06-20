@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\AdminAuditLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -116,9 +118,18 @@ final class AdminUserController
             return response()->json(['error' => ['code' => 'CANNOT_DELETE_SELF', 'message' => 'Cannot delete your own account']], 422);
         }
 
-        AdminAuditLog::record('user.delete', 'user', $user->uid, ['email' => $user->email], $actorId, null, $request->ip(), $request->userAgent());
+        try {
+            DB::transaction(function () use ($user) {
+                $user->delete();
+            });
+        } catch (QueryException $e) {
+            if ((int) $e->getCode() === 23000) {
+                return response()->json(['error' => ['code' => 'USER_HAS_DEPENDENCIES', 'message' => 'User has related data (team/order/profile). Remove dependencies first.']], 409);
+            }
+            throw $e;
+        }
 
-        $user->delete();
+        AdminAuditLog::record('user.delete', 'user', $user->uid, ['email' => $user->email], $actorId, null, $request->ip(), $request->userAgent());
 
         return response()->json(['data' => ['deleted' => true]]);
     }
@@ -126,7 +137,7 @@ final class AdminUserController
     public function disable(string $userId): JsonResponse
     {
         $user = User::query()->findOrFail($userId);
-        $user->update(['status' => 'disabled']);
+        $user->update(['status' => 'suspended']);
 
         return response()->json(['data' => ['ok' => true]]);
     }

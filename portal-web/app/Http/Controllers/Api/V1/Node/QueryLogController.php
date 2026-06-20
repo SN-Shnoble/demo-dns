@@ -74,34 +74,64 @@ final class QueryLogController
                 $devicePk = null;
                 $deviceUid = trim((string) ($item['device_id'] ?? ''));
 
+                // Fallback: profile not found via profile_uid → try resolving via device_id.
+                if ($profilePk === null && $deviceUid !== '') {
+                    $dev = Device::query()
+                        ->where('device_uid', $deviceUid)
+                        ->whereNotNull('profile_id')
+                        ->orderByDesc('last_seen_at')
+                        ->first(['profile_id', 'user_id']);
+                    if ($dev) {
+                        $profilePk = $dev->profile_id;
+                        $userPk = $dev->user_id;
+                        $fingerprint = hash('sha256', 'resolver-fallback|' . $deviceUid);
+                        $dev->forceFill([
+                            'last_seen_at' => $queriedAt,
+                            'last_query_at' => $queriedAt,
+                            'updated_at' => $now,
+                        ])->save();
+                        $dev->increment('query_count');
+                        $devicePk = $dev->id;
+                    }
+                }
+
                 if ($userPk !== null && $profilePk !== null) {
-                    $fingerprint = hash('sha256', implode('|', [
-                        (string) $profilePk,
-                        'doh',
-                        $clientIp,
-                        $deviceUid,
-                    ]));
-                    $device = Device::query()->updateOrCreate(
-                        [
-                            'profile_id' => $profilePk,
-                            'fingerprint' => $fingerprint,
-                        ],
-                        [
+                    $device = Device::query()
+                        ->where('profile_id', $profilePk)
+                        ->where('device_uid', $deviceUid !== '' ? $deviceUid : 'dev_localhost')
+                        ->first();
+
+                    if (! $device) {
+                        $device = Device::query()->create([
                             'user_id' => $userPk,
-                            'device_uid' => $deviceUid !== '' ? $deviceUid : 'dev_' . substr($fingerprint, 0, 16),
-                            'name' => $deviceUid !== '' ? $deviceUid : ('Device ' . ($clientIp !== '' ? $clientIp : substr($fingerprint, 0, 6))),
+                            'profile_id' => $profilePk,
+                            'device_uid' => $deviceUid !== '' ? $deviceUid : 'dev_' . substr(hash('sha256', $clientIp), 0, 16),
+                            'fingerprint' => hash('sha256', implode('|', [
+                                (string) $profilePk,
+                                'doh',
+                                $clientIp,
+                                $deviceUid,
+                            ])),
+                            'name' => $deviceUid !== '' ? $deviceUid : ('Device ' . ($clientIp !== '' ? $clientIp : substr(hash('sha256', $clientIp), 0, 6))),
                             'source' => 'auto',
                             'protocol' => 'doh',
                             'ip_hash' => $clientIp !== '' ? hash('sha256', $clientIp) : null,
-                            'first_seen_at' => DB::raw('COALESCE(first_seen_at, NOW())'),
+                            'first_seen_at' => $queriedAt,
                             'last_seen_at' => $queriedAt,
                             'last_query_at' => $queriedAt,
-                            'query_count' => DB::raw('COALESCE(query_count, 0) + 1'),
+                            'query_count' => 1,
                             'status' => 'active',
                             'created_at' => $now,
                             'updated_at' => $now,
-                        ],
-                    );
+                        ]);
+                    } else {
+                        $device->forceFill([
+                            'last_seen_at' => $queriedAt,
+                            'last_query_at' => $queriedAt,
+                            'updated_at' => $now,
+                        ])->save();
+                        $device->increment('query_count');
+                    }
                     $devicePk = $device->id;
                     $deviceUid = $device->device_uid;
                 }

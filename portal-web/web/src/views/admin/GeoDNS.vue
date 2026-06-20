@@ -12,7 +12,7 @@
             <el-input
                 v-model="filterCountry"
                 :placeholder="$t('admin.geoDns.filterCountry') || '搜索国家'"
-                size="default"
+                size="small"
                 style="width:220px"
                 clearable
                 @clear="fetchMappings"
@@ -21,15 +21,35 @@
                 <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
             <el-button
+                type="warning"
+                plain
+                size="small"
+                :loading="seeding"
+                @click="handleSeedDemo"
+            >
+                <el-icon class="el-icon--left"><MagicStick /></el-icon>
+                <span>{{ $t('admin.geoDns.seedDemo') || '填充演示数据' }}</span>
+            </el-button>
+            <el-button
+                type="success"
+                plain
+                size="small"
+                :loading="bindingLocal"
+                @click="handleBindLocal"
+            >
+                <el-icon class="el-icon--left"><Connection /></el-icon>
+                <span>{{ $t('admin.geoDns.bindLocal') || '绑定本地节点' }}</span>
+            </el-button>
+            <el-button
                 type="danger"
                 plain
-                size="default"
+                size="small"
                 :disabled="selected.length === 0"
                 @click="handleBatchDelete"
             >
                 <span>{{ $t('admin.geoDns.batchDelete') }} ({{ selected.length }})</span>
             </el-button>
-            <el-button type="primary" size="default" @click="openCreateDialog">
+            <el-button type="primary" size="small" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
                 <span>{{ $t('admin.geoDns.create') }}</span>
             </el-button>
@@ -114,7 +134,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim, Plus, Search } from '@element-plus/icons-vue'
+import { Aim, Plus, Search, MagicStick, Connection } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 
@@ -124,6 +144,8 @@ const meta = ref({})
 const selected = ref([])
 const availableNodes = ref([])
 const filterCountry = ref('')
+const seeding = ref(false)
+const bindingLocal = ref(false)
 
 const showDialog = ref(false)
 const editingId = ref(null)
@@ -227,6 +249,36 @@ const handleBatchDelete = async () => {
         await fetchMappings()
     } catch (e) {
         if (e !== 'cancel') ElMessage.error(t('common.batchDeleteFailed') || 'Batch delete failed')
+    }
+}
+
+const handleSeedDemo = async () => {
+    seeding.value = true
+    try {
+        const { data } = await client.post('/admin/geo-dns/seed-demo')
+        const nodes = data.data?.nodes?.length ?? 0
+        const mappingsCount = data.data?.mappings?.length ?? 0
+        ElMessage.success(t('admin.geoDns.seedDemoSuccess', { nodes, mappings: mappingsCount }) || `已插入 ${nodes} 个节点、${mappingsCount} 条映射`)
+        await Promise.all([fetchMappings(), fetchAvailableNodes()])
+    } catch (e) {
+        ElMessage.error(e.response?.data?.error?.message || t('admin.geoDns.seedDemoFailed') || '填充演示数据失败')
+    } finally {
+        seeding.value = false
+    }
+}
+
+const handleBindLocal = async () => {
+    bindingLocal.value = true
+    try {
+        const { data } = await client.post('/admin/geo-dns/bind-local', {
+            public_ipv4: '127.0.0.1',
+        })
+        ElMessage.success(t('admin.geoDns.bindLocalSuccess', { code: data.data.node_code }) || `已绑定本地节点: ${data.data.node_code}`)
+        await Promise.all([fetchMappings(), fetchAvailableNodes()])
+    } catch (e) {
+        ElMessage.error(e.response?.data?.error?.message || t('admin.geoDns.bindLocalFailed') || '绑定本地节点失败')
+    } finally {
+        bindingLocal.value = false
     }
 }
 

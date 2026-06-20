@@ -24,6 +24,17 @@
             >
                 <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
+            <el-input
+                v-model="filter.username"
+                :placeholder="$t('admin.queryLogsPage.username') || '用户名'"
+                style="width:160px"
+                size="small"
+                clearable
+                @clear="fetchLogs"
+                @keyup.enter="fetchLogs"
+            >
+                <template #prefix><el-icon><User /></el-icon></template>
+            </el-input>
             <el-select
                 v-model="filter.action"
                 :placeholder="$t('admin.queryLogsPage.action') || 'Query Type'"
@@ -47,15 +58,14 @@
                 @change="fetchLogs"
             />
             <el-select
-                v-if="!isAdmin"
                 v-model="filter.profile_id"
-                :placeholder="$t('admin.queryLogsPage.profile') || 'Profile'"
-                style="width:160px"
+                :placeholder="$t('admin.queryLogsPage.profile') || '策略'"
+                style="width:180px"
                 size="small"
                 clearable
                 @change="fetchLogs"
             >
-                <el-option v-for="p in profiles" :key="p.id" :label="p.name" :value="p.id" />
+                <el-option v-for="p in profiles" :key="p.id" :label="`${p.profile_uid || p.id} · ${p.name}`" :value="String(p.id)" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchLogs">
                 <el-icon class="el-icon--left"><Search /></el-icon>
@@ -88,7 +98,23 @@
                     <p class="empty-desc">{{ $t('admin.queryLogsPage.emptyDesc') || 'Query logs will appear here.' }}</p>
                 </div>
             </template>
-            <el-table-column label="域名" min-width="260" show-overflow-tooltip>
+            <el-table-column :label="$t('admin.queryLogsPage.user') || '用户'" width="170" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <div class="user-cell">
+                        <span class="user-name">{{ row.user_name || row.user_email || (row.user_id ? `#${row.user_id}` : '-') }}</span>
+                        <span v-if="row.user_id" class="user-id">uid: {{ row.user_id }}</span>
+                    </div>
+                </template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.queryLogsPage.profile') || '策略'" width="180" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <div class="profile-cell">
+                        <span class="profile-name">{{ row.profile_name || '-' }}</span>
+                        <span v-if="row.profile_uid" class="profile-uid">{{ row.profile_uid }}</span>
+                    </div>
+                </template>
+            </el-table-column>
+            <el-table-column label="域名" min-width="240" show-overflow-tooltip>
                 <template #default="{ row }">
                     <div class="domain-cell">
                         <span class="domain-name">{{ row.query_name || '-' }}</span>
@@ -96,9 +122,14 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column label="动作" width="92">
+            <el-table-column :label="$t('admin.queryLogsPage.action') || '动作'" width="92">
                 <template #default="{ row }">
-                    <el-tag v-if="row.action" :type="row.action === 'allow' ? 'success' : 'danger'" effect="light" size="small">{{ row.action }}</el-tag>
+                    <el-tag
+                        v-if="row.action"
+                        :type="isAllowAction(row.action) ? 'success' : 'danger'"
+                        effect="light"
+                        size="small"
+                    >{{ actionLabel(row.action) }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column label="类型" width="90">
@@ -135,6 +166,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, DeleteFilled, Document, Search, RefreshLeft, Download, CopyDocument } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
+
+const { t } = useI18n()
 
 const logs = ref([])
 const meta = ref(null)
@@ -191,6 +224,7 @@ const filter = reactive({
     domain: '',
     action: '',
     profile_id: '',
+    username: '',
     dateRange: null,
 })
 
@@ -198,6 +232,14 @@ const getLatencyType = (ms) => {
     if (ms < 20) return 'success'
     if (ms < 50) return 'warning'
     return 'danger'
+}
+
+const isAllowAction = (a) => a === 'allow' || a === 'allowed'
+const isBlockAction = (a) => a === 'block' || a === 'blocked'
+const actionLabel = (a) => {
+    if (isAllowAction(a)) return t('admin.queryLogsPage.allowed') || 'Allowed'
+    if (isBlockAction(a)) return t('admin.queryLogsPage.blocked') || 'Blocked'
+    return a || '-'
 }
 
 const copyText = async (text) => {
@@ -270,7 +312,9 @@ const handleExport = async () => {
 
 const fetchProfiles = async () => {
     try {
-        const { data } = await client.get('/user/profiles').catch(() => ({ data: { data: [] } }))
+        // 后台管理员用 /admin/users/* 路由，profile 列表从全量日志中聚合成本高
+        // 这里走 /user/profiles 仅供个人会员使用；后台展示改为从日志 API 中聚合
+        const { data } = await client.get('/admin/profiles').catch(() => ({ data: { data: [] } }))
         profiles.value = data.data ?? []
     } catch {
         profiles.value = []
@@ -279,13 +323,47 @@ const fetchProfiles = async () => {
 
 onMounted(() => {
     fetchLogs()
-    if (!isAdmin.value) {
-        fetchProfiles()
-    }
+    fetchProfiles()
 })
 </script>
 
 <style scoped>
+.user-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.user-name {
+    color: #0f172a;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.user-id {
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.profile-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.profile-name {
+    color: #0f172a;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-uid {
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 .domain-cell {
     display: flex;
     align-items: center;

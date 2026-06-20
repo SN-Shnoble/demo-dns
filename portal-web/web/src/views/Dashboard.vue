@@ -6,26 +6,6 @@
             :description="$t('dashboard.subtitle')"
         />
 
-        <!-- Stats Grid -->
-        <section class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">{{ $t('dashboard.profiles') }}</div>
-                <div class="stat-value">{{ overview?.stats?.profile_count ?? 0 }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">{{ $t('dashboard.devices') }}</div>
-                <div class="stat-value">{{ overview?.stats?.device_count ?? 0 }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">{{ $t('dashboard.todayQueries') }}</div>
-                <div class="stat-value accent">{{ formatNumber(overview?.stats?.today_queries ?? 0) }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">{{ $t('dashboard.blocked') }}</div>
-                <div class="stat-value danger">{{ formatNumber(overview?.stats?.today_blocked ?? 0) }}</div>
-            </div>
-        </section>
-
         <!-- DNS Access Endpoints (Middle Row) -->
         <section class="endpoint-row">
             <!-- Left: Endpoints (ID / DoT / DoH) -->
@@ -261,7 +241,6 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 const { t } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 
-const overview = ref(null)
 const endpoints = ref({ profile_uid: '', doh: '', dot: '', ipv4: [], ipv6: [] })
 const topVisited = ref([])
 const topBlocked = ref([])
@@ -295,13 +274,6 @@ async function copyText(text) {
 
 const fetchData = async () => {
     const params = { profile_id: currentProfileId.value }
-
-    try {
-        const { data } = await client.get('/user/dashboard', { params })
-        overview.value = data.data
-    } catch {
-        ElMessage.error(t('dashboard.failedToLoad'))
-    }
 
     try {
         const { data } = await client.get('/user/dns-endpoints', { params })
@@ -353,38 +325,6 @@ watch(currentProfileId, fetchData)
     color: var(--color-text-muted, #64748b);
     font-size: 15px;
     margin: 0;
-}
-
-/* ========== Stats Grid ========== */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 22px;
-    margin-bottom: 26px;
-}
-.stat-card {
-    background: var(--color-surface, #fff);
-    border: 1px solid var(--color-border-light, #dfe7f1);
-    border-radius: 22px;
-    padding: 28px 26px;
-    box-shadow: var(--shadow-card, 0 16px 40px rgba(15,23,42,.04));
-}
-.stat-card .stat-label {
-    color: var(--color-text-muted, #64748b);
-    font-size: 14px;
-    margin-bottom: 12px;
-}
-.stat-card .stat-value {
-    font-size: 34px;
-    font-weight: 900;
-    letter-spacing: -1px;
-    color: var(--color-text, #0f172a);
-}
-.stat-card .stat-value.accent {
-    color: var(--color-primary, #2563eb);
-}
-.stat-card .stat-value.danger {
-    color: var(--color-danger, #dc2626);
 }
 
 /* ========== Endpoint Row (Middle) ========== */
@@ -847,7 +787,6 @@ watch(currentProfileId, fetchData)
 
 /* ========== Responsive ========== */
 @media (max-width: 1080px) {
-    .stats-grid,
     .content-grid,
     .device-grid,
     .endpoint-row {

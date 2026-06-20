@@ -70,9 +70,11 @@ final class AdminMemberCatalogController
             'list_type' => ['nullable', Rule::in(['allow', 'deny'])],
             'domain' => 'nullable|string|max:255',
             'profile_id' => 'nullable|string|max:40',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $query = ProfileRule::query()->with('profile:id,name,user_id');
+        $query = ProfileRule::query()->with('profile:id,profile_uid,name,user_id');
 
         if (! empty($validated['list_type'])) {
             $query->where('list_type', $validated['list_type']);
@@ -84,20 +86,51 @@ final class AdminMemberCatalogController
             $query->where('profile_id', $validated['profile_id']);
         }
 
-        $items = $query->orderByDesc('created_at')->limit(500)->get()->map(fn (ProfileRule $rule): array => [
-            'id' => $rule->id,
-            'profile_id' => $rule->profile_id,
-            'profile_name' => $rule->profile?->name,
-            'user_id' => $rule->profile?->user_id,
-            'list_type' => $rule->list_type,
-            'match_type' => $rule->match_type,
-            'domain' => $rule->domain,
-            'action' => $rule->action,
-            'enabled' => (bool) $rule->enabled,
-            'created_at' => optional($rule->created_at)?->toIso8601String(),
-        ])->all();
+        $perPage = (int) ($validated['per_page'] ?? 20);
+        $paginator = $query->orderByDesc('created_at')->paginate($perPage);
+        $items = collect($paginator->items());
 
-        return response()->json(['data' => $items]);
+        // 聚合用户信息，避免 N+1
+        $userIds = $items
+            ->map(fn (ProfileRule $r) => $r->profile?->user_id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $userMap = \App\Models\User::query()
+            ->whereIn('uid', $userIds)
+            ->get(['uid', 'username', 'email'])
+            ->keyBy('uid');
+
+        $rows = $items->map(function (ProfileRule $rule) use ($userMap): array {
+            $profile = $rule->profile;
+            $user = $profile && $profile->user_id ? $userMap->get($profile->user_id) : null;
+
+            return [
+                'id' => $rule->id,
+                'profile_id' => $profile?->id,
+                'profile_uid' => $profile?->profile_uid,
+                'profile_name' => $profile?->name,
+                'user_id' => $profile?->user_id,
+                'username' => $user?->username,
+                'user_email' => $user?->email,
+                'list_type' => $rule->list_type,
+                'match_type' => $rule->match_type,
+                'domain' => $rule->domain,
+                'action' => $rule->action,
+                'enabled' => (bool) $rule->enabled,
+                'created_at' => optional($rule->created_at)?->toIso8601String(),
+            ];
+        })->all();
+
+        return response()->json([
+            'data' => $rows,
+            'meta' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'page' => $paginator->currentPage(),
+            ],
+        ]);
     }
 
     public function destroyRule(Request $request, string $id): JsonResponse

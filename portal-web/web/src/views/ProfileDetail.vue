@@ -37,12 +37,6 @@
                             </span>
                         </div>
                     </div>
-                    <div class="hero-actions">
-                        <el-button type="primary" :loading="publishing" @click="handlePublish">
-                            <el-icon><Promotion /></el-icon>
-                            <span>{{ $t('profileDetail.publish') }}</span>
-                        </el-button>
-                    </div>
                 </div>
             </el-card>
 
@@ -217,7 +211,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-    ArrowLeft, Clock, Delete, Edit, Filter, InfoFilled, Key, List, Plus, Promotion, Star,
+    ArrowLeft, Clock, Delete, Edit, Filter, InfoFilled, Key, List, Plus, Star,
 } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import client from '@/api/client'
@@ -228,7 +222,6 @@ const route = useRoute()
 const profile = ref(null)
 const profileRules = ref([])
 const loading = ref(true)
-const publishing = ref(false)
 const showAddRuleDialog = ref(false)
 const showEditRuleDialog = ref(false)
 const ruleSaving = ref(false)
@@ -276,19 +269,6 @@ const fetchData = async () => {
         ElMessage.error(t('common.loadFailed'))
     } finally {
         loading.value = false
-    }
-}
-
-const handlePublish = async () => {
-    publishing.value = true
-    try {
-        await client.post(`/user/profiles/${route.params.id}/publish`)
-        ElMessage.success(t('common.saved'))
-        await fetchData()
-    } catch {
-        ElMessage.error(t('common.saveFailed'))
-    } finally {
-        publishing.value = false
     }
 }
 
@@ -438,9 +418,6 @@ onMounted(fetchData)
     padding: 2px 8px;
     border-radius: 6px;
     font-size: 12px;
-}
-.hero-actions {
-    flex-shrink: 0;
 }
 
 /* 统计卡片 */

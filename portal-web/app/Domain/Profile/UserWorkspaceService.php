@@ -311,25 +311,35 @@ final class UserWorkspaceService
         ];
     }
 
-    public function analytics(string $userId): array
+    public function analytics(string $userId, ?string $profileId = null): array
     {
-        // Primary source: ClickHouse analytics (dns_logs)
-        $ch = $this->clickhouseAnalytics->summaryForUser($userId);
+        // 区分 CH 与 PG 端的 profile_id 类型：CH dns_logs.profile_id 存 uid 字符串，PG query_log_entries.profile_id 存 pk int
+        $profileUid = ($profileId !== null && $profileId !== '') ? $profileId : null;
+        $profilePk = null;
+        if ($profileUid !== null) {
+            $profilePk = (int) ($this->resolveProfile($userId, $profileUid)->id ?? 0);
+            if ($profilePk <= 0) {
+                $profilePk = null;
+            }
+        }
+
+        // Primary source: ClickHouse analytics (dns_logs) - uses profileUid
+        $ch = $this->clickhouseAnalytics->summaryForUser($userId, $profileUid);
         if (($ch['period_queries'] ?? 0) > 0) {
             return array_merge($ch, [
-                'allowed_domains'     => $this->clickhouseAnalytics->allowedDomains($userId),
-                'blocked_domains'     => $this->clickhouseAnalytics->blockedDomains($userId),
-                'block_reasons'       => $this->clickhouseAnalytics->blockReasons($userId),
-                'devices'             => $this->clickhouseAnalytics->topDevices($userId),
-                'client_ips'          => $this->clickhouseAnalytics->topClientIps($userId),
-                'root_domains'        => $this->clickhouseAnalytics->topRootDomains($userId),
-                'encrypted_dns'       => $this->clickhouseAnalytics->encryptedDnsRatio($userId),
-                'dnssec'             => $this->clickhouseAnalytics->dnssecRatio($userId),
+                'allowed_domains'     => $this->clickhouseAnalytics->allowedDomains($userId, 20, $profileUid),
+                'blocked_domains'     => $this->clickhouseAnalytics->blockedDomains($userId, 20, $profileUid),
+                'block_reasons'       => $this->clickhouseAnalytics->blockReasons($userId, 10, $profileUid),
+                'devices'             => $this->clickhouseAnalytics->topDevices($userId, 10, $profileUid),
+                'client_ips'          => $this->clickhouseAnalytics->topClientIps($userId, 10, $profileUid),
+                'root_domains'        => $this->clickhouseAnalytics->topRootDomains($userId, 20, $profileUid),
+                'encrypted_dns'       => $this->clickhouseAnalytics->encryptedDnsRatio($userId, $profileUid),
+                'dnssec'             => $this->clickhouseAnalytics->dnssecRatio($userId, $profileUid),
             ]);
         }
 
-        // Fallback: PostgreSQL query_log_entries (covers warm-up window)
-        $pg = $this->queryLogReader->analytics($userId);
+        // Fallback: PostgreSQL query_log_entries (covers warm-up window) - uses profilePk
+        $pg = $this->queryLogReader->analytics($userId, $profilePk !== null ? (string) $profilePk : null);
         return array_merge($pg, [
             'allowed_domains' => [],
             'blocked_domains' => [],
@@ -344,6 +354,19 @@ final class UserWorkspaceService
 
     public function logs(string $userId, array $filters): array
     {
+        // 当前 profile 隔离：必须按 profile PK 过滤，且 ownership 校验
+        $profileUid = isset($filters['profile_id']) && is_string($filters['profile_id']) ? $filters['profile_id'] : null;
+        $profilePk = null;
+        if ($profileUid !== null && $profileUid !== '') {
+            try {
+                $profilePk = (int) $this->resolveProfile($userId, $profileUid)->id;
+                $filters['profile_pk'] = $profilePk;
+            } catch (\Throwable) {
+                // 越权访问 / profile 不存在 → 强制 0 行
+                $filters['profile_pk'] = -1;
+            }
+        }
+
         $result = $this->queryLogReader->logs($userId, $filters);
 
         return [
@@ -362,7 +385,7 @@ final class UserWorkspaceService
             'plan' => $user->plan_code ?: 'free',
             'current_plan' => $currentPlan,
             'plans' => $plans,
-            'stats' => $this->analytics($userId),
+            'stats' => $this->analytics($userId, null),
             'orders' => $this->orders($userId),
         ];
     }

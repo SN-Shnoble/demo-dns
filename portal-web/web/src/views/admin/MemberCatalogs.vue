@@ -5,14 +5,8 @@
         icon-name="Grid"
         :total="totalItems"
         :show-pagination="false"
-        @refresh="fetchCatalogs"
+        @refresh="fetchAll"
     >
-        <template #actions>
-            <el-button type="primary" :loading="saving" @click="handleSave">
-                {{ $t('admin.memberCatalogs.save') }}
-            </el-button>
-        </template>
-
         <el-tabs v-model="activeTab" class="catalog-tabs">
             <!-- 黑名单 Tab：用户 deny 规则 -->
             <el-tab-pane :label="$t('admin.memberCatalogs.tabDenyList')" name="denylist">
@@ -30,169 +24,373 @@
                         </div>
                     </template>
                     <el-table :data="rules" stripe @selection-change="selectedRules = $event">
+                        <template #empty>
+                            <div class="empty-state">
+                                <el-icon class="empty-icon"><Grid /></el-icon>
+                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                            </div>
+                        </template>
                         <el-table-column type="selection" width="44" />
-                        <el-table-column prop="list_type" :label="$t('admin.memberCatalogs.type')" width="90" />
-                        <el-table-column prop="domain" :label="$t('admin.memberCatalogs.domain')" min-width="220" show-overflow-tooltip />
-                        <el-table-column prop="profile_name" :label="$t('admin.memberCatalogs.profile')" width="180" show-overflow-tooltip />
-                        <el-table-column prop="user_id" :label="$t('admin.memberCatalogs.user')" min-width="160" show-overflow-tooltip />
-                        <el-table-column prop="match_type" :label="$t('admin.memberCatalogs.matchType')" width="100" />
-                        <el-table-column prop="enabled" :label="$t('admin.memberCatalogs.enabled')" width="80">
+                        <el-table-column :label="$t('admin.memberCatalogs.user')" min-width="180" show-overflow-tooltip>
+                            <template #default="{ row }">
+                                <div class="user-cell">
+                                    <span class="cell-primary">{{ row.username || row.user_email || '-' }}</span>
+                                    <span v-if="row.user_id" class="cell-sub">uid: {{ row.user_id }}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('admin.memberCatalogs.profileId')" width="160" show-overflow-tooltip>
+                            <template #default="{ row }">
+                                <div class="profile-cell">
+                                    <span class="cell-primary">{{ row.profile_uid || row.profile_id || '-' }}</span>
+                                    <span v-if="row.profile_name" class="cell-sub">{{ row.profile_name }}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('admin.memberCatalogs.type')" width="90">
+                            <template #default="{ row }">
+                                <el-tag size="small" :type="row.list_type === 'deny' || row.list_type === 'denylist' ? 'danger' : 'success'" effect="light">
+                                    {{ row.list_type === 'allow' || row.list_type === 'allowlist' ? $t('admin.memberCatalogs.allow') : $t('admin.memberCatalogs.deny') }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('admin.memberCatalogs.domain')" min-width="220" prop="domain" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.matchType')" width="100" prop="match_type" />
+                        <el-table-column :label="$t('admin.memberCatalogs.enabled')" width="80">
                             <template #default="{ row }">{{ row.enabled ? $t('common.yes') : $t('common.no') }}</template>
                         </el-table-column>
-                        <el-table-column :label="$t('common.actions')" width="80">
+                        <el-table-column :label="$t('common.actions')" width="80" fixed="right">
                             <template #default="{ row }">
                                 <el-button text type="danger" @click="deleteRule(row.id)">{{ $t('common.delete') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
+                    <div v-if="rulesMeta" class="pagination-bar">
+                        <div class="pagination-total">
+                            {{ $t('common.totalPrefix') }} <strong>{{ rulesMeta.total }}</strong> {{ $t('common.itemsSuffix') }}
+                        </div>
+                        <el-pagination
+                            v-model:current-page="rulesPage"
+                            v-model:page-size="rulesPerPage"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="rulesMeta.total"
+                            layout="sizes, prev, pager, next"
+                            background
+                            size="small"
+                            @size-change="(s) => { rulesPerPage = s; rulesPage = 1; fetchRules() }"
+                            @current-change="() => fetchRules()"
+                        />
+                    </div>
                 </el-card>
             </el-tab-pane>
 
-            <!-- 设备型号 Tab -->
+            <!-- 设备型号 Tab：标准列表格式 + 分页 -->
             <el-tab-pane :label="$t('admin.memberCatalogs.tabDeviceModels')" name="device_models">
                 <el-card shadow="never">
-                    <EditableTable
-                        :rows="catalogs.device_models"
-                        :columns="columns.device_models"
-                        @add="addRow('device_models')"
-                        @remove="removeRow('device_models', $event)"
-                    />
+                    <template #header>
+                        <div class="rules-head">
+                            <strong>{{ $t('admin.memberCatalogs.deviceModels') }}</strong>
+                            <div class="rules-filters">
+                                <el-input v-model="deviceModelFilter.name" :placeholder="$t('admin.memberCatalogs.searchName')" clearable style="width: 220px" @keyup.enter="fetchCatalogs" />
+                                <el-button @click="fetchCatalogs">{{ $t('common.search') }}</el-button>
+                                <el-button type="primary" @click="openAddDialog('device_models')">{{ $t('common.add') }}</el-button>
+                            </div>
+                        </div>
+                    </template>
+                    <el-table :data="pagedRows('device_models')" stripe>
+                        <template #empty>
+                            <div class="empty-state">
+                                <el-icon class="empty-icon"><Grid /></el-icon>
+                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                            </div>
+                        </template>
+                        <el-table-column :label="$t('admin.memberCatalogs.id')" prop="id" min-width="140" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.name')" prop="name" min-width="140" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.description')" prop="desc" min-width="240" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.icon')" min-width="260" show-overflow-tooltip>
+                            <template #default="{ row }">
+                                <span v-if="row.icon" class="cell-sub">{{ row.icon }}</span>
+                                <span v-else>-</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('admin.memberCatalogs.color')" width="100">
+                            <template #default="{ row }">
+                                <el-tag v-if="row.color" size="small" :style="{ backgroundColor: row.color, color: '#fff', borderColor: row.color }">{{ row.color }}</el-tag>
+                                <span v-else>-</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('common.actions')" width="160" fixed="right">
+                            <template #default="{ row, $index }">
+                                <el-button text type="primary" @click="openEditDialog('device_models', $index)">{{ $t('common.edit') }}</el-button>
+                                <el-button text type="danger" @click="removeRow('device_models', $index)">{{ $t('common.delete') }}</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div class="pagination-bar">
+                        <div class="pagination-total">
+                            {{ $t('common.totalPrefix') }} <strong>{{ filteredRows('device_models').length }}</strong> {{ $t('common.itemsSuffix') }}
+                        </div>
+                        <el-pagination
+                            v-model:current-page="deviceModelsPage"
+                            v-model:page-size="deviceModelsPerPage"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="filteredRows('device_models').length"
+                            layout="sizes, prev, pager, next"
+                            background
+                            size="small"
+                        />
+                    </div>
                 </el-card>
             </el-tab-pane>
 
-            <!-- 隐私 Blocklists Tab -->
+            <!-- 隐私 Blocklists Tab：标准列表格式 + 分页 -->
             <el-tab-pane :label="$t('admin.memberCatalogs.tabBlocklists')" name="privacy_blocklists">
                 <el-card shadow="never">
-                    <EditableTable
-                        :rows="catalogs.privacy_blocklists"
-                        :columns="columns.privacy_blocklists"
-                        @add="addRow('privacy_blocklists')"
-                        @remove="removeRow('privacy_blocklists', $event)"
-                    />
+                    <template #header>
+                        <div class="rules-head">
+                            <strong>{{ $t('admin.memberCatalogs.blocklists') }}</strong>
+                            <div class="rules-filters">
+                                <el-input v-model="blocklistFilter.name" :placeholder="$t('admin.memberCatalogs.searchName')" clearable style="width: 220px" @keyup.enter="fetchCatalogs" />
+                                <el-button @click="fetchCatalogs">{{ $t('common.search') }}</el-button>
+                                <el-button type="primary" @click="openAddDialog('privacy_blocklists')">{{ $t('common.add') }}</el-button>
+                            </div>
+                        </div>
+                    </template>
+                    <el-table :data="pagedRows('privacy_blocklists')" stripe>
+                        <template #empty>
+                            <div class="empty-state">
+                                <el-icon class="empty-icon"><Grid /></el-icon>
+                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                            </div>
+                        </template>
+                        <el-table-column :label="$t('admin.memberCatalogs.id')" prop="key" min-width="160" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.name')" prop="name" min-width="160" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.description')" prop="desc" min-width="280" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.entries')" prop="entries" width="120" align="right" />
+                        <el-table-column :label="$t('admin.memberCatalogs.updatedDays')" prop="days_ago" width="120" align="right" />
+                        <el-table-column :label="$t('common.actions')" width="160" fixed="right">
+                            <template #default="{ row, $index }">
+                                <el-button text type="primary" @click="openEditDialog('privacy_blocklists', $index)">{{ $t('common.edit') }}</el-button>
+                                <el-button text type="danger" @click="removeRow('privacy_blocklists', $index)">{{ $t('common.delete') }}</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div class="pagination-bar">
+                        <div class="pagination-total">
+                            {{ $t('common.totalPrefix') }} <strong>{{ filteredRows('privacy_blocklists').length }}</strong> {{ $t('common.itemsSuffix') }}
+                        </div>
+                        <el-pagination
+                            v-model:current-page="blocklistsPage"
+                            v-model:page-size="blocklistsPerPage"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="filteredRows('privacy_blocklists').length"
+                            layout="sizes, prev, pager, next"
+                            background
+                            size="small"
+                        />
+                    </div>
                 </el-card>
             </el-tab-pane>
 
-            <!-- 家长（预设 + 分类）Tab -->
+            <!-- 家长（预设 + 分类）Tab：标准列表格式 + 分页 -->
             <el-tab-pane :label="$t('admin.memberCatalogs.tabParental')" name="parental">
                 <el-card shadow="never" style="margin-bottom: 16px;">
                     <template #header>
-                        <strong>{{ $t('admin.memberCatalogs.presets') }}</strong>
+                        <div class="rules-head">
+                            <strong>{{ $t('admin.memberCatalogs.presets') }}</strong>
+                            <div class="rules-filters">
+                                <el-input v-model="presetFilter.name" :placeholder="$t('admin.memberCatalogs.searchName')" clearable style="width: 220px" @keyup.enter="fetchCatalogs" />
+                                <el-button @click="fetchCatalogs">{{ $t('common.search') }}</el-button>
+                                <el-button type="primary" @click="openAddDialog('parental_presets')">{{ $t('common.add') }}</el-button>
+                            </div>
+                        </div>
                     </template>
-                    <EditableTable
-                        :rows="catalogs.parental_presets"
-                        :columns="columns.parental_presets"
-                        @add="addRow('parental_presets')"
-                        @remove="removeRow('parental_presets', $event)"
-                    />
+                    <el-table :data="pagedRows('parental_presets')" stripe>
+                        <template #empty>
+                            <div class="empty-state">
+                                <el-icon class="empty-icon"><Grid /></el-icon>
+                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                            </div>
+                        </template>
+                        <el-table-column :label="$t('admin.memberCatalogs.name')" prop="name" min-width="160" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.icon')" min-width="320" show-overflow-tooltip>
+                            <template #default="{ row }">
+                                <div class="icon-cell">
+                                    <el-image v-if="row.icon" :src="row.icon" style="width:24px;height:24px;border-radius:4px" fit="cover" />
+                                    <span class="cell-sub">{{ row.icon || '-' }}</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('admin.memberCatalogs.category')" width="140">
+                            <template #default="{ row }">
+                                <el-tag size="small" effect="light">{{ row.category }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column :label="$t('common.actions')" width="160" fixed="right">
+                            <template #default="{ row, $index }">
+                                <el-button text type="primary" @click="openEditDialog('parental_presets', $index)">{{ $t('common.edit') }}</el-button>
+                                <el-button text type="danger" @click="removeRow('parental_presets', $index)">{{ $t('common.delete') }}</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div class="pagination-bar">
+                        <div class="pagination-total">
+                            {{ $t('common.totalPrefix') }} <strong>{{ filteredRows('parental_presets').length }}</strong> {{ $t('common.itemsSuffix') }}
+                        </div>
+                        <el-pagination
+                            v-model:current-page="presetsPage"
+                            v-model:page-size="presetsPerPage"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="filteredRows('parental_presets').length"
+                            layout="sizes, prev, pager, next"
+                            background
+                            size="small"
+                        />
+                    </div>
                 </el-card>
                 <el-card shadow="never">
                     <template #header>
-                        <strong>{{ $t('admin.memberCatalogs.categories') }}</strong>
+                        <div class="rules-head">
+                            <strong>{{ $t('admin.memberCatalogs.categories') }}</strong>
+                            <div class="rules-filters">
+                                <el-input v-model="categoryFilter.name" :placeholder="$t('admin.memberCatalogs.searchName')" clearable style="width: 220px" @keyup.enter="fetchCatalogs" />
+                                <el-button @click="fetchCatalogs">{{ $t('common.search') }}</el-button>
+                                <el-button type="primary" @click="openAddDialog('parental_categories')">{{ $t('common.add') }}</el-button>
+                            </div>
+                        </div>
                     </template>
-                    <EditableTable
-                        :rows="catalogs.parental_categories"
-                        :columns="columns.parental_categories"
-                        @add="addRow('parental_categories')"
-                        @remove="removeRow('parental_categories', $event)"
-                    />
+                    <el-table :data="pagedRows('parental_categories')" stripe>
+                        <template #empty>
+                            <div class="empty-state">
+                                <el-icon class="empty-icon"><Grid /></el-icon>
+                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                            </div>
+                        </template>
+                        <el-table-column :label="$t('admin.memberCatalogs.id')" prop="key" min-width="160" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.name')" prop="name" min-width="160" show-overflow-tooltip />
+                        <el-table-column :label="$t('admin.memberCatalogs.description')" prop="desc" min-width="320" show-overflow-tooltip />
+                        <el-table-column :label="$t('common.actions')" width="160" fixed="right">
+                            <template #default="{ row, $index }">
+                                <el-button text type="primary" @click="openEditDialog('parental_categories', $index)">{{ $t('common.edit') }}</el-button>
+                                <el-button text type="danger" @click="removeRow('parental_categories', $index)">{{ $t('common.delete') }}</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    <div class="pagination-bar">
+                        <div class="pagination-total">
+                            {{ $t('common.totalPrefix') }} <strong>{{ filteredRows('parental_categories').length }}</strong> {{ $t('common.itemsSuffix') }}
+                        </div>
+                        <el-pagination
+                            v-model:current-page="categoriesPage"
+                            v-model:page-size="categoriesPerPage"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :total="filteredRows('parental_categories').length"
+                            layout="sizes, prev, pager, next"
+                            background
+                            size="small"
+                        />
+                    </div>
                 </el-card>
             </el-tab-pane>
         </el-tabs>
     </ListPage>
+
+    <el-dialog v-model="showRowDialog" :title="editingIndex === null ? $t('common.add') : $t('common.edit')" width="560">
+        <el-form :model="rowForm" label-position="top">
+            <el-form-item v-if="hasField('key')" :label="$t('admin.memberCatalogs.id')">
+                <el-input v-model="rowForm.key" />
+            </el-form-item>
+            <el-form-item v-if="hasField('id')" :label="$t('admin.memberCatalogs.id')">
+                <el-input v-model="rowForm.id" />
+            </el-form-item>
+            <el-form-item v-if="hasField('name')" :label="$t('admin.memberCatalogs.name')">
+                <el-input v-model="rowForm.name" />
+            </el-form-item>
+            <el-form-item v-if="hasField('desc')" :label="$t('admin.memberCatalogs.description')">
+                <el-input v-model="rowForm.desc" type="textarea" :rows="2" />
+            </el-form-item>
+            <el-form-item v-if="hasField('icon')" :label="$t('admin.memberCatalogs.icon')">
+                <el-input v-model="rowForm.icon" />
+            </el-form-item>
+            <el-form-item v-if="hasField('color')" :label="$t('admin.memberCatalogs.color')">
+                <el-input v-model="rowForm.color" />
+            </el-form-item>
+            <el-form-item v-if="hasField('entries')" :label="$t('admin.memberCatalogs.entries')">
+                <el-input-number v-model="rowForm.entries" :min="0" />
+            </el-form-item>
+            <el-form-item v-if="hasField('days_ago')" :label="$t('admin.memberCatalogs.updatedDays')">
+                <el-input-number v-model="rowForm.days_ago" :min="0" />
+            </el-form-item>
+            <el-form-item v-if="hasField('category')" :label="$t('admin.memberCatalogs.category')">
+                <el-select v-model="rowForm.category" style="width:100%">
+                    <el-option label="website" value="website" />
+                    <el-option label="app" value="app" />
+                    <el-option label="game" value="game" />
+                </el-select>
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="showRowDialog = false">{{ $t('common.cancel') }}</el-button>
+            <el-button type="primary" :loading="saving" @click="handleSaveRow">{{ $t('common.confirm') }}</el-button>
+        </template>
+    </el-dialog>
 </template>
 
 <script setup>
-import { computed, defineComponent, h, ref, reactive } from 'vue'
-import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElOption, ElSelect, ElTable, ElTableColumn, ElTabs, ElTabPane } from 'element-plus'
+import { computed, ref, reactive, watch } from 'vue'
+import { ElButton, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElOption, ElSelect, ElTable, ElTableColumn, ElTabs, ElTabPane, ElDialog, ElForm, ElFormItem, ElTag, ElImage, ElIcon } from 'element-plus'
+import { Grid } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 
 const { t } = useI18n()
 
-const EditableTable = defineComponent({
-    props: {
-        rows: { type: Array, required: true },
-        columns: { type: Array, required: true },
-    },
-    emits: ['add', 'remove'],
-    setup(props, { emit }) {
-        return () => h('div', [
-            h(ElButton, { type: 'primary', plain: true, onClick: () => emit('add'), style: 'margin-bottom:12px' }, () => t('admin.memberCatalogs.addRow')),
-            h(ElTable, { data: props.rows, stripe: true, style: 'width:100%' }, () => [
-                ...props.columns.map((column) => h(ElTableColumn, {
-                    label: column.label,
-                    minWidth: column.width || 160,
-                }, {
-                    default: ({ row }) => column.type === 'number'
-                        ? h(ElInputNumber, {
-                            modelValue: row[column.key],
-                            'onUpdate:modelValue': (value) => { row[column.key] = value },
-                            min: 0,
-                            style: 'width:100%',
-                        })
-                        : column.type === 'select'
-                            ? h(ElSelect, {
-                                modelValue: row[column.key],
-                                'onUpdate:modelValue': (value) => { row[column.key] = value },
-                                style: 'width:100%',
-                            }, () => column.options.map((option) => h(ElOption, { value: option, label: option })))
-                            : h(ElInput, {
-                                modelValue: row[column.key],
-                                'onUpdate:modelValue': (value) => { row[column.key] = value },
-                            }),
-                })),
-                h(ElTableColumn, { label: t('common.actions'), width: 86 }, {
-                    default: ({ $index }) => h(ElButton, { text: true, type: 'danger', onClick: () => emit('remove', $index) }, () => t('common.delete')),
-                }),
-            ]),
-        ])
-    },
-})
-
 const activeTab = ref('denylist')
-
 const saving = ref(false)
+
 const catalogs = reactive({
     device_models: [],
     privacy_blocklists: [],
     parental_presets: [],
     parental_categories: [],
 })
+
 const rules = ref([])
+const rulesMeta = ref(null)
 const selectedRules = ref([])
 const ruleFilter = reactive({ list_type: 'deny', domain: '' })
+const rulesPage = ref(1)
+const rulesPerPage = ref(20)
 
-// 转为 computed，让 i18n 切换语言时列头同步刷新
-const columns = computed(() => ({
-    device_models: [
-        { key: 'id', label: t('admin.memberCatalogs.id') },
-        { key: 'name', label: t('admin.memberCatalogs.name') },
-        { key: 'desc', label: t('admin.memberCatalogs.description'), width: 220 },
-        { key: 'icon', label: t('admin.memberCatalogs.icon') },
-        { key: 'color', label: t('admin.memberCatalogs.color'), width: 120 },
-    ],
-    privacy_blocklists: [
-        { key: 'key', label: 'Key' },
-        { key: 'name', label: t('admin.memberCatalogs.name') },
-        { key: 'desc', label: t('admin.memberCatalogs.description'), width: 240 },
-        { key: 'entries', label: t('admin.memberCatalogs.entries'), type: 'number', width: 120 },
-        { key: 'days_ago', label: t('admin.memberCatalogs.updatedDays'), type: 'number', width: 130 },
-    ],
-    parental_presets: [
-        { key: 'name', label: t('admin.memberCatalogs.name') },
-        { key: 'icon', label: t('admin.memberCatalogs.icon'), width: 240 },
-        { key: 'category', label: t('admin.memberCatalogs.category'), type: 'select', options: ['website', 'app', 'game'], width: 120 },
-    ],
-    parental_categories: [
-        { key: 'key', label: 'Key' },
-        { key: 'name', label: t('admin.memberCatalogs.name') },
-        { key: 'desc', label: t('admin.memberCatalogs.description'), width: 260 },
-    ],
-}))
+// 4 个列表 tab 各自的分页 state
+const deviceModelsPage = ref(1)
+const deviceModelsPerPage = ref(10)
+const blocklistsPage = ref(1)
+const blocklistsPerPage = ref(10)
+const presetsPage = ref(1)
+const presetsPerPage = ref(10)
+const categoriesPage = ref(1)
+const categoriesPerPage = ref(10)
 
-const totalItems = computed(() => catalogs.device_models.length + catalogs.privacy_blocklists.length + catalogs.parental_presets.length + catalogs.parental_categories.length)
+// 4 个列表 tab 各自的过滤条件
+const deviceModelFilter = reactive({ name: '' })
+const blocklistFilter = reactive({ name: '' })
+const presetFilter = reactive({ name: '' })
+const categoryFilter = reactive({ name: '' })
 
+// 行编辑 dialog
+const showRowDialog = ref(false)
+const editingTab = ref(null)
+const editingIndex = ref(null)
+const rowForm = reactive({})
+
+const fieldsPerTab = {
+    device_models: ['id', 'name', 'desc', 'icon', 'color'],
+    privacy_blocklists: ['key', 'name', 'desc', 'entries', 'days_ago'],
+    parental_presets: ['name', 'icon', 'category'],
+    parental_categories: ['key', 'name', 'desc'],
+}
 const createDefaults = {
     device_models: () => ({ id: '', name: '', desc: '', icon: '', color: '' }),
     privacy_blocklists: () => ({ key: '', name: '', desc: '', entries: 0, days_ago: 0 }),
@@ -200,17 +398,61 @@ const createDefaults = {
     parental_categories: () => ({ key: '', name: '', desc: '' }),
 }
 
-const addRow = (key) => {
-    catalogs[key].push(createDefaults[key]())
+const hasField = (key) => fieldsPerTab[editingTab.value]?.includes(key) ?? false
+
+const totalItems = computed(() =>
+    catalogs.device_models.length
+    + catalogs.privacy_blocklists.length
+    + catalogs.parental_presets.length
+    + catalogs.parental_categories.length
+)
+
+// 过滤 + 分页：根据 tab 名称返回当前页的数据
+const filterMap = {
+    device_models: deviceModelFilter,
+    privacy_blocklists: blocklistFilter,
+    parental_presets: presetFilter,
+    parental_categories: categoryFilter,
+}
+const pageMap = {
+    device_models: { page: deviceModelsPage, perPage: deviceModelsPerPage },
+    privacy_blocklists: { page: blocklistsPage, perPage: blocklistsPerPage },
+    parental_presets: { page: presetsPage, perPage: presetsPerPage },
+    parental_categories: { page: categoriesPage, perPage: categoriesPerPage },
 }
 
-const removeRow = (key, index) => {
-    catalogs[key].splice(index, 1)
+const filteredRows = (key) => {
+    const filter = filterMap[key]
+    const rows = catalogs[key] || []
+    if (!filter?.name) return rows
+    const kw = filter.name.toLowerCase()
+    return rows.filter((row) => Object.values(row || {}).some((v) => String(v ?? '').toLowerCase().includes(kw)))
+}
+
+const pagedRows = (key) => {
+    const { page, perPage } = pageMap[key]
+    const rows = filteredRows(key)
+    const start = (page.value - 1) * perPage.value
+    return rows.slice(start, start + perPage.value)
+}
+
+// 过滤条件变化时重置到第一页
+watch(() => deviceModelFilter.name, () => { deviceModelsPage.value = 1 })
+watch(() => blocklistFilter.name, () => { blocklistsPage.value = 1 })
+watch(() => presetFilter.name, () => { presetsPage.value = 1 })
+watch(() => categoryFilter.name, () => { categoriesPage.value = 1 })
+
+const fetchAll = async () => {
+    await Promise.all([fetchCatalogs(), fetchRules()])
 }
 
 const fetchCatalogs = async () => {
-    const { data } = await client.get('/admin/member-catalogs')
-    Object.assign(catalogs, data.data || {})
+    try {
+        const { data } = await client.get('/admin/member-catalogs')
+        Object.assign(catalogs, data.data || {})
+    } catch (error) {
+        // 静默失败保留旧值
+    }
 }
 
 const handleSave = async () => {
@@ -227,8 +469,21 @@ const handleSave = async () => {
 }
 
 const fetchRules = async () => {
-    const { data } = await client.get('/admin/member-rules', { params: ruleFilter })
-    rules.value = data.data || []
+    try {
+        const { data } = await client.get('/admin/member-rules', {
+            params: {
+                list_type: ruleFilter.list_type,
+                domain: ruleFilter.domain,
+                page: rulesPage.value,
+                per_page: rulesPerPage.value,
+            },
+        })
+        rules.value = data.data || []
+        rulesMeta.value = data.meta || null
+    } catch (error) {
+        rules.value = []
+        rulesMeta.value = null
+    }
 }
 
 const deleteRule = async (id) => {
@@ -260,8 +515,48 @@ const batchDeleteRules = async () => {
     }
 }
 
-fetchCatalogs()
-fetchRules()
+const removeRow = (key, index) => {
+    catalogs[key].splice(index, 1)
+}
+
+const openAddDialog = (key) => {
+    editingTab.value = key
+    editingIndex.value = null
+    Object.keys(rowForm).forEach((k) => delete rowForm[k])
+    Object.assign(rowForm, createDefaults[key]())
+    showRowDialog.value = true
+}
+
+const openEditDialog = (key, index) => {
+    editingTab.value = key
+    editingIndex.value = index
+    const source = catalogs[key][index] || {}
+    Object.keys(rowForm).forEach((k) => delete rowForm[k])
+    Object.assign(rowForm, createDefaults[key](), source)
+    showRowDialog.value = true
+}
+
+const handleSaveRow = async () => {
+    if (editingIndex.value === null) {
+        catalogs[editingTab.value].push({ ...rowForm })
+    } else {
+        catalogs[editingTab.value].splice(editingIndex.value, 1, { ...rowForm })
+    }
+    showRowDialog.value = false
+    // 单行编辑后立即持久化
+    try {
+        saving.value = true
+        await client.put('/admin/member-catalogs', catalogs)
+        ElMessage.success(t('admin.memberCatalogs.saved'))
+        await fetchCatalogs()
+    } catch (error) {
+        ElMessage.error(error.response?.data?.message || t('admin.memberCatalogs.saveFailed'))
+    } finally {
+        saving.value = false
+    }
+}
+
+fetchAll()
 </script>
 
 <style scoped>
@@ -282,4 +577,53 @@ fetchRules()
     gap: 10px;
     flex-wrap: wrap;
 }
+.user-cell, .profile-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.cell-primary {
+    color: #0f172a;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.cell-sub {
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.icon-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+.pagination-total {
+    font-size: 13px;
+    color: #64748b;
+}
+.pagination-total strong {
+    color: #0f172a;
+    font-weight: 600;
+    margin: 0 2px;
+}
+.empty-state { padding: 40px 0; text-align: center; color: #64748b; }
+.empty-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 12px; }
+.empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }
 </style>

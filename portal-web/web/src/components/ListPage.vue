@@ -48,7 +48,7 @@
                     @size-change="onSizeChange"
                     @current-change="onCurrentChange"
                     background
-                    small
+                    size="small"
                 />
             </div>
         </el-card>
@@ -205,6 +205,22 @@ const onCurrentChange = (page) => {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+}
+.card-actions :deep(.el-input),
+.card-actions :deep(.el-select),
+.card-actions :deep(.el-date-editor),
+.card-actions :deep(.el-button) {
+    height: 32px;
+    min-height: 32px;
+}
+.card-actions :deep(.el-input__wrapper),
+.card-actions :deep(.el-select .el-input__wrapper),
+.card-actions :deep(.el-date-editor .el-input__wrapper) {
+    min-height: 32px !important;
+    box-sizing: border-box;
+}
+.card-actions :deep(.el-button) {
+    white-space: nowrap;
 }
 .refresh-btn {
     display: inline-flex;

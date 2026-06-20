@@ -12,6 +12,10 @@ namespace App\Infrastructure\ClickHouse;
  * (fallback) sample. We never throw past the service boundary — that
  * would block a member's dashboard because the analytics store is
  * down.
+ *
+ * All methods accept an optional `?string $profileId` to scope analytics
+ * to a single configuration profile. When null, queries are user-scoped
+ * only (legacy behavior).
  */
 final class UserAnalyticsService
 {
@@ -34,23 +38,18 @@ final class UserAnalyticsService
      *   top_blocked: array<int, array{domain: string, count: int}>
      * }
      */
-    public function summaryForUser(string $userId): array
+    public function summaryForUser(string $userId, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
-            return [
-                'today_queries' => 0,
-                'today_blocked' => 0,
-                'period_queries' => 0,
-                'top_domains' => [],
-                'top_blocked' => [],
-            ];
+            return $this->emptySummary();
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 24 HOUR');
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT count() AS total, countIf(action = \'BLOCK\') AS blocked '.
-                'FROM dns_logs WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 24 HOUR',
-                ['uid' => $userId]
+                'FROM dns_logs WHERE '.$where,
+                $this->paramsFor($userId, $profileId)
             );
         } catch (\RuntimeException) {
             return $this->emptySummary();
@@ -64,26 +63,25 @@ final class UserAnalyticsService
             'today_queries'  => $todayQueries,
             'today_blocked'  => $todayBlocked,
             'period_queries' => $todayQueries,
-            'top_domains'    => $this->topDomains($userId, 'all'),
-            'top_blocked'    => $this->topDomains($userId, 'BLOCK'),
+            'top_domains'    => $this->topDomains($userId, 'all', $profileId),
+            'top_blocked'    => $this->topDomains($userId, 'BLOCK', $profileId),
         ];
     }
 
     /**
      * @return array<int, array{domain: string, count: int}>
      */
-    public function topDomains(string $userId, string $actionFilter = 'all'): array
+    public function topDomains(string $userId, string $actionFilter = 'all', ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
 
-        $where = 'user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY';
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY');
+        $params = $this->paramsFor($userId, $profileId);
         if (strtoupper($actionFilter) === 'BLOCK') {
             $where .= ' AND action = {act:String}';
-            $params = ['uid' => $userId, 'act' => 'BLOCK'];
-        } else {
-            $params = ['uid' => $userId];
+            $params['act'] = 'BLOCK';
         }
 
         try {
@@ -111,24 +109,27 @@ final class UserAnalyticsService
     }
 
     /**
-     * Domains that were allowed (action != 'BLOCK').
-     * Includes manually allowlisted domains and domains not matched by any block rule.
-     *
      * @return array<int, array{domain: string, count: int}>
      */
-    public function allowedDomains(string $userId, int $limit = 20): array
+    public function allowedDomains(string $userId, int $limit = 20, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY')
+            .' AND action <> {blocked:String}';
+        $params = array_merge($this->paramsFor($userId, $profileId), [
+            'blocked' => 'BLOCK',
+            'lim'     => $limit,
+        ]);
+
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT domain, count() AS hits FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND action <> {blocked:String} '.
-                'AND timestamp >= now() - INTERVAL 7 DAY '.
+                'WHERE '.$where.' '.
                 'GROUP BY domain ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'blocked' => 'BLOCK', 'lim' => $limit]
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -138,24 +139,27 @@ final class UserAnalyticsService
     }
 
     /**
-     * Domains that were blocked (action = 'BLOCK').
-     * Includes manually blocklisted domains and domains blocked by security/privacy/parental rules.
-     *
      * @return array<int, array{domain: string, count: int}>
      */
-    public function blockedDomains(string $userId, int $limit = 20): array
+    public function blockedDomains(string $userId, int $limit = 20, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY')
+            .' AND action = {blocked:String}';
+        $params = array_merge($this->paramsFor($userId, $profileId), [
+            'blocked' => 'BLOCK',
+            'lim'     => $limit,
+        ]);
+
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT domain, count() AS hits FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND action = {blocked:String} '.
-                'AND timestamp >= now() - INTERVAL 7 DAY '.
+                'WHERE '.$where.' '.
                 'GROUP BY domain ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'blocked' => 'BLOCK', 'lim' => $limit]
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -165,24 +169,27 @@ final class UserAnalyticsService
     }
 
     /**
-     * Top block reasons — which security/privacy/parental rules blocked the most queries.
-     *
      * @return array<int, array{reason: string, count: int}>
      */
-    public function blockReasons(string $userId, int $limit = 10): array
+    public function blockReasons(string $userId, int $limit = 10, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
+
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY')
+            .' AND action = {blocked:String} AND reason <> \'\' AND reason IS NOT NULL';
+        $params = array_merge($this->paramsFor($userId, $profileId), [
+            'blocked' => 'BLOCK',
+            'lim'     => $limit,
+        ]);
 
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT reason, count() AS hits FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND action = {blocked:String} '.
-                'AND timestamp >= now() - INTERVAL 7 DAY '.
-                'AND reason <> \'\' AND reason IS NOT NULL '.
+                'WHERE '.$where.' '.
                 'GROUP BY reason ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'blocked' => 'BLOCK', 'lim' => $limit]
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -202,23 +209,24 @@ final class UserAnalyticsService
     }
 
     /**
-     * Top devices by query count.
-     *
      * @return array<int, array{device_id: string, count: int}>
      */
-    public function topDevices(string $userId, int $limit = 10): array
+    public function topDevices(string $userId, int $limit = 10, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY')
+            .' AND device_id <> \'\' AND device_id IS NOT NULL';
+        $params = array_merge($this->paramsFor($userId, $profileId), ['lim' => $limit]);
+
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT device_id, count() AS hits FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY '.
-                'AND device_id <> \'\' AND device_id IS NOT NULL '.
+                'WHERE '.$where.' '.
                 'GROUP BY device_id ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'lim' => $limit]
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -238,23 +246,24 @@ final class UserAnalyticsService
     }
 
     /**
-     * Top client IP addresses by query count.
-     *
      * @return array<int, array{client_ip: string, count: int}>
      */
-    public function topClientIps(string $userId, int $limit = 10): array
+    public function topClientIps(string $userId, int $limit = 10, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY')
+            .' AND client_ip_hash <> \'\' AND client_ip_hash IS NOT NULL';
+        $params = array_merge($this->paramsFor($userId, $profileId), ['lim' => $limit]);
+
         try {
             $rows = $this->client->jsonSelect(
-                'SELECT client_ip, count() AS hits FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY '.
-                'AND client_ip <> \'\' AND client_ip IS NOT NULL '.
-                'GROUP BY client_ip ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'lim' => $limit]
+                'SELECT client_ip_hash AS client_ip, count() AS hits FROM dns_logs '.
+                'WHERE '.$where.' '.
+                'GROUP BY client_ip_hash ORDER BY hits DESC LIMIT {lim:UInt32}',
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -274,15 +283,16 @@ final class UserAnalyticsService
     }
 
     /**
-     * Top root domains (base domain, e.g. "google.com" from "www.google.com").
-     *
      * @return array<int, array{domain: string, count: int}>
      */
-    public function topRootDomains(string $userId, int $limit = 20): array
+    public function topRootDomains(string $userId, int $limit = 20, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return [];
         }
+
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY');
+        $params = array_merge($this->paramsFor($userId, $profileId), ['lim' => $limit]);
 
         try {
             $rows = $this->client->jsonSelect(
@@ -291,9 +301,9 @@ final class UserAnalyticsService
                 '  arrayElement(splitByString(\'.\', domain), -1) AS root_domain, '.
                 '  count() AS hits '.
                 'FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY '.
+                'WHERE '.$where.' '.
                 'GROUP BY root_domain ORDER BY hits DESC LIMIT {lim:UInt32}',
-                ['uid' => $userId, 'lim' => $limit]
+                $params
             );
         } catch (\RuntimeException) {
             return [];
@@ -313,24 +323,23 @@ final class UserAnalyticsService
     }
 
     /**
-     * Percentage of queries using encrypted DNS (DoH / DoT / RFC 8484).
-     *
      * @return array{total: int, encrypted: int, ratio_percent: int}
      */
-    public function encryptedDnsRatio(string $userId): array
+    public function encryptedDnsRatio(string $userId, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return ['total' => 0, 'encrypted' => 0, 'ratio_percent' => 0];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY');
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT '.
                 '  count() AS total, '.
                 '  countIf(protocol IN (\'doh\', \'dot\', \'https\', \'tls\')) AS encrypted '.
                 'FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY',
-                ['uid' => $userId]
+                'WHERE '.$where,
+                $this->paramsFor($userId, $profileId)
             );
         } catch (\RuntimeException) {
             return ['total' => 0, 'encrypted' => 0, 'ratio_percent' => 0];
@@ -349,24 +358,23 @@ final class UserAnalyticsService
     }
 
     /**
-     * Percentage of queries that used DNSSEC validation.
-     *
      * @return array{total: int, validated: int, ratio_percent: int}
      */
-    public function dnssecRatio(string $userId): array
+    public function dnssecRatio(string $userId, ?string $profileId = null): array
     {
         if (! $this->client->ping()) {
             return ['total' => 0, 'validated' => 0, 'ratio_percent' => 0];
         }
 
+        $where = $this->buildWhere($userId, $profileId, interval: 'INTERVAL 7 DAY');
         try {
             $rows = $this->client->jsonSelect(
                 'SELECT '.
                 '  count() AS total, '.
                 '  countIf(dnssec = \'validated\' OR dnssec = \'secure\') AS validated '.
                 'FROM dns_logs '.
-                'WHERE user_id = {uid:String} AND timestamp >= now() - INTERVAL 7 DAY',
-                ['uid' => $userId]
+                'WHERE '.$where,
+                $this->paramsFor($userId, $profileId)
             );
         } catch (\RuntimeException) {
             return ['total' => 0, 'validated' => 0, 'ratio_percent' => 0];
@@ -382,6 +390,30 @@ final class UserAnalyticsService
             'validated'      => $validated,
             'ratio_percent'  => $ratio,
         ];
+    }
+
+    /**
+     * Build a WHERE clause for user (always) and profile (optional) scoping.
+     */
+    private function buildWhere(string $userId, ?string $profileId, string $interval): string
+    {
+        $where = 'user_id = {uid:String} AND timestamp >= now() - '.$interval;
+        if ($profileId !== null && $profileId !== '') {
+            $where .= ' AND profile_id = {pid:String}';
+        }
+        return $where;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function paramsFor(string $userId, ?string $profileId): array
+    {
+        $params = ['uid' => $userId];
+        if ($profileId !== null && $profileId !== '') {
+            $params['pid'] = $profileId;
+        }
+        return $params;
     }
 
     /**

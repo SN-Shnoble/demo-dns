@@ -1,30 +1,13 @@
 <template>
     <ListPage
         :title="$t('admin.rbac.title') || '角色权限管理'"
-        
+
         i18n-key="admin.rbac"
         icon-name="User"
         :total="roles.length"
         :show-pagination="false"
         @refresh="fetchRoles"
     >
-        <template #filters>
-            <el-input
-                v-model="adminFilter"
-                :placeholder="$t('admin.rbac.searchAdmin') || '搜索管理员'"
-                size="small"
-                style="width:200px"
-                clearable
-                @keyup.enter="fetchAdmins"
-            >
-                <template #prefix><el-icon><Search /></el-icon></template>
-            </el-input>
-            <el-button size="small" type="primary" @click="fetchAdmins">
-                <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
-            </el-button>
-        </template>
-
         <template #actions>
             <el-button size="small" type="primary" @click="showAddRole">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
@@ -137,31 +120,6 @@
                 </el-card>
             </el-col>
         </el-row>
-
-        <el-card shadow="never" class="list-card">
-            <template #header>
-                <div class="card-header">
-                    <div class="card-title">
-                        <el-icon class="title-icon is-info"><Avatar /></el-icon>
-                        <span class="title-text">{{ $t('admin.rbac.admins') || '管理员列表' }} ({{ admins.length }})</span>
-                    </div>
-                </div>
-            </template>
-            <el-table :data="admins" stripe :empty-text="$t('common.noData')" v-loading="loadingAdmins">
-                <el-table-column prop="username" :label="$t('admin.rbac.username') || '用户名'" width="150" />
-                <el-table-column prop="email" :label="$t('admin.rbac.email') || '邮箱'" min-width="180" />
-                <el-table-column :label="$t('admin.rbac.roles') || '角色'" min-width="200">
-                    <template #default="{ row }">
-                        <el-tag v-for="r in row.role_list" :key="r.id" size="small" style="margin-right:4px">{{ r.name }}</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column :label="$t('admin.rbac.actions') || '操作'" width="120">
-                    <template #default="{ row }">
-                        <el-button size="small" text type="primary" @click="assignRole(row)">{{ $t('admin.rbac.assignRole') || '分配角色' }}</el-button>
-                    </template>
-                </el-table-column>
-            </el-table>
-        </el-card>
     </ListPage>
 
     <el-dialog v-model="showRoleDialog" :title="editingRole ? ($t('common.edit') || '编辑') : ($t('common.add') || '添加')" width="400px">
@@ -181,23 +139,6 @@
             <el-button type="primary" @click="handleSaveRole" :loading="savingRole">{{ $t('common.confirm') }}</el-button>
         </template>
     </el-dialog>
-
-    <el-dialog v-model="showAssignDialog" :title="$t('admin.rbac.assignRole') || '分配角色'" width="400px">
-        <el-form :model="assignForm" label-position="top">
-            <el-form-item :label="$t('admin.rbac.username') || '管理员'">
-                <el-input v-model="assignForm.username" disabled />
-            </el-form-item>
-            <el-form-item :label="$t('admin.rbac.selectRoles') || '选择角色'">
-                <el-select v-model="assignForm.role_ids" multiple style="width:100%">
-                    <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
-                </el-select>
-            </el-form-item>
-        </el-form>
-        <template #footer>
-            <el-button @click="showAssignDialog = false">{{ $t('common.cancel') }}</el-button>
-            <el-button type="primary" @click="handleAssignRole" :loading="assigning">{{ $t('common.confirm') }}</el-button>
-        </template>
-    </el-dialog>
 </template>
 
 <script setup>
@@ -212,23 +153,16 @@ const { t } = useI18n()
 
 const roles = ref([])
 const allPermissions = ref([])
-const admins = ref([])
 const selectedRole = ref(null)
 const selectedPermissions = ref([])
 const loadingRoles = ref(false)
 const loadingPerms = ref(false)
-const loadingAdmins = ref(false)
 const savingPerms = ref(false)
-const adminFilter = ref('')
 
 const showRoleDialog = ref(false)
 const editingRole = ref(null)
 const roleForm = reactive({ code: '', name: '', description: '' })
 const savingRole = ref(false)
-
-const showAssignDialog = ref(false)
-const assignForm = reactive({ admin_id: '', username: '', role_ids: [] })
-const assigning = ref(false)
 
 // 菜单规则
 const menuTree = ref([])
@@ -285,20 +219,6 @@ const fetchRolePermissions = async (roleId) => {
         selectedPermissions.value = []
     } finally {
         loadingPerms.value = false
-    }
-}
-
-const fetchAdmins = async () => {
-    loadingAdmins.value = true
-    try {
-        const params = {}
-        if (adminFilter.value) params.search = adminFilter.value
-        const { data } = await client.get('/admin/rbac/admins', { params })
-        admins.value = data.data ?? []
-    } catch {
-        admins.value = []
-    } finally {
-        loadingAdmins.value = false
     }
 }
 
@@ -362,29 +282,6 @@ const savePermissions = async () => {
         ElMessage.error(err.response?.data?.message || t('admin.rbac.saveFailed'))
     } finally {
         savingPerms.value = false
-    }
-}
-
-const assignRole = (row) => {
-    assignForm.admin_id = row.id
-    assignForm.username = row.username
-    assignForm.role_ids = row.role_list?.map(r => r.id) ?? []
-    showAssignDialog.value = true
-}
-
-const handleAssignRole = async () => {
-    assigning.value = true
-    try {
-        await client.post(`/admin/rbac/admins/${assignForm.admin_id}/roles`, {
-            role_ids: assignForm.role_ids,
-        })
-        ElMessage.success(t('admin.rbac.assignSuccess') || '角色分配成功')
-        showAssignDialog.value = false
-        fetchAdmins()
-    } catch (err) {
-        ElMessage.error(err.response?.data?.message || (t('admin.rbac.assignFailed') || '分配失败'))
-    } finally {
-        assigning.value = false
     }
 }
 
@@ -490,7 +387,6 @@ watch(selectedMenuRules, () => syncMenuRulesCheckAll())
 onMounted(() => {
     fetchRoles()
     fetchPermissions()
-    fetchAdmins()
 })
 </script>
 

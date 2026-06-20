@@ -54,7 +54,7 @@
             </el-button>
         </template>
 
-        <el-table :data="bills" stripe v-loading="loading" style="width: 100%">
+        <el-table :data="bills" stripe v-loading="loading" style="width: 100%" min-width="1100">
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Tickets /></el-icon>

@@ -147,6 +147,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
     Route::post('query-logs/batch-destroy', [AdminQueryLogController::class, 'batchDestroy'])->middleware('permission:admin.query_logs.delete');
     Route::delete('query-logs', [AdminQueryLogController::class, 'clearAll'])->middleware('permission:admin.query_logs.delete');
 
+    // Admin profile listing for filter dropdowns
+    Route::get('profiles', [AdminQueryLogController::class, 'profiles'])->middleware('permission:admin.query_logs.read');
+
     // System Config
     Route::get('system-config', [AdminSystemConfigController::class, 'show'])->middleware('permission:admin.system_config.read');
     Route::put('system-config', [AdminSystemConfigController::class, 'update'])->middleware('permission:admin.system_config.write');
@@ -184,6 +187,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
     Route::middleware('permission:admin.geo_dns.read')->group(function (): void {
         Route::get('geo-dns', [AdminGeoDnsController::class, 'index']);
         Route::get('geo-dns/{id}', [AdminGeoDnsController::class, 'show']);
+        Route::post('geo-dns/seed-demo', [AdminGeoDnsController::class, 'seedDemo']);
+        Route::post('geo-dns/bind-local', [AdminGeoDnsController::class, 'bindLocalNode']);
     });
     Route::middleware('permission:admin.geo_dns.write')->group(function (): void {
         Route::post('geo-dns', [AdminGeoDnsController::class, 'store']);
