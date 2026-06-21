@@ -123,6 +123,12 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 	s.metrics.IncQueries()
 
+	// 2026-06-22: 按 w.LocalAddr() 网络类型推断上报协议，udp/tcp
+	proto := "udp"
+	if _, ok := w.LocalAddr().(*net.TCPAddr); ok {
+		proto = "tcp"
+	}
+
 	reply := new(dns.Msg)
 	reply.SetReply(req)
 
@@ -164,7 +170,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 		_ = w.WriteMsg(reply)
 		s.metrics.IncErrors()
 		if firstSeen {
-			s.appendLog("", "", domain, "BLOCK", "ip_not_bound", "", w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+			s.appendLog("", "", domain, "BLOCK", "ip_not_bound", "", w.RemoteAddr().String(), queryType, proto, reply.Rcode, startedAt)
 		}
 		return
 	}
@@ -183,7 +189,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 		s.applyBlockResponse(reply, question, blockResponse)
 		_ = w.WriteMsg(reply)
 		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "BLOCK", decision.Reason, decision.Category, w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+			s.appendLog(profileID, deviceID, domain, "BLOCK", decision.Reason, decision.Category, w.RemoteAddr().String(), queryType, proto, reply.Rcode, startedAt)
 		}
 		return
 	}
@@ -203,7 +209,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 		s.metrics.IncAllowed()
 		_ = w.WriteMsg(reply)
 		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "REWRITE", decision.Reason, decision.Category, w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+			s.appendLog(profileID, deviceID, domain, "REWRITE", decision.Reason, decision.Category, w.RemoteAddr().String(), queryType, proto, reply.Rcode, startedAt)
 		}
 		return
 	}
@@ -215,7 +221,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 		s.metrics.IncAllowed()
 		_ = w.WriteMsg(cached)
 		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "ALLOW", "cache_hit", "", w.RemoteAddr().String(), queryType, cached.Rcode, startedAt)
+			s.appendLog(profileID, deviceID, domain, "ALLOW", "cache_hit", "", w.RemoteAddr().String(), queryType, proto, cached.Rcode, startedAt)
 		}
 		return
 	}
@@ -230,7 +236,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 		_ = w.WriteMsg(reply)
 		s.metrics.IncErrors()
 		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "ERROR", "upstream_timeout", "", w.RemoteAddr().String(), queryType, reply.Rcode, startedAt)
+			s.appendLog(profileID, deviceID, domain, "ERROR", "upstream_timeout", "", w.RemoteAddr().String(), queryType, proto, reply.Rcode, startedAt)
 		}
 		return
 	}
@@ -241,7 +247,7 @@ func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg) {
 	s.metrics.IncAllowed()
 	_ = w.WriteMsg(upstreamReply)
 	if firstSeen {
-		s.appendLog(profileID, deviceID, domain, "ALLOW", "default", "", w.RemoteAddr().String(), queryType, upstreamReply.Rcode, startedAt)
+		s.appendLog(profileID, deviceID, domain, "ALLOW", "default", "", w.RemoteAddr().String(), queryType, proto, upstreamReply.Rcode, startedAt)
 	}
 }
 
@@ -307,7 +313,7 @@ func (s *Server) loadActiveConfig() (*activeConfig, error) {
 	return &cfg, nil
 }
 
-func (s *Server) appendLog(profileID, deviceID, domain, action, reason, category, clientIP, queryType string, rcode int, startedAt time.Time) {
+func (s *Server) appendLog(profileID, deviceID, domain, action, reason, category, clientIP, queryType, protocol string, rcode int, startedAt time.Time) {
 	if s.logBuffer == nil {
 		return
 	}
@@ -324,6 +330,7 @@ func (s *Server) appendLog(profileID, deviceID, domain, action, reason, category
 		ResponseCode:   rcode,
 		ResponseTimeMs: time.Since(startedAt).Milliseconds(),
 		QueriedAt:      time.Now().Unix(),
+		Protocol:       protocol,
 	})
 }
 

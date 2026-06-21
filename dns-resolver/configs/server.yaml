@@ -22,7 +22,9 @@ upstream:
     - 8.8.8.8
 logging:
     level: debug
-    buffer_path: /tmp/dns-logs
+    # 2026-06-22: 改用 /var/lib/ocer-dns/log-buffer 避免 systemd-tmpfiles 清理 /tmp
+    # macOS 开发机可改为 ~/Library/Application Support/ocer-dns/log-buffer
+    buffer_path: /var/lib/ocer-dns/log-buffer
 nats:
     enabled: false
 redis:

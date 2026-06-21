@@ -175,7 +175,10 @@ func Default() *Config {
 		},
 		Logging: LoggingConfig{
 			Level:         "info",
-			BufferPath:    "/tmp/dns-logs",
+			// 2026-06-22: 改用 /var/lib/ocer-dns/log-buffer，避免 systemd-tmpfiles
+			// 清理 /tmp 造成断网恢复期的日志丢失。macOS 开发机可通过 yaml 覆盖
+			// 写到 ~/Library/Application Support/ocer-dns/log-buffer。
+			BufferPath:    "/var/lib/ocer-dns/log-buffer",
 			MaxBufferSize: 512,
 		},
 		Upstream: []string{"1.1.1.1", "8.8.8.8"},

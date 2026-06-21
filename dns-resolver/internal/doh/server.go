@@ -374,6 +374,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 					ResponseCode:   reply.Rcode,
 					ResponseTimeMs: elapsed,
 					QueriedAt:      time.Now().Unix(),
+					Protocol:       "doh",
 				})
 			}
 
@@ -466,6 +467,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			ResponseCode:   reply.Rcode,
 			ResponseTimeMs: elapsed,
 			QueriedAt:      time.Now().Unix(),
+			Protocol:       "doh",
 		})
 	}
 }

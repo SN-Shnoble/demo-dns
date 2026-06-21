@@ -101,11 +101,20 @@ func runInstall(args []string) error {
 		return fmt.Errorf("write config failed: %w", err)
 	}
 
+	// 2026-06-22: 预创建 log buffer 目录，避免 systemd-tmpfiles 清理 /tmp
+	// 默认路径 /var/lib/ocer-dns/log-buffer，macOS 需在 yaml 改写
+	if cfg.Logging.BufferPath != "" {
+		if err := os.MkdirAll(cfg.Logging.BufferPath, 0o755); err != nil {
+			return fmt.Errorf("create log buffer dir %s: %w (hint: run as root or override buffer_path in yaml)", cfg.Logging.BufferPath, err)
+		}
+	}
+
 	fmt.Printf("✔ config written to %s\n", opts.ConfigPath)
 	fmt.Printf("  console   = %s\n", cfg.ControlPlane.Endpoint)
 	fmt.Printf("  node_id   = %s\n", cfg.ControlPlane.NodeID)
 	fmt.Printf("  api_key   = %s\n", maskCredential(cfg.ControlPlane.APIKey))
 	fmt.Printf("  secret    = %s\n", maskCredential(cfg.ControlPlane.Secret))
+	fmt.Printf("  log_buf   = %s\n", cfg.Logging.BufferPath)
 	fmt.Println("Next: run `resolver` to start the node.")
 	return nil
 }

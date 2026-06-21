@@ -39,6 +39,8 @@ final class QueryLogController
             'items.*.rcode' => 'nullable|integer|min:0|max:65535',
             'items.*.latency_ms' => 'nullable|integer|min:0|max:60000',
             'items.*.queried_at' => 'nullable|integer|min:0',
+            // 2026-06-22: dns-resolver 上报协议 doh/dot/udp/tcp，用于按协议分账
+            'items.*.protocol' => 'nullable|string|max:16',
         ]);
 
         $result = $service->accept($validated);
@@ -171,6 +173,8 @@ final class QueryLogController
                     'client_ip' => $clientIp,
                     'rcode' => (int) ($item['rcode'] ?? 0),
                     'latency_ms' => (int) ($item['latency_ms'] ?? 0),
+                    // 2026-06-22: 透传协议，CH 列 protocol（ALTER TABLE dns_logs ADD COLUMN protocol String）
+                    'protocol' => strtolower((string) ($item['protocol'] ?? '')),
                 ];
 
                 if ($userPk !== null && $profilePk !== null) {

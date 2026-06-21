@@ -33,6 +33,8 @@ type LogEntry struct {
 	ResponseCode   int    `json:"rcode"`
 	ResponseTimeMs int64  `json:"latency_ms"`
 	QueriedAt      int64  `json:"queried_at"`
+	// 2026-06-22: 上报协议 doh/dot/udp/tcp，便于按协议分账/告警
+	Protocol       string `json:"protocol,omitempty"`
 }
 
 // Credentials 是 console 预签发凭据在日志上报场景下的最小投影。
@@ -284,6 +286,8 @@ type DirectLogEntry struct {
 	Category       string
 	ResponseTimeMs int64
 	Rcode          int
+	// 2026-06-22: 协议透传，CH 列名 protocol
+	Protocol       string
 }
 
 // UsageEvent is written to ClickHouse independently of the dedup
@@ -322,6 +326,7 @@ func (b *Buffer) FlushDirect(entries []LogEntry) error {
 			Category:       e.Category,
 			ResponseTimeMs: e.ResponseTimeMs,
 			Rcode:          e.ResponseCode,
+			Protocol:       e.Protocol,
 		})
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
