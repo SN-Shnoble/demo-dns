@@ -201,7 +201,7 @@ const deployCmdPreview = computed(() => {
     const nid = tokenData.node_id
     if (!nid || !tokenData.api_key) return ''
     const base = siteUrl.value || (window.location.protocol + '//' + window.location.host)
-    return `curl -fsSL ${base}/build/dns-resolver-install.sh | sh -s -- --server=${base} --token=${tokenData.api_key} --node-id=${nid}`
+    return `curl -fsSL ${base}/build/dns-resolver-install.sh | bash -s -- --server=${base} --token=${tokenData.api_key} --node-id=${nid}`
 })
 
 const copyDeployCmd = async () => {

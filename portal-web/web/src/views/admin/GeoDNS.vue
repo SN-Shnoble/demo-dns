@@ -176,7 +176,7 @@ const { siteUrl, loadSystemConfig } = useSystemConfig()
 const deployCmdPreview = computed(() => {
     if (!deployData.node_id || !deployData.api_key) return ''
     const base = siteUrl.value || (window.location.protocol + '//' + window.location.host)
-    return `curl -fsSL ${base}/build/geodns-install.sh | sh -s -- --server=${base} --token=${deployData.api_key} --node-id=${deployData.node_id}`
+    return `curl -fsSL ${base}/build/geodns-install.sh | bash -s -- --server=${base} --token=${deployData.api_key} --node-id=${deployData.node_id}`
 })
 const copyDeployCmd = async () => {
     try {
