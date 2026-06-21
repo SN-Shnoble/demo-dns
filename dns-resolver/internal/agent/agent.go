@@ -574,14 +574,28 @@ func (a *Agent) doNodeRequest(method, path string, body io.Reader) (*http.Respon
 	}
 
 	// 2026-06-22 改造：统一为纯 Token 鉴权，删除 HMAC 签名。
+	// 2026-06-21 改造：优先从 api_key 文件读取鉴权，fallback 到 APIKey。
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if a.cred.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+a.cred.APIKey)
+	if bearer := a.loadBearer(); bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+bearer)
 	}
 
 	return a.client.Do(req)
+}
+
+// loadBearer 2026-06-21: 优先从 api_key 文件读，fallback 到 APIKey。
+// 路径固定为 "configs/api_key"，由 install 阶段写入。
+func (a *Agent) loadBearer() string {
+	const apiKeyPath = "configs/api_key"
+	if data, err := os.ReadFile(apiKeyPath); err == nil {
+		key := strings.TrimSpace(string(data))
+		if key != "" {
+			return key
+		}
+	}
+	return a.cred.APIKey
 }
 
 func (a *Agent) controlPlaneURL(path string) string {

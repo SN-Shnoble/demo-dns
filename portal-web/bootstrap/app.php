@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'node.token' => \App\Http\Middleware\AuthenticateNodeToken::class,
+            'node.api_key' => \App\Http\Middleware\AuthenticateNodeApiKey::class,
             'node.hmac' => \App\Http\Middleware\VerifyRequestSignature::class,
             'shared.token' => \App\Http\Middleware\RequireSharedToken::class,
             'user.only' => \App\Http\Middleware\UserOnly::class,

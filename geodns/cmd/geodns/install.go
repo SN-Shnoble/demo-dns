@@ -80,8 +80,10 @@ func runInstall(args []string) error {
 	fmt.Printf("  listen_addr   = %s\n", opts.ListenAddr)
 	fmt.Printf("  dns_addr      = %s\n", opts.DNSAddr)
 
-	// 2026-06-22: install 完成后调用控制面 register API，告知 console 节点已注册。
-	// 即使 register 失败也不阻塞 install（配置已写入），但会在 stdout 标注警告。
+	// 2026-06-22: install 完成后调用控制面 register API：
+	//   1) 告知 console 节点已注册
+	//   2) **同时获取并缓存 api_key**（仅此一次返回明文）
+	// register 失败不阻塞 install（配置已写入），仅打印警告。
 	if regErr := registerNodeToConsole(cfg); regErr != nil {
 		fmt.Printf("⚠ console register failed: %v (config was still written, run `geodns` to start)\n", regErr)
 	} else {
@@ -93,6 +95,8 @@ func runInstall(args []string) error {
 
 // registerNodeToConsole 把本次 install 行为上报给 console，
 // 触发控制台「已注册」状态展示（不阻塞 install，失败仅打印警告）。
+// 2026-06-21: register 接口会**同时返回明文 api_key**，本函数负责把 api_key
+// 缓存到独立文件 configs/api_key（权限 0600），节点启动时优先从这里读取鉴权。
 func registerNodeToConsole(cfg *config.Config) error {
 	// 2026-06-21 fix: NodeAPIEndpoint 形如 ".../api/v1/internal"，直接拼接
 	// 会产生 ".../api/v1/internal/api/v1/node/..." 双重前缀导致 404。
@@ -106,7 +110,7 @@ func registerNodeToConsole(cfg *config.Config) error {
 	url := server + "/api/v1/node/geodns/register"
 
 	payload := map[string]any{
-		"node_id":     cfg.NodeToken(), // 仅作标识
+		"node_id":      cfg.NodeToken(), // 仅作标识
 		"installed_at": time.Now().UTC().Format(time.RFC3339),
 		"listen_addr":  cfg.Server.ListenAddr,
 	}
@@ -132,6 +136,36 @@ func registerNodeToConsole(cfg *config.Config) error {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("register API returned %d: %s", resp.StatusCode, string(respBody))
 	}
+
+	// 2026-06-21: 解析 register 返回的 api_key 并缓存。
+	// 老版本服务端（迁移未完成）不会返回 api_key 字段，此时跳过缓存。
+	var result struct {
+		Data struct {
+			APIKey     string `json:"api_key"`
+			APIKeyPath string `json:"api_key_path"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		// 解析失败不算致命错误（可能是老服务端），仅警告
+		fmt.Printf("⚠ could not parse register response for api_key: %v\n", err)
+		return nil
+	}
+	if result.Data.APIKey == "" {
+		// 老服务端未签发 api_key，跳过缓存（节点继续用 token 鉴权）
+		return nil
+	}
+
+	apiKeyPath := result.Data.APIKeyPath
+	if apiKeyPath == "" {
+		apiKeyPath = "configs/api_key"
+	}
+	if err := os.MkdirAll(filepath.Dir(apiKeyPath), 0o755); err != nil {
+		return fmt.Errorf("create api_key dir: %w", err)
+	}
+	if err := os.WriteFile(apiKeyPath, []byte(result.Data.APIKey), 0o600); err != nil {
+		return fmt.Errorf("write api_key to %s: %w", apiKeyPath, err)
+	}
+	fmt.Printf("✔ api_key cached to %s\n", apiKeyPath)
 	return nil
 }
 

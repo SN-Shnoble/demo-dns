@@ -33,8 +33,14 @@ func New(cfg *config.Config) *Server {
 	timeout := cfg.RequestTimeout()
 	hb := (*node.HeartbeatClient)(nil)
 	// 2026-06-22 改造：删除 HMACSecret 条件判断，只要 Token + Endpoint 都有就启用 heartbeat。
+	// 2026-06-21 改造：传入 APIKeyPath 字段，让 heartbeat 优先从 api_key 文件读取鉴权。
 	if cfg.NodeToken() != "" && cfg.NodeAPIEndpoint() != "" {
-		hb = node.NewHeartbeatClient(cfg.NodeAPIEndpoint(), cfg.NodeToken(), timeout)
+		hb = node.NewHeartbeatClientWithAPIKeyPath(
+			cfg.NodeAPIEndpoint(),
+			cfg.NodeToken(),
+			"configs/api_key",
+			timeout,
+		)
 	} else {
 		log.Printf("geodns: heartbeat disabled (token/endpoint not all set)")
 	}

@@ -7,15 +7,20 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
-// HeartbeatClient 上报节点心跳到 portal-web /api/v1/node/nodes/heartbeat
+// HeartbeatClient 上报节点心跳到 portal-web /api/v1/node/heartbeat
 // 2026-06-22 改造：统一为纯 Token 鉴权，删除 HMAC 签名。
+// 2026-06-21 改造：
+//   - URL 从 /api/v1/node/nodes/heartbeat 改为 /api/v1/node/heartbeat
+//   - 优先用 api_key 文件鉴权，fallback 到 Bearer token
 type HeartbeatClient struct {
 	APIEndpoint string
 	Bearer      string
+	APIKeyPath  string // 2026-06-21: register 时签发的 api_key 缓存文件路径
 	HTTPClient  *http.Client
 }
 
@@ -25,6 +30,26 @@ func NewHeartbeatClient(apiEndpoint, bearer string, timeout time.Duration) *Hear
 		Bearer:      bearer,
 		HTTPClient:  &http.Client{Timeout: timeout},
 	}
+}
+
+// NewHeartbeatClientWithAPIKeyPath 2026-06-21: 创建带 api_key 路径的 client
+func NewHeartbeatClientWithAPIKeyPath(apiEndpoint, bearer, apiKeyPath string, timeout time.Duration) *HeartbeatClient {
+	c := NewHeartbeatClient(apiEndpoint, bearer, timeout)
+	c.APIKeyPath = apiKeyPath
+	return c
+}
+
+// loadBearer 优先从 api_key 文件读，fallback 到 Bearer
+func (c *HeartbeatClient) loadBearer() string {
+	if c.APIKeyPath != "" {
+		if data, err := os.ReadFile(c.APIKeyPath); err == nil {
+			key := strings.TrimSpace(string(data))
+			if key != "" {
+				return key
+			}
+		}
+	}
+	return c.Bearer
 }
 
 type HeartbeatPayload struct {
@@ -43,15 +68,16 @@ func (c *HeartbeatClient) Report(payload HeartbeatPayload) error {
 		return fmt.Errorf("marshal heartbeat: %w", err)
 	}
 
-	url := c.APIEndpoint + "/api/v1/node/nodes/heartbeat"
+	// 2026-06-21: 路径从 /api/v1/node/nodes/heartbeat 改为 /api/v1/node/heartbeat
+	url := c.APIEndpoint + "/api/v1/node/heartbeat"
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 
-	// 统一 Token 鉴权：Bearer
-	if c.Bearer != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Bearer)
+	// 2026-06-21: 优先用 api_key 文件，fallback 到 Bearer token
+	if bearer := c.loadBearer(); bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+bearer)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
