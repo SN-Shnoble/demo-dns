@@ -1,19 +1,19 @@
 node:
-    node_uid: vydisdlb7k
-    name: resolver-local-16
+    node_uid: nd_vydisdlb7k
+    name: resolver-local-15
     version: 1.0.0
-    region: local-test
-    country: CN
+    region: us-east-1
+    country: US
     provider: local
     public_ipv4: 127.0.0.1
 listen:
-    doh: 8444
-    udp: 5355
+    doh: 8445
+    udp: 5356
 control_plane:
     endpoint: http://localhost:8081
-    api_key: ocnd_ywOOlWPNeSeSzWNWZRSzART2ODy19hqMPo8lcNLX
-    secret: hmk_ja0ixnpmnjzqura5cf7zmwfkgptipwmn
-    node_id: 16
+    api_key: ocnd_DgBW1NmRgVdMLKaVofYmN1gkpvvHZFLTsO9GStTg
+    secret: hmk_nghi2usuotyntsgu955vcgkbu6s4dmbi
+    node_id: 15
     heartbeat_interval: 30
     config_poll_interval: 5
     profiles_path: ./configs
@@ -22,7 +22,7 @@ upstream:
     - 8.8.8.8
 logging:
     level: debug
-    buffer_path: /tmp/dns-logs
+    buffer_path: /tmp/dns-logs-node2
 nats:
     enabled: false
 redis:

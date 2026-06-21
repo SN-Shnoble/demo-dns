@@ -8,7 +8,7 @@
 
         <!-- DNS Access Endpoints (Middle Row) -->
         <section class="endpoint-row">
-            <!-- Left: Endpoints (ID / DoT / DoH) -->
+            <!-- Left: Endpoints (ID / DoH) -->
             <div class="card">
                 <div class="card-header">
                     <h2>{{ $t('dashboard.endpointsTitle') }}</h2>
@@ -21,15 +21,6 @@
                         <div class="code-row">
                             <div class="code">{{ endpoints.profile_uid || '—' }}</div>
                             <button class="copy-btn" @click="copyText(endpoints.profile_uid)">{{ $t('dashboard.copy') }}</button>
-                        </div>
-                    </div>
-
-                    <!-- DoT / DoQ -->
-                    <div class="endpoint-block">
-                        <div class="endpoint-label">{{ $t('dashboard.endpointDot') }}</div>
-                        <div class="code-row">
-                            <div class="code">{{ endpoints.dot || '—' }}</div>
-                            <button class="copy-btn" @click="copyText(endpoints.dot)">{{ $t('dashboard.copy') }}</button>
                         </div>
                     </div>
 

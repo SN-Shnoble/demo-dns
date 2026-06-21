@@ -24,5 +24,5 @@ Route::prefix('node')->group(function (): void {
     Route::post('devices/seen', [\App\Http\Controllers\Api\V1\Node\DeviceSeenController::class, 'store'])->middleware(['node.hmac']);
 
     // GeoDNS 节点 API
-    Route::get('geodns/config', [GeoDNSConfigController::class, 'show'])->middleware(['node.token']);
+    Route::get('geodns/config', [GeoDNSConfigController::class, 'show'])->middleware(['node.hmac']);
 });

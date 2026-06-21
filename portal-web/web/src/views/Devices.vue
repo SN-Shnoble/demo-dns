@@ -21,17 +21,10 @@
                         </div>
                     </div>
                     <div class="endpoint-item">
-                        <label>DNS-over-TLS</label>
-                        <div class="code-row">
-                            <code class="code">{{ endpoints.dot }}</code>
-                            <el-button size="small" @click="copyText(endpoints.dot)">{{ $t('devices.copy') }}</el-button>
-                        </div>
-                    </div>
-                    <div class="endpoint-item">
                         <label>IPv6</label>
                         <div class="code-row">
-                            <code class="code">{{ endpoints.ipv6 || '-' }}</code>
-                            <el-button size="small" @click="copyText(endpoints.ipv6)">{{ $t('devices.copy') }}</el-button>
+                            <code class="code">{{ Array.isArray(endpoints.ipv6) ? endpoints.ipv6.join(', ') : (endpoints.ipv6 || '-') }}</code>
+                            <el-button size="small" @click="copyText(Array.isArray(endpoints.ipv6) ? endpoints.ipv6.join(', ') : endpoints.ipv6)">{{ $t('devices.copy') }}</el-button>
                         </div>
                     </div>
                 </div>

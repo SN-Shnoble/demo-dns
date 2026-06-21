@@ -2,7 +2,8 @@
 # ============================================================
 # ocer-dns 一键启动脚本：3 端（dns-console-web 已并入 portal-web）
 #   1) portal-web        Laravel API  :8081  + Vite :5173
-#   2) dns-resolver      Go           DoH:8443  UDP/TCP:53
+#   2) dns-resolver      Go           DoH:8444  UDP/TCP:5355
+#   3) dns-resolver-2    Go           DoH:8445  UDP/TCP:5356 (若 server-node2.yaml 存在)
 #   3) geodns            Go           :5354
 #
 # 用法:
@@ -19,18 +20,23 @@ set -euo pipefail
 # ---- 路径与常量（不依赖外部 env） -------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="${SCRIPT_DIR}/.run"
+LOG_DIR="${SCRIPT_DIR}/logs"
 mkdir -p "${RUN_DIR}"
+mkdir -p "${LOG_DIR}"
 
 # 端口定义（与 vite.config.js / server.yaml / config.example.yaml 保持一致）
 PORT_PORTAL_API=8081
 PORT_PORTAL_WEB=5173
-PORT_RESOLVER_DOH=8443
-PORT_RESOLVER_UDP=53
+PORT_RESOLVER_DOH=8444
+PORT_RESOLVER_UDP=5355
+PORT_RESOLVER2_DOH=8445
+PORT_RESOLVER2_UDP=5356
 PORT_GEODNS=5354
 
 ALL_PORTS=(
     "${PORT_PORTAL_API}" "${PORT_PORTAL_WEB}"
     "${PORT_RESOLVER_DOH}" "${PORT_RESOLVER_UDP}"
+    "${PORT_RESOLVER2_DOH}" "${PORT_RESOLVER2_UDP}"
     "${PORT_GEODNS}"
 )
 
@@ -157,13 +163,21 @@ start_resolver() {
     [[ -f "${SCRIPT_DIR}/dns-resolver/go.mod" ]]     || { log_err "缺少 dns-resolver/go.mod"; return 1; }
     [[ -f "${SCRIPT_DIR}/dns-resolver/server.yaml" && -f "${SCRIPT_DIR}/dns-resolver/configs/server.yaml" ]] \
         || true   # 配置文件可能由 install 子命令生成；这里不强制阻断
-    spawn resolver     "cd '${SCRIPT_DIR}/dns-resolver' && go run ./cmd/dns-resolver"
+    spawn resolver     "cd '${SCRIPT_DIR}/dns-resolver' && RESOLVER_CONFIG='configs/server.yaml' go run ./cmd/dns-resolver"
+}
+
+start_resolver2() {
+    if [[ ! -f "${SCRIPT_DIR}/dns-resolver/configs/server-node2.yaml" ]]; then
+        return 0
+    fi
+    log_title "启动 dns-resolver-2 (Go: DoH :${PORT_RESOLVER2_DOH} UDP/TCP :${PORT_RESOLVER2_UDP})"
+    spawn resolver-2   "cd '${SCRIPT_DIR}/dns-resolver' && RESOLVER_CONFIG='configs/server-node2.yaml' go run ./cmd/dns-resolver"
 }
 
 start_geodns() {
     log_title "启动 geodns (Go: :${PORT_GEODNS})"
     [[ -f "${SCRIPT_DIR}/geodns/go.mod" ]] || { log_err "缺少 geodns/go.mod"; return 1; }
-    spawn geodns       "cd '${SCRIPT_DIR}/geodns' && go run ./cmd/geodns"
+    spawn geodns       "cd '${SCRIPT_DIR}/geodns' && GEODNS_CONFIG='configs/config.yaml' go run ./cmd/geodns"
 }
 
 # 入口汇总
@@ -177,7 +191,7 @@ start_all() {
     check_ports
 
     # 任一端启动失败 -> 全部回滚
-    if ! start_portal || ! start_resolver || ! start_geodns; then
+    if ! start_portal || ! start_resolver || ! start_resolver2 || ! start_geodns; then
         log_err "启动过程中出现错误，正在回滚已启动进程 ..."
         "${SCRIPT_DIR}/stop-all.sh" >/dev/null 2>&1 || true
         return 1
@@ -187,8 +201,10 @@ start_all() {
     cat <<EOF
 ${C_GREEN}访问入口:${C_RESET}
   portal-web (会员 + 总后台) : http://localhost:${PORT_PORTAL_WEB}
-  dns-resolver DoH           : https://localhost:${PORT_RESOLVER_DOH}/dns-query
+  dns-resolver DoH           : http://localhost:${PORT_RESOLVER_DOH}/dns-query
   dns-resolver UDP/TCP       : 127.0.0.1:${PORT_RESOLVER_UDP}
+  dns-resolver-2 DoH         : http://localhost:${PORT_RESOLVER2_DOH}/dns-query
+  dns-resolver-2 UDP/TCP     : 127.0.0.1:${PORT_RESOLVER2_UDP}
   geodns                     : http://localhost:${PORT_GEODNS}
 
 ${C_GREEN}查看日志:${C_RESET}

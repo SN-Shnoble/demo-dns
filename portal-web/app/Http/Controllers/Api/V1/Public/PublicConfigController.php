@@ -16,14 +16,23 @@ final class PublicConfigController
 {
     public function dnsConfig(): JsonResponse
     {
-        $basic = SystemConfig::query()->find('basic');
+        $dnsDomain = 'dns.ocerlink.com';
 
-        $dnsDomain = 'dns.ocerdns.local';
+        $dns = SystemConfig::query()->where('config_key', 'dns')->first();
+        if ($dns !== null && $dns->value) {
+            $decoded = is_string($dns->value) ? json_decode($dns->value, true) : $dns->value;
+            if (is_array($decoded) && ! empty($decoded['dns_domain'])) {
+                $dnsDomain = (string) $decoded['dns_domain'];
+            }
+        }
 
-        if ($basic && $basic->value) {
-            $decoded = is_string($basic->value) ? json_decode($basic->value, true) : $basic->value;
-            if (is_array($decoded) && !empty($decoded['dns_domain'])) {
-                $dnsDomain = $decoded['dns_domain'];
+        if ($dnsDomain === 'dns.ocerlink.com') {
+            $basic = SystemConfig::query()->where('config_key', 'basic')->first();
+            if ($basic !== null && $basic->value) {
+                $decoded = is_string($basic->value) ? json_decode($basic->value, true) : $basic->value;
+                if (is_array($decoded) && ! empty($decoded['dns_domain'])) {
+                    $dnsDomain = (string) $decoded['dns_domain'];
+                }
             }
         }
 

@@ -129,13 +129,12 @@ final class ClickHouseClient
             throw new \RuntimeException('clickhouse host is not configured');
         }
 
-        $url = sprintf('http://%s:%d/', $this->host, $this->port);
         $body = $query;
         if (! empty($params)) {
             $body .= ' -- ' . http_build_query($params, '', ';');
         }
 
-        return $this->sendRaw($query, $body);
+        return $this->sendRaw('', $body);
     }
 
     public function sendRaw(string $query, string $body): string
@@ -145,6 +144,9 @@ final class ClickHouseClient
         }
 
         $url = sprintf('http://%s:%d/', $this->host, $this->port);
+        if ($query !== '') {
+            $url .= '?query=' . rawurlencode($query);
+        }
         $ch = curl_init($url);
         if ($ch === false) {
             throw new \RuntimeException('curl init failed');

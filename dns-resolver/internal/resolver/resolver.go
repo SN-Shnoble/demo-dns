@@ -3,6 +3,7 @@ package resolver
 import (
 	"log"
 	"net"
+	"regexp"
 	"strings"
 
 	"ocer-dns/dns-resolver/internal/matching"
@@ -25,6 +26,8 @@ type ResolutionContext struct {
 type ProfileResolutionLayer struct {
 	engine *matching.Engine
 }
+
+var profileUIDPattern = regexp.MustCompile(`^[a-f0-9]{6}$`)
 
 // New creates a new ProfileResolutionLayer.
 func New(engine *matching.Engine) *ProfileResolutionLayer {
@@ -83,18 +86,11 @@ func ExtractProfileFromPath(path string) string {
 	path = strings.TrimPrefix(path, "/")
 	path = strings.TrimSuffix(path, "/dns-query")
 
-	if len(path) == 0 || len(path) > 32 {
+	if !profileUIDPattern.MatchString(strings.ToLower(path)) {
 		return ""
 	}
 
-	// Validate it looks like a profile UID (alphanumeric)
-	for _, c := range path {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-			return ""
-		}
-	}
-
-	return path
+	return strings.ToLower(path)
 }
 
 // ExtractDeviceFromHeaders extracts device information from HTTP headers.
@@ -111,8 +107,9 @@ func ExtractProfileFromSNI(sni string) string {
 	if len(parts) < 2 {
 		return ""
 	}
-	if len(parts[0]) == 32 {
-		return parts[0]
+	profileUID := strings.ToLower(parts[0])
+	if profileUIDPattern.MatchString(profileUID) {
+		return profileUID
 	}
 	return ""
 }

@@ -10,7 +10,8 @@ use App\Infrastructure\ClickHouse\ClickHouseClient;
  * Domain-level wrapper around ClickHouseClient that produces admin / member
  * facing analytics from the resolver's cold-path log table.
  *
- * The dns-resolver writes `query_logs` to ClickHouse via the native TCP
+ * The dns-resolver writes `dns_logs` to ClickHouse and portal-web also
+ * mirrors node-side uploads into the same table via HTTP JSONEachRow.
  * protocol; this reader uses the HTTP `/FORMAT JSON` endpoint so we don't need
  * to install a binary client. All queries are read-only and use safe literal
  * substitutions (no string interpolation) so they can run as-is in production.
@@ -48,13 +49,13 @@ final class ClickHouseStatsService
             $rows = $this->client->jsonSelect(
                 'SELECT '
                 . ' count() AS total_queries, '
-                . ' countIf(action = \'blocked\') AS blocked_queries, '
-                . ' countIf(action = \'allowed\') AS allowed_queries, '
+                . ' countIf(action = \'BLOCK\') AS blocked_queries, '
+                . ' countIf(action IN (\'ALLOW\', \'REWRITE\')) AS allowed_queries, '
                 . ' uniqExact(node_id) AS unique_clients, '
-                . ' min(event_time) AS period_start, '
-                . ' max(event_time) AS period_end '
-                . 'FROM query_logs '
-                . 'WHERE event_time >= now() - INTERVAL 24 HOUR',
+                . ' min(timestamp) AS period_start, '
+                . ' max(timestamp) AS period_end '
+                . 'FROM dns_logs '
+                . 'WHERE timestamp >= now() - INTERVAL 24 HOUR',
             );
         } catch (\Throwable) {
             $rows = [];
@@ -83,10 +84,10 @@ final class ClickHouseStatsService
         $limit = max(1, min(100, $limit));
         try {
             $rows = $this->client->jsonSelect(
-                "SELECT query_name AS domain, count() AS count "
-                . "FROM query_logs "
-                . "WHERE event_time >= now() - INTERVAL 24 HOUR AND action = 'blocked' "
-                . "GROUP BY query_name ORDER BY count DESC LIMIT {$limit}",
+                "SELECT domain, count() AS count "
+                . "FROM dns_logs "
+                . "WHERE timestamp >= now() - INTERVAL 24 HOUR AND action = 'BLOCK' "
+                . "GROUP BY domain ORDER BY count DESC LIMIT {$limit}",
             );
         } catch (\Throwable) {
             $rows = [];

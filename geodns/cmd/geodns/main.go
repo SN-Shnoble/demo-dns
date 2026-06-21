@@ -36,5 +36,5 @@ func defaultConfigPath() string {
 	if path := os.Getenv("GEODNS_CONFIG"); path != "" {
 		return path
 	}
-	return "configs/config.example.yaml"
+	return "configs/config.yaml"
 }

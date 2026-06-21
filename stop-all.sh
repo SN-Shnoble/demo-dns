@@ -108,18 +108,13 @@ for port in "${TARGET_PORTS[@]}"; do
     done < <(lsof -nP -iUDP:"${port}" -t 2>/dev/null || true)
 done
 
-# ---- 阶段 3：去重后逐个杀 ----
-declare -A seen=()
+# ---- 阶段 3：去重后逐个杀（兼容 macOS 自带 Bash 3，无关联数组） ----
 unique_entries=()
-for entry in "${entries[@]:-}"; do
-    [[ -z "${entry}" ]] && continue
-    pid="${entry%%:*}"
-    [[ -z "${pid}" ]] && continue
-    if [[ -z "${seen[${pid}]:-}" ]]; then
-        seen[${pid}]=1
-        unique_entries+=("${entry}")
-    fi
-done
+if [[ ${#entries[@]} -gt 0 ]]; then
+    while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && unique_entries+=("${entry}")
+    done < <(printf '%s\n' "${entries[@]}" | awk -F: '!seen[$1]++')
+fi
 
 if [[ ${#unique_entries[@]} -eq 0 ]]; then
     log_ok "未发现需要停止的进程"

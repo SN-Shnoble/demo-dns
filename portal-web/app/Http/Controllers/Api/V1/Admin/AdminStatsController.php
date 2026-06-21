@@ -66,19 +66,17 @@ final class AdminStatsController
     {
         try {
             $client = new \App\Infrastructure\ClickHouse\ClickHouseClient();
-            $col = match ($bucket) {
-                'gafam' => 'gafam_hits',
-                'root' => 'root_hits',
-                'encrypted_dns' => 'encrypted_dns_hits',
-                'dnssec_valid' => 'dnssec_valid_hits',
+            $query = match ($bucket) {
+                'gafam' => "SELECT count() AS c FROM dns_logs WHERE timestamp >= now() - INTERVAL 24 HOUR AND domain IN ('google.com','www.google.com','youtube.com','www.youtube.com','facebook.com','www.facebook.com','instagram.com','www.instagram.com','whatsapp.com','www.whatsapp.com','x.com','twitter.com','www.x.com','www.twitter.com','apple.com','www.apple.com','amazon.com','www.amazon.com','microsoft.com','www.microsoft.com')",
+                'root' => "SELECT count() AS c FROM dns_logs WHERE timestamp >= now() - INTERVAL 24 HOUR AND position(domain, '.') = 0",
+                'encrypted_dns' => "SELECT 0 AS c",
+                'dnssec_valid' => "SELECT 0 AS c",
                 default => null,
             };
-            if ($col === null) {
+            if ($query === null) {
                 return 0;
             }
-            $row = $client->jsonSelect(
-                "SELECT sum({$col}) AS c FROM query_logs WHERE occurred_at >= now() - INTERVAL 24 HOUR"
-            );
+            $row = $client->jsonSelect($query);
             return (int) ($row[0]['c'] ?? 0);
         } catch (\Throwable) {
             return 0;

@@ -68,10 +68,19 @@ final class SystemConfigValue
     {
         $base = $envDefault ?? (array) config('clickhouse');
         $override = self::get('clickhouse');
-        return self::mergeConfig($base, $override, [
+        $config = self::mergeConfig($base, $override, [
             'host', 'port', 'database', 'username', 'password', 'password_file',
             'timeout_seconds', 'connect_timeout_seconds', 'enabled',
         ]);
+
+        // portal-web 只通过 ClickHouse HTTP 接口访问；若后台误把 native TCP
+        // 端口 9000 保存进 SystemConfig，会导致 curl 直接打到二进制协议端口。
+        // 这里强制归一化到 HTTP 8123，避免线上日志/统计链路失效。
+        if ((int) ($config['port'] ?? 0) === 9000) {
+            $config['port'] = 8123;
+        }
+
+        return $config;
     }
 
     /**
