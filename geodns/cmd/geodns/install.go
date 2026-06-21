@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,6 +58,12 @@ func runInstall(args []string) error {
 	}
 
 	cfg := buildGeodnsConfig(&opts)
+
+	// 2026-06-22: 一机一实例守卫 — install 时探测 HTTP/DNS 监听端口是否已被占用
+	// 同机已有 geodns 进程时直接拒绝，强制 1 物理/虚拟主机仅部署 1 个 geodns
+	if err := checkGeodnsPortConflicts(cfg); err != nil {
+		return fmt.Errorf("port check failed: %w", err)
+	}
 
 	if err := writeGeodnsConfig(opts.ConfigPath, cfg, opts.Force); err != nil {
 		return fmt.Errorf("write config failed: %w", err)
@@ -138,6 +146,62 @@ func writeGeodnsConfig(path string, cfg *config.Config, force bool) error {
 	if err := os.Rename(tmp, path); err != nil {
 		_ = os.Remove(tmp)
 		return fmt.Errorf("activate config: %w", err)
+	}
+	return nil
+}
+
+// checkGeodnsPortConflicts 通过短时 bind 探测 HTTP 监听端口是否已被占用
+// 探测 IPv4 + IPv6 两个地址族，任一被占即拒绝。
+// 业务语义：1 物理/虚拟主机仅允许部署 1 个 geodns。
+//
+// 注意：cfg.Server.ListenDNSAddr (UDP/TCP :53) 暂不探测 — 当前 geodns server.go
+// 未实际启动 DNS server（ListenDNSAddr 字段保留但未读取），且 53 是特权端口，
+// install 探测时会与系统 DNS 服务 / mDNSResponder 等冲突，导致误报。
+func checkGeodnsPortConflicts(cfg *config.Config) error {
+	type portBinding struct {
+		name string
+		addr string
+	}
+	bindings := []portBinding{
+		{"HTTP", cfg.Server.ListenAddr},
+	}
+
+	lc := net.ListenConfig{}
+	probe := func(addr string) error {
+		ln, err := lc.Listen(context.TODO(), "tcp", addr)
+		if err != nil {
+			return err
+		}
+		_ = ln.Close()
+		return nil
+	}
+
+	// 把 ":5354" / "0.0.0.0:5354" / "[::]:5354" 形式展开为 IPv4/IPv6 多个具体地址
+	expandAddrs := func(addr string) []string {
+		switch {
+		case strings.HasPrefix(addr, ":") && !strings.HasPrefix(addr, "[::]"):
+			port := strings.TrimPrefix(addr, ":")
+			return []string{"0.0.0.0:" + port, "[::]:" + port}
+		case addr == "0.0.0.0" || addr == "0.0.0.0:0":
+			return []string{"0.0.0.0"}
+		default:
+			return []string{addr}
+		}
+	}
+
+	var conflicts []string
+	for _, b := range bindings {
+		if b.addr == "" {
+			continue
+		}
+		for _, a := range expandAddrs(b.addr) {
+			if err := probe(a); err != nil {
+				conflicts = append(conflicts, fmt.Sprintf("%s=%s (%v)", b.name, a, err))
+			}
+		}
+	}
+	if len(conflicts) > 0 {
+		return fmt.Errorf("one geodns per host, ports already in use: %s", strings.Join(conflicts, "; "))
 	}
 	return nil
 }

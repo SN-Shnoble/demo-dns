@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,6 +90,12 @@ func runInstall(args []string) error {
 	}
 
 	cfg := buildInstalledConfig(&opts)
+
+	// 2026-06-22: 一机一实例守卫 — install 时探测监听端口是否已被占用
+	// 同机已有 resolver 进程时直接拒绝，强制 1 物理/虚拟主机仅部署 1 个 dns-resolver
+	if err := checkPortConflicts(cfg); err != nil {
+		return fmt.Errorf("port check failed: %w", err)
+	}
 
 	if err := writeConfigAtomic(opts.ConfigPath, cfg, opts.Force); err != nil {
 		return fmt.Errorf("write config failed: %w", err)
@@ -238,6 +246,54 @@ func maskCredential(v string) string {
 		return "***"
 	}
 	return v[:4] + "***" + v[len(v)-4:]
+}
+
+// checkPortConflicts 通过短时 bind 探测监听端口是否已被占用
+// 探测 IPv4 (0.0.0.0:port) + IPv6 ([::]:port) 两个地址族，任一被占即拒绝。
+// 实现要点：使用 net.ListenConfig 不开 SO_REUSEADDR，bind 后立刻 Close 释放。
+// 业务语义：1 物理/虚拟主机仅允许部署 1 个 dns-resolver。
+// macOS/Linux 行为差异：IPv4 与 IPv6 通配在多数 BSD 内核是不同地址族，两个进程可分别占
+// 一个地址族（一个 IPv4 一个 IPv6），所以必须两族都探测才能避免漏报。
+func checkPortConflicts(cfg *config.Config) error {
+	type portBinding struct {
+		name string
+		port int
+	}
+	bindings := []portBinding{
+		{"DoH", cfg.Listen.DoH},
+		{"DoT", cfg.Listen.DoT},
+		{"TCP", cfg.Listen.TCP},
+		{"UDP", cfg.Listen.UDP},
+	}
+
+	lc := net.ListenConfig{}
+	probe := func(addr string) error {
+		ln, err := lc.Listen(context.TODO(), "tcp", addr)
+		if err != nil {
+			return err
+		}
+		_ = ln.Close()
+		return nil
+	}
+
+	var conflicts []string
+	for _, b := range bindings {
+		if b.port == 0 {
+			continue
+		}
+		// IPv4 通配
+		if err := probe(fmt.Sprintf("0.0.0.0:%d", b.port)); err != nil {
+			conflicts = append(conflicts, fmt.Sprintf("%s[v4]=:%d (%v)", b.name, b.port, err))
+		}
+		// IPv6 通配（main.go 实际监听用 ":port"，macOS 解析为 IPv6 dual-stack）
+		if err := probe(fmt.Sprintf("[::]:%d", b.port)); err != nil {
+			conflicts = append(conflicts, fmt.Sprintf("%s[v6]=:%d (%v)", b.name, b.port, err))
+		}
+	}
+	if len(conflicts) > 0 {
+		return fmt.Errorf("one resolver per host, ports already in use: %s", strings.Join(conflicts, "; "))
+	}
+	return nil
 }
 
 func printUsage() {

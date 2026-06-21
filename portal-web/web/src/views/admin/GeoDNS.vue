@@ -1,7 +1,7 @@
 <template>
     <ListPage
         :title="$t('admin.geoDns.title')"
-        
+        :desc="'默认监听端口：HTTP 5354'"
         i18n-key="admin.geoDns"
         icon-name="Aim"
         :total="meta?.total ?? 0"

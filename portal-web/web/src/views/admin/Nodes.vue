@@ -1,6 +1,7 @@
 <template>
     <ListPage
         :title="t('admin.nodes.title')"
+        :desc="'默认监听端口：DNS 53 (UDP/TCP) · DoH 8443 · DoT 853'"
         i18n-key="admin.nodes"
         icon-name="Monitor"
         :total="meta?.total ?? 0"

@@ -54,16 +54,11 @@ function flatten(obj, prefix = '') {
   return result
 }
 
-// Parse locale JS file and extract the default export object
+// Parse locale JSON file and flatten to dot-separated keys
 function extractLocaleKeys(filePath) {
-  const content = readFileSync(filePath, 'utf-8')
-  // Remove import/export statements, find the object after 'export default'
-  const objMatch = content.match(/export\s+default\s+({[\s\S]*})/m)
-  if (!objMatch) return new Set()
   try {
-    // Use Function constructor to evaluate the object literal (safer than eval)
-    const fn = new Function(`return ${objMatch[1]}`)
-    const localeObj = fn()
+    const content = readFileSync(filePath, 'utf-8')
+    const localeObj = JSON.parse(content)
     return flatten(localeObj)
   } catch (e) {
     console.error(`Error parsing ${filePath}: ${e.message}`)
@@ -74,9 +69,9 @@ function extractLocaleKeys(filePath) {
 // Main
 const vueFiles = walk(resolve(root, 'src'), '.vue')
 const localeFiles = [
-  resolve(root, 'src/locales/zh-CN.js'),
-  resolve(root, 'src/locales/en.js'),
-  resolve(root, 'src/locales/ko.js')
+  resolve(root, 'src/locales/zh-CN.json'),
+  resolve(root, 'src/locales/en.json'),
+  resolve(root, 'src/locales/ko.json')
 ]
 
 // Collect all used keys
