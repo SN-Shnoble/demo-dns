@@ -17,15 +17,16 @@ final class AuthenticateNodeToken
 
     public function handle(Request $request, Closure $next): Response
     {
-        $node = $this->tokens->resolveNodeFromBearer($request->bearerToken());
+        $resolved = $this->tokens->resolveByToken((string) $request->bearerToken());
 
-        if ($node === null) {
+        if ($resolved === null) {
             return new JsonResponse([
                 'message' => 'Invalid or missing node token.',
             ], 401);
         }
 
-        $request->attributes->set('node', $node);
+        $request->attributes->set('node', $resolved['node']);
+        $request->attributes->set('node_token', $resolved['token']);
 
         return $next($request);
     }

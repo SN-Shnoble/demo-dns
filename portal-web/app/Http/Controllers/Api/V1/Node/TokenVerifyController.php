@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Node;
 
 use App\Models\NodeToken;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
