@@ -72,6 +72,30 @@ final class NodeTokenService
     }
 
     /**
+     * 2026-06-22 NEW: 纯 Token 鉴权解析，不再要求 HMAC secret。
+     * 替代 resolveWithSecret 供 VerifyRequestSignature 中间件使用。
+     *
+     * @return array{node:Node, token:NodeToken}|null
+     */
+    public function resolveByToken(string $bearerToken): ?array
+    {
+        $hash = hash('sha256', $bearerToken);
+        $token = NodeToken::with('node')
+            ->where('token_hash', $hash)
+            ->whereNull('revoked_at')
+            ->first();
+
+        if ($token === null) {
+            return null;
+        }
+
+        // 更新 last_used_at（best-effort，不影响主流程）
+        $token->forceFill(['last_used_at' => now()])->saveQuietly();
+
+        return ['node' => $token->node, 'token' => $token];
+    }
+
+    /**
      * Resolve a node token record from a bearer token.
      * Returns null if not found or revoked.
      *

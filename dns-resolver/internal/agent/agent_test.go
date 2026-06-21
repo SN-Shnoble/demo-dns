@@ -29,12 +29,6 @@ func TestPreissuedCredentialsFlow(t *testing.T) {
 			if got := r.Header.Get("Authorization"); got != "Bearer ak_test_01" {
 				t.Fatalf("unexpected heartbeat auth header: %s", got)
 			}
-			if got := r.Header.Get("X-Signature"); got == "" {
-				t.Fatalf("missing X-Signature header")
-			}
-			if got := r.Header.Get("X-Hmac-Key"); got != "sk_test_01" {
-				t.Fatalf("unexpected X-Hmac-Key header: %s", got)
-			}
 			heartbeatSeen.Store(true)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
@@ -225,7 +219,6 @@ func testConfig(t *testing.T, endpoint string) *config.Config {
 	cfg.ControlPlane.Endpoint = endpoint
 	cfg.ControlPlane.NodeID = "hk-test-01"
 	cfg.ControlPlane.APIKey = "ak_test_01"
-	cfg.ControlPlane.Secret = "sk_test_01"
 	cfg.ControlPlane.ProfilesPath = filepath.Join(tempDir, "profiles")
 	cfg.Logging.BufferPath = filepath.Join(tempDir, "buffer")
 	cfg.Node.Name = "resolver-test-01"

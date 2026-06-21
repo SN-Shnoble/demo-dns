@@ -137,7 +137,6 @@ func main() {
 		logging.Credentials{
 			NodeID: cfg.ControlPlane.NodeID,
 			APIKey: cfg.ControlPlane.APIKey,
-			Secret: cfg.ControlPlane.Secret,
 		},
 		agt.MarkLogFlush,
 	)

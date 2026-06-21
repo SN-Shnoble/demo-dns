@@ -23,15 +23,14 @@ type installOptions struct {
 	NodeID     string
 	Token      string
 	APIKey     string
-	Secret     string
 	ConfigPath string
 	// 以下为可选覆盖项，便于在同一控制台下批量安装同构节点
-	Region     string
-	Country    string
-	City       string
-	Provider   string
-	Name       string
-	Force      bool
+	Region   string
+	Country  string
+	City     string
+	Provider string
+	Name     string
+	Force    bool
 }
 
 // runInstall 实现 `resolver install` 子命令：
@@ -41,17 +40,9 @@ type installOptions struct {
 //	    --token=ak_xxx \
 //	    --node-id=hk-01
 //
-// 或者直接指定凭据（旧方式兼容）：
-//
-//	resolver install \
-//	    --server=http://console.example.com \
-//	    --node-id=hk-01 \
-//	    --api-key=ak_xxx \
-//	    --secret=sk_xxx
-//
-// 行为：把 console 端预签发的 APIKey + Secret 写入控制面配置，
+// 行为：把 console 端预签发的 APIKey 写入控制面配置，
 // resolver 启动后将跳过自助注册，直接使用预发凭据鉴权。
-// 如果传了 --token，会自动调用控制面 verify 接口换取 api_key + secret。
+// 如果传了 --token，会自动调用控制面 verify 接口换取 api_key。
 func runInstall(args []string) error {
 	fs := flag.NewFlagSet("install", flag.ExitOnError)
 
@@ -59,9 +50,8 @@ func runInstall(args []string) error {
 	fs.StringVar(&opts.Console, "server", "", "portal-web admin Base URL, e.g. https://console.ocerlink.com (alias: --console)")
 	fs.StringVar(&opts.Console, "console", "", "")
 	fs.StringVar(&opts.NodeID, "node-id", "", "Node ID assigned by console, e.g. hk-01")
-	fs.StringVar(&opts.Token, "token", "", "Node token issued by console (ak_xxx); exchanged for api_key+secret via verify API")
+	fs.StringVar(&opts.Token, "token", "", "Node token issued by console (ak_xxx); exchanged for api_key via verify API")
 	fs.StringVar(&opts.APIKey, "api-key", "", "Node API key issued by console (ak_xxx); used when --token is not provided")
-	fs.StringVar(&opts.Secret, "secret", "", "Node secret issued by console (sk_xxx); used when --token is not provided")
 	fs.StringVar(&opts.ConfigPath, "config", "configs/server.yaml", "Output resolver config.yaml path")
 	fs.StringVar(&opts.Name, "name", "", "Optional human-friendly node name override")
 	fs.StringVar(&opts.Region, "region", "", "Optional region code, e.g. ap-northeast-1")
@@ -74,14 +64,13 @@ func runInstall(args []string) error {
 		return err
 	}
 
-	// 如果传了 --token，用 token 换取 api_key + secret
+	// 如果传了 --token，用 token 换取 api_key
 	if strings.TrimSpace(opts.Token) != "" {
-		apiKey, secret, err := exchangeToken(opts.Console, opts.Token)
+		apiKey, err := exchangeToken(opts.Console, opts.Token)
 		if err != nil {
 			return fmt.Errorf("token exchange failed: %w", err)
 		}
 		opts.APIKey = apiKey
-		opts.Secret = secret
 	}
 
 	if err := validateInstallOptions(&opts); err != nil {
@@ -113,7 +102,6 @@ func runInstall(args []string) error {
 	fmt.Printf("  console   = %s\n", cfg.ControlPlane.Endpoint)
 	fmt.Printf("  node_id   = %s\n", cfg.ControlPlane.NodeID)
 	fmt.Printf("  api_key   = %s\n", maskCredential(cfg.ControlPlane.APIKey))
-	fmt.Printf("  secret    = %s\n", maskCredential(cfg.ControlPlane.Secret))
 	fmt.Printf("  log_buf   = %s\n", cfg.Logging.BufferPath)
 	fmt.Println("Next: run `resolver` to start the node.")
 	return nil
@@ -127,15 +115,11 @@ func validateInstallOptions(opts *installOptions) error {
 	if strings.TrimSpace(opts.NodeID) == "" {
 		missing = append(missing, "--node-id")
 	}
-	// token 或 api-key+secret 二选一
+	// token 或 api-key 二选一
 	hasToken := strings.TrimSpace(opts.Token) != ""
 	hasAPIKey := strings.TrimSpace(opts.APIKey) != ""
-	hasSecret := strings.TrimSpace(opts.Secret) != ""
 	if !hasToken && !hasAPIKey {
 		missing = append(missing, "--token or --api-key")
-	}
-	if !hasToken && !hasSecret {
-		missing = append(missing, "--token or --secret")
 	}
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required flags: %s", strings.Join(missing, ", "))
@@ -149,37 +133,36 @@ func validateInstallOptions(opts *installOptions) error {
 	return nil
 }
 
-// exchangeToken 使用 --token 调用控制面 verify API 换取 api_key + secret
-func exchangeToken(server, token string) (apiKey, secret string, err error) {
+// exchangeToken 使用 --token 调用控制面 verify API 换取 api_key
+func exchangeToken(server, token string) (apiKey string, err error) {
 	server = strings.TrimRight(server, "/")
 	url := server + "/api/v1/node/tokens/verify"
 
 	reqBody := fmt.Sprintf(`{"token":"%s"}`, token)
 	resp, err := http.Post(url, "application/json", strings.NewReader(reqBody))
 	if err != nil {
-		return "", "", fmt.Errorf("request verify API: %w", err)
+		return "", fmt.Errorf("request verify API: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		return "", "", fmt.Errorf("verify API returned %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("verify API returned %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
 		Data struct {
 			NodeID string `json:"node_id"`
 			APIKey string `json:"api_key"`
-			Secret string `json:"secret"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", "", fmt.Errorf("parse verify response: %w", err)
+		return "", fmt.Errorf("parse verify response: %w", err)
 	}
-	if result.Data.APIKey == "" || result.Data.Secret == "" {
-		return "", "", fmt.Errorf("verify API returned empty credentials")
+	if result.Data.APIKey == "" {
+		return "", fmt.Errorf("verify API returned empty api_key")
 	}
-	return result.Data.APIKey, result.Data.Secret, nil
+	return result.Data.APIKey, nil
 }
 
 // buildInstalledConfig 在 config.Default() 的基础上覆盖控制面凭据和节点标识
@@ -188,7 +171,6 @@ func buildInstalledConfig(opts *installOptions) *config.Config {
 
 	cfg.ControlPlane.Endpoint = strings.TrimRight(opts.Console, "/")
 	cfg.ControlPlane.APIKey = strings.TrimSpace(opts.APIKey)
-	cfg.ControlPlane.Secret = strings.TrimSpace(opts.Secret)
 	cfg.ControlPlane.NodeID = strings.TrimSpace(opts.NodeID)
 
 	// 同步节点标识，便于 console 在 Node 表上做匹配
@@ -323,7 +305,6 @@ install flags:
   --console URL   portal-web admin Base URL, e.g. https://console.ocerlink.com
   --node-id ID    Node ID assigned by console, e.g. hk-01
   --api-key KEY   Node API key issued by console (ak_xxx)
-  --secret KEY    Node secret issued by console (sk_xxx)
   --config PATH   Output config path (default: configs/server.yaml)
   --name NAME     Optional human-friendly node name
   --region CODE   Optional region, e.g. ap-northeast-1
@@ -343,6 +324,5 @@ Example:
   resolver install \
     --console=https://console.ocerlink.com \
     --node-id=hk-01 \
-    --api-key=ak_xxx \
-    --secret=sk_xxx`)
+    --api-key=ak_xxx`)
 }

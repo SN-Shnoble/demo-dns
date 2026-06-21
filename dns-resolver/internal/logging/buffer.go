@@ -1,15 +1,11 @@
 // Package logging 实现 DNS 查询日志的本地缓冲与批量上报。
-// 凭据完全来自 dns-resolver 启动时由 console 预签发的 APIKey / Secret，
-// 不再从磁盘 identity 文件读取任何信息。
+// 凭据完全来自 dns-resolver 启动时由 console 预签发的 APIKey，
+// 统一使用 Bearer Token 鉴权，不再从磁盘 identity 文件读取任何信息。
 package logging
 
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,10 +34,10 @@ type LogEntry struct {
 }
 
 // Credentials 是 console 预签发凭据在日志上报场景下的最小投影。
+// 2026-06-22 改造：删除 Secret 字段，统一 Token 鉴权。
 type Credentials struct {
 	NodeID string
 	APIKey string
-	Secret string
 }
 
 type Buffer struct {
@@ -61,7 +57,7 @@ type Buffer struct {
 // NewBuffer 构造一个日志缓冲器，调用方必须传入已校验的控制面凭据。
 // 任何凭据字段为空都会返回 nil，调用方应直接拒绝启动。
 func NewBuffer(bufPath, cpURL string, maxSize int, flushInterval time.Duration, cred Credentials, onFlush func(time.Time)) *Buffer {
-	if cred.NodeID == "" || cred.APIKey == "" || cred.Secret == "" {
+	if cred.NodeID == "" || cred.APIKey == "" {
 		log.Printf("log buffer disabled: control plane credentials are missing")
 		return nil
 	}
@@ -158,22 +154,10 @@ func (b *Buffer) sendBatch(batch []LogEntry) error {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+b.cred.APIKey)
-	req.Header.Set("X-Hmac-Key", b.cred.Secret)
-
-	ts := fmt.Sprintf("%d", time.Now().Unix())
-	bodyHash := sha256.Sum256(body)
-	canonical := ts + "\n" + req.Method + "\n" + req.URL.Path + "\n" + hex.EncodeToString(bodyHash[:])
-	mac := hmac.New(sha256.New, []byte(b.cred.Secret))
-	mac.Write([]byte(canonical))
-	req.Header.Set("X-Signature", hex.EncodeToString(mac.Sum(nil)))
-	req.Header.Set("X-Timestamp", ts)
-
-	nonce := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return fmt.Errorf("read nonce: %w", err)
+	// 2026-06-22 改造：统一 Token 鉴权，删除 HMAC 头。
+	if b.cred.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+b.cred.APIKey)
 	}
-	req.Header.Set("X-Nonce", hex.EncodeToString(nonce))
 
 	resp, err := b.client.Do(req)
 	if err != nil {

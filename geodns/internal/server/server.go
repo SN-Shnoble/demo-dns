@@ -31,18 +31,18 @@ func New(cfg *config.Config) *Server {
 	r := router.New()
 
 	timeout := cfg.RequestTimeout()
-	hbSecret := cfg.NodeHMACSecret()
 	hb := (*node.HeartbeatClient)(nil)
-	if cfg.NodeToken() != "" && hbSecret != "" && cfg.NodeAPIEndpoint() != "" {
-		hb = node.NewHeartbeatClient(cfg.NodeAPIEndpoint(), cfg.NodeToken(), hbSecret, timeout)
+	// 2026-06-22 改造：删除 HMACSecret 条件判断，只要 Token + Endpoint 都有就启用 heartbeat。
+	if cfg.NodeToken() != "" && cfg.NodeAPIEndpoint() != "" {
+		hb = node.NewHeartbeatClient(cfg.NodeAPIEndpoint(), cfg.NodeToken(), timeout)
 	} else {
-		log.Printf("geodns: heartbeat disabled (token/secret/endpoint not all set)")
+		log.Printf("geodns: heartbeat disabled (token/endpoint not all set)")
 	}
 
 	return &Server{
 		cfg:       cfg,
 		router:    r,
-		client:    healthview.Client{
+		client: healthview.Client{
 			BaseURL:    cfg.Server.ConsoleHealthURL,
 			Token:      cfg.HealthViewToken(),
 			HTTPClient: &http.Client{Timeout: timeout},

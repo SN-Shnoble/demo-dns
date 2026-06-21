@@ -14,9 +14,9 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	ListenAddr        string `yaml:"listen_addr"`
-	ListenDNSAddr     string `yaml:"listen_dns_addr"`
-	ConsoleHealthURL  string `yaml:"console_health_url"`
+	ListenAddr         string `yaml:"listen_addr"`
+	ListenDNSAddr      string `yaml:"listen_dns_addr"`
+	ConsoleHealthURL   string `yaml:"console_health_url"`
 	ConsoleHealthToken string `yaml:"console_health_token"`
 	RefreshInterval    string `yaml:"refresh_interval"`
 	RequestTimeoutSec  int    `yaml:"request_timeout_seconds"`
@@ -28,10 +28,11 @@ type RoutingConfig struct {
 	OverloadThreshold   float64  `yaml:"overload_threshold,omitempty"`
 }
 
+// NodeConfig 节点鉴权配置。
+// 2026-06-22 改造：删除 HMACSecret 字段，统一使用 Token 鉴权。
 type NodeConfig struct {
 	Token       string `yaml:"token"`
 	APIEndpoint string `yaml:"api_endpoint"`
-	HMACSecret  string `yaml:"hmac_secret"`
 }
 
 func (c *Config) RefreshDuration() time.Duration {
@@ -53,10 +54,10 @@ func (c *Config) RequestTimeout() time.Duration {
 }
 
 func (c *Config) GlobalFallback() string {
-	if c.Routing.GlobalFallbackRegion == "" {
-		return "global"
+	if c.Routing.GlobalFallbackRegion != "" {
+		return c.Routing.GlobalFallbackRegion
 	}
-	return c.Routing.GlobalFallbackRegion
+	return "global"
 }
 
 func (c *Config) HealthViewToken() string {
@@ -78,13 +79,6 @@ func (c *Config) NodeAPIEndpoint() string {
 		return e
 	}
 	return os.Getenv("GEODNS_API_ENDPOINT")
-}
-
-func (c *Config) NodeHMACSecret() string {
-	if s := c.Node.HMACSecret; s != "" {
-		return s
-	}
-	return os.Getenv("GEODNS_HMAC_SECRET")
 }
 
 func (c *Config) DNSListenAddr() string {

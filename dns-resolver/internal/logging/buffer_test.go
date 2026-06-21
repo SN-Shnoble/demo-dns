@@ -15,14 +15,9 @@ func TestFlushSendsQueryLogBatch(t *testing.T) {
 
 	var flushed atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 2026-06-22 改造：统一 Token 鉴权，删除 HMAC 头检查。
 		if got := r.Header.Get("Authorization"); got != "Bearer ak_test_01" {
 			t.Fatalf("unexpected auth header: %s", got)
-		}
-		if got := r.Header.Get("X-Signature"); got == "" {
-			t.Fatalf("missing X-Signature header")
-		}
-		if got := r.Header.Get("X-Hmac-Key"); got != "sk_test_01" {
-			t.Fatalf("unexpected X-Hmac-Key header: %s", got)
 		}
 
 		var payload map[string]any
@@ -52,7 +47,6 @@ func TestFlushSendsQueryLogBatch(t *testing.T) {
 		Credentials{
 			NodeID: "hk-test-01",
 			APIKey: "ak_test_01",
-			Secret: "sk_test_01",
 		},
 		func(time.Time) { flushed.Store(true) },
 	)
@@ -80,7 +74,6 @@ func TestFlushWritesLocalBufferWhenUploadFails(t *testing.T) {
 		Credentials{
 			NodeID: "hk-test-01",
 			APIKey: "ak_test_01",
-			Secret: "sk_test_01",
 		},
 		nil,
 	)
@@ -108,18 +101,7 @@ func TestNewBufferReturnsNilWhenCredentialsMissing(t *testing.T) {
 		"http://127.0.0.1:1",
 		100,
 		time.Second,
-		Credentials{NodeID: "hk-test-01", APIKey: "ak_test_01"}, // Secret missing
-		nil,
-	); got != nil {
-		t.Fatal("expected nil when secret is missing")
-	}
-
-	if got := NewBuffer(
-		filepath.Join(tempDir, "buffer"),
-		"http://127.0.0.1:1",
-		100,
-		time.Second,
-		Credentials{NodeID: "hk-test-01", Secret: "sk_test_01"}, // APIKey missing
+		Credentials{NodeID: "hk-test-01"}, // APIKey missing
 		nil,
 	); got != nil {
 		t.Fatal("expected nil when api_key is missing")
@@ -130,7 +112,7 @@ func TestNewBufferReturnsNilWhenCredentialsMissing(t *testing.T) {
 		"http://127.0.0.1:1",
 		100,
 		time.Second,
-		Credentials{APIKey: "ak_test_01", Secret: "sk_test_01"}, // NodeID missing
+		Credentials{APIKey: "ak_test_01"}, // NodeID missing
 		nil,
 	); got != nil {
 		t.Fatal("expected nil when node_id is missing")

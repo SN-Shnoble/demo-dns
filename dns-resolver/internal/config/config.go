@@ -52,11 +52,10 @@ type ControlPlaneConfig struct {
 	// 2026-06-15: dns-console-web 合并入 portal-web，所有 admin / agent 接口
 	// 都在同一 host 上提供，因此 resolver 只需要一个 base URL。
 	Endpoint string `yaml:"endpoint"`
-	// APIKey / Secret 是 portal-web 后台预创建节点时签发的凭据，
-	// 由 `resolver install --console=... --node-id=... --api-key=... --secret=...` 写入
+	// APIKey 是 portal-web 后台预创建节点时签发的凭据，
+	// 由 `resolver install --console=... --node-id=... --api-key=...` 写入
 	// 节点启动后直接使用此凭据鉴权，不再走任何自助注册/兜底流程
 	APIKey string `yaml:"api_key"`
-	Secret string `yaml:"secret"`
 	// NodeID 是 console 预签发的节点标识，必须与 control_plane.api_key 配对使用
 	NodeID string `yaml:"node_id"`
 	// HeartbeatInterval / ConfigPollInterval 单位为秒
@@ -123,9 +122,6 @@ func (c *Config) Validate() error {
 	if strings.TrimSpace(c.ControlPlane.APIKey) == "" {
 		return fmt.Errorf("control_plane.api_key is required (run `resolver install` to provision)")
 	}
-	if strings.TrimSpace(c.ControlPlane.Secret) == "" {
-		return fmt.Errorf("control_plane.secret is required (run `resolver install` to provision)")
-	}
 	if strings.TrimSpace(c.ControlPlane.NodeID) == "" {
 		return fmt.Errorf("control_plane.node_id is required (run `resolver install` to provision)")
 	}
@@ -160,7 +156,6 @@ func Default() *Config {
 			RequestTimeoutSec:  5,
 			ProfilesPath:       "./data/profiles",
 			APIKey:             "",
-			Secret:             "",
 			NodeID:             "",
 		},
 		NATS: NATSConfig{

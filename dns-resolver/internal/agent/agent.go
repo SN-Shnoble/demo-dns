@@ -3,17 +3,13 @@
 //   - config bundle 拉取、checksum 校验、原子写盘、热加载
 //   - config ACK
 //
-// 鉴权完全基于 console 预签发的 APIKey / Secret，不存在任何自助注册、
-// identity 落盘、token 续签、bootstrap 兜底等分支路径。
+// 鉴权完全基于 console 预签发的 APIKey，统一使用 Bearer Token 鉴权。
 package agent
 
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +17,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,11 +27,10 @@ import (
 )
 
 // Credentials 是 console 预签发凭据的内存表示，来源于 configs/server.yaml
-// 中 control_plane.api_key / control_plane.secret / control_plane.node_id。
+// 中 control_plane.api_key / control_plane.node_id。
 type Credentials struct {
 	NodeID string
 	APIKey string
-	Secret string
 }
 
 type Agent struct {
@@ -130,7 +124,6 @@ func New(cfg *config.Config, engine *matching.Engine, collector *metrics.Metrics
 		cred: Credentials{
 			NodeID: strings.TrimSpace(cfg.ControlPlane.NodeID),
 			APIKey: strings.TrimSpace(cfg.ControlPlane.APIKey),
-			Secret: strings.TrimSpace(cfg.ControlPlane.Secret),
 		},
 		localProfiles: make(map[string]int64),
 		client: &http.Client{
@@ -580,34 +573,13 @@ func (a *Agent) doNodeRequest(method, path string, body io.Reader) (*http.Respon
 		return nil, err
 	}
 
-	// 读取 body 一次以便同时做 HMAC 签名与转发；GET 请求 body 为 nil
-	var bodyBytes []byte
+	// 2026-06-22 改造：统一为纯 Token 鉴权，删除 HMAC 签名。
 	if body != nil {
-		bodyBytes, err = io.ReadAll(body)
-		if err != nil {
-			return nil, fmt.Errorf("read body for signing: %w", err)
-		}
-		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-		req.ContentLength = int64(len(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 	}
-
-	req.Header.Set("Authorization", "Bearer "+a.cred.APIKey)
-	req.Header.Set("X-Hmac-Key", a.cred.Secret)
-
-	ts := strconv.FormatInt(time.Now().Unix(), 10)
-	bodyHash := sha256.Sum256(bodyBytes)
-	canonical := ts + "\n" + strings.ToUpper(req.Method) + "\n" + req.URL.Path + "\n" + hex.EncodeToString(bodyHash[:])
-	mac := hmac.New(sha256.New, []byte(a.cred.Secret))
-	mac.Write([]byte(canonical))
-	req.Header.Set("X-Signature", hex.EncodeToString(mac.Sum(nil)))
-	req.Header.Set("X-Timestamp", ts)
-
-	nonce := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("read nonce: %w", err)
+	if a.cred.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+a.cred.APIKey)
 	}
-	req.Header.Set("X-Nonce", hex.EncodeToString(nonce))
 
 	return a.client.Do(req)
 }

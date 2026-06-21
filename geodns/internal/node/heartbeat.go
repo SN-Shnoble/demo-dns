@@ -2,34 +2,27 @@ package node
 
 import (
 	"bytes"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
 
-// HeartbeatClient 上报节点心跳到 portal-web /api/v1/nodes/heartbeat
-// 签名规范：与 dns-resolver/internal/agent 一致 (HMAC-SHA256)
+// HeartbeatClient 上报节点心跳到 portal-web /api/v1/node/nodes/heartbeat
+// 2026-06-22 改造：统一为纯 Token 鉴权，删除 HMAC 签名。
 type HeartbeatClient struct {
 	APIEndpoint string
 	Bearer      string
-	HMACSecret  string
 	HTTPClient  *http.Client
 }
 
-func NewHeartbeatClient(apiEndpoint, bearer, secret string, timeout time.Duration) *HeartbeatClient {
+func NewHeartbeatClient(apiEndpoint, bearer string, timeout time.Duration) *HeartbeatClient {
 	return &HeartbeatClient{
 		APIEndpoint: strings.TrimSuffix(apiEndpoint, "/"),
 		Bearer:      bearer,
-		HMACSecret:  secret,
 		HTTPClient:  &http.Client{Timeout: timeout},
 	}
 }
@@ -56,22 +49,10 @@ func (c *HeartbeatClient) Report(payload HeartbeatPayload) error {
 		return err
 	}
 
-	ts := strconv.FormatInt(time.Now().Unix(), 10)
-	bodyHash := sha256.Sum256(body)
-	canonical := ts + "\n" + strings.ToUpper(req.Method) + "\n" + req.URL.Path + "\n" + hex.EncodeToString(bodyHash[:])
-	mac := hmac.New(sha256.New, []byte(c.HMACSecret))
-	mac.Write([]byte(canonical))
-
-	nonceBytes := make([]byte, 16)
-	if _, err := io.ReadFull(rand.Reader, nonceBytes); err != nil {
-		return fmt.Errorf("nonce: %w", err)
+	// 统一 Token 鉴权：Bearer
+	if c.Bearer != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Bearer)
 	}
-
-	req.Header.Set("Authorization", "Bearer "+c.Bearer)
-	req.Header.Set("X-Hmac-Key", c.HMACSecret)
-	req.Header.Set("X-Signature", hex.EncodeToString(mac.Sum(nil)))
-	req.Header.Set("X-Timestamp", ts)
-	req.Header.Set("X-Nonce", hex.EncodeToString(nonceBytes))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTPClient.Do(req)

@@ -103,12 +103,21 @@ func validateGeodnsInstallOptions(opts *installOptions) error {
 func buildGeodnsConfig(opts *installOptions) *config.Config {
 	server := strings.TrimRight(opts.Server, "/")
 
+	// 2026-06-22 P0#3: 与 portal-web 约定 node token 同时作为 health-view token。
+	// 1) install 时不传 --health-token 时，回退到 --token，保证 healthview.Client
+	//    请求 health-view 时能通过 shared.token:internal 中间件。
+	// 2) HMAC 签名密钥：与 node.Client 一致，healthview.Client 也会回退到 token。
+	healthToken := strings.TrimSpace(opts.HealthToken)
+	if healthToken == "" {
+		healthToken = strings.TrimSpace(opts.Token)
+	}
+
 	return &config.Config{
 		Server: config.ServerConfig{
 			ListenAddr:         opts.ListenAddr,
 			ListenDNSAddr:      opts.DNSAddr,
 			ConsoleHealthURL:   server + "/api/v1/internal/geodns/health-view",
-			ConsoleHealthToken: opts.HealthToken,
+			ConsoleHealthToken: healthToken,
 			RefreshInterval:    "15s",
 			RequestTimeoutSec:  5,
 		},

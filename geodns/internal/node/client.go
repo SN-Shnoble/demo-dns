@@ -8,13 +8,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"ocer-dns/geodns/internal/signing"
 )
 
+// Client 用于 geodns → portal-web 拉取 GeoDNS 配置。
+// 2026-06-22 改造：统一为纯 Token 鉴权，删除 HMAC 签名。
 type Client struct {
 	Token       string
-	HMACSecret  string // 2026-06-22 NEW P0#3: 可选 HMAC 密钥（默认回退到 Token）
 	APIEndpoint string
 	client      *http.Client
 }
@@ -50,9 +49,6 @@ func NewClient(token, endpoint string) *Client {
 	}
 }
 
-// SetHMACSecret 注入 HMAC 密钥。空字符串表示回退到 Token（向后兼容）。
-func (c *Client) SetHMACSecret(secret string) { c.HMACSecret = secret }
-
 func (c *Client) GetConfig() (*GeoDNSConfig, error) {
 	url := c.APIEndpoint + "/node/geodns/config"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -60,7 +56,10 @@ func (c *Client) GetConfig() (*GeoDNSConfig, error) {
 		return nil, err
 	}
 
-	c.signRequest(req)
+	// 统一 Token 鉴权：Bearer
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -79,13 +78,6 @@ func (c *Client) GetConfig() (*GeoDNSConfig, error) {
 	}
 
 	return &result.Data, nil
-}
-
-func (c *Client) signRequest(req *http.Request) {
-	// 2026-06-22 NEW P0#3: 旧版只设了 Bearer + Timestamp + Nonce，未计算 X-Signature，
-	// 会被 portal-web VerifyRequestSignature 中间件以 missing_auth_headers 拒绝。
-	// 改为调用统一 signing 工具，添加完整 5 个头。
-	signing.AddHMACHeaders(req, c.Token, c.HMACSecret, nil)
 }
 
 func (c *Client) RunConfigRefresh(ctx chan<- *GeoDNSConfig, refreshInterval time.Duration) {
