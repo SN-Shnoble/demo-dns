@@ -123,7 +123,7 @@
     "registerSuccess": "注册成功",
     "loginFailed": "登录失败",
     "registerFailed": "注册失败",
-    "passwordMin": "密码至少 8 个字符",
+    "passwordMin": "密码至少 6 个字符",
     "emailRequired": "请输入邮箱或用户名",
     "emailValidRequired": "请输入有效的邮箱",
     "nameRequired": "请输入名称",

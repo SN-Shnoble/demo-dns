@@ -23,7 +23,7 @@ final class AuthController
             'username' => 'nullable|string|max:100',
             'name' => 'nullable|string|max:100',
             'email' => 'required|email|max:255',
-            'password' => ['required', Password::min(8)->mixedCase()],
+            'password' => ['required', Password::min(6)],
         ]);
 
         $username = trim((string) ($validated['username'] ?? $validated['name'] ?? ''));

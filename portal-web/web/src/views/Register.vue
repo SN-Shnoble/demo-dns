@@ -69,7 +69,7 @@ const form = reactive({
 const rules = computed(() => ({
     username: [{ required: true, message: t('auth.nameRequired'), trigger: 'blur' }],
     email: [{ required: true, type: 'email', message: t('auth.emailValidRequired'), trigger: 'blur' }],
-    password: [{ required: true, min: 8, message: t('auth.passwordMin'), trigger: 'blur' }],
+    password: [{ required: true, min: 6, message: t('auth.passwordMin'), trigger: 'blur' }],
 }))
 
 const highlights = computed(() => ([

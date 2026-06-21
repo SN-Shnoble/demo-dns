@@ -123,7 +123,7 @@ final class AuthService
     {
         return \App\Models\Profile::create([
             'user_id' => $userId,
-            'name' => $username ? ($username . ' 的第一个配置文件') : '第一个配置文件',
+            'name' => '默认配置',
             'description' => '系统自动创建',
             'default_action' => 'allow',
             'block_response' => 'nxdomain',

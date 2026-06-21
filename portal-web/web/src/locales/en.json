@@ -120,7 +120,7 @@
     "registerSuccess": "Registration successful",
     "loginFailed": "Login failed",
     "registerFailed": "Registration failed",
-    "passwordMin": "Password must be at least 8 characters",
+    "passwordMin": "Password must be at least 6 characters",
     "emailRequired": "Email or username is required",
     "emailValidRequired": "Valid email is required",
     "nameRequired": "Name is required",
