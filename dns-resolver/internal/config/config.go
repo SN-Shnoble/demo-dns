@@ -115,12 +115,13 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	// 以 Default() 为基底，再用 YAML 覆盖 — 确保未配置的字段也有合理的标准值
+	cfg := Default()
+	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, err
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }
 
 // Validate 校验启动所必需的控制面凭据：api_key/secret/node_id 必须由
@@ -151,14 +152,14 @@ func Default() *Config {
 			Country:            "US",
 			Provider:           "local",
 			PublicIPv4:         "127.0.0.1",
-			SupportedProtocols: []string{"udp", "doh"},
+			SupportedProtocols: []string{"udp", "tcp", "doh", "dot", "doq"},
 		},
 		Listen: ListenConfig{
-			DoH: 8443,
-			DoT: 853,
-			DoQ: 784,
-			TCP: 53,
 			UDP: 53,
+			TCP: 53,
+			DoH: 443,
+			DoT: 853,
+			DoQ: 853,
 		},
 		ControlPlane: ControlPlaneConfig{
 			Endpoint:           "http://localhost:8000",

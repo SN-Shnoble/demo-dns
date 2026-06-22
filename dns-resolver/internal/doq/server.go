@@ -25,7 +25,7 @@ import (
 // with a 2-byte big-endian length prefix (same wire format as TCP).
 type Server struct {
 	cfg             *config.Config
-	resolutionLayer interface{} // placeholder for future policy engine integration
+	resolutionLayer any // placeholder for future policy engine integration
 	logBuffer       *logging.Buffer
 	metrics         *metrics.Metrics
 	cache           *cache.Cache
@@ -43,10 +43,10 @@ func New(
 	cacheClient *cache.Cache,
 ) *Server {
 	return &Server{
-		cfg:     cfg,
+		cfg:       cfg,
 		logBuffer: logBuffer,
-		metrics: collector,
-		cache:   cacheClient,
+		metrics:   collector,
+		cache:     cacheClient,
 		client: &dns.Client{
 			Net:     "udp",
 			Timeout: 5 * time.Second,
@@ -112,11 +112,11 @@ func (s *Server) handleConnection(ctx context.Context, conn *quic.Conn) {
 		if err != nil {
 			return
 		}
-		go s.handleStream(stream, conn.RemoteAddr())
+		go s.handleStream(stream)
 	}
 }
 
-func (s *Server) handleStream(stream *quic.Stream, remoteAddr net.Addr) {
+func (s *Server) handleStream(stream *quic.Stream) {
 	defer stream.Close()
 
 	// Read 2-byte length prefix (big-endian, same as TCP wire format)
