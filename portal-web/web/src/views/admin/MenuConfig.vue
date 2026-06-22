@@ -62,11 +62,22 @@
                         </el-button-group>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('common.actions') || '操作'" width="100" align="center">
+                <el-table-column :label="$t('common.actions') || '操作'" width="180" align="center">
                     <template #default="{ row }">
                         <el-button size="small" text type="primary" @click="editMenu(row)">
                             <el-icon><Edit /></el-icon>
                             <span>{{ $t('common.edit') || '编辑' }}</span>
+                        </el-button>
+                        <el-button
+                            size="small"
+                            text
+                            type="danger"
+                            :disabled="hasChildren(row)"
+                            :title="hasChildren(row) ? ($t('admin.menuConfig.deleteBlockedHasChildren') || '请先删除下级导航') : ''"
+                            @click="handleDeleteMenu(row)"
+                        >
+                            <el-icon><Delete /></el-icon>
+                            <span>{{ $t('common.delete') || '删除' }}</span>
                         </el-button>
                     </template>
                 </el-table-column>
@@ -111,9 +122,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { Top, Bottom, Edit, Document } from '@element-plus/icons-vue'
+import { Top, Bottom, Edit, Delete, Document } from '@element-plus/icons-vue'
 import client from '@/api/client'
 
 const { t } = useI18n()
@@ -219,6 +230,51 @@ const isLastChild = (row) => {
     const siblings = childItems.value.filter(item => item.parentId === row.parentId)
     const index = siblings.findIndex(item => item.id === row.id)
     return index === siblings.length - 1
+}
+
+// 2026-06-22: 一级导航若存在下级子菜单，禁止直接删除，必须先删除子级
+const hasChildren = (row) => {
+    if (!row) return false
+    if (row.parentId) return false
+    return subMenuItems.value.some((c) => c.parentId === row.id)
+}
+
+const handleDeleteMenu = async (row) => {
+    if (!row) return
+    if (hasChildren(row)) {
+        ElMessage.warning(t('admin.menuConfig.deleteBlockedHasChildren') || '该导航下存在子级，请先删除子级导航')
+        return
+    }
+    try {
+        await ElMessageBox.confirm(
+            t('common.confirmDelete') || '确定要删除此菜单吗？',
+            t('common.confirm') || '确认',
+            { type: 'warning' },
+        )
+    } catch {
+        return
+    }
+    if (row.parentId) {
+        subMenuItems.value = subMenuItems.value.filter((m) => m.id !== row.id)
+    } else {
+        mainMenuItems.value = mainMenuItems.value.filter((m) => m.id !== row.id)
+    }
+    window.dispatchEvent(new CustomEvent('menu-config-updated', {
+        detail: {
+            mainMenu: mainMenuItems.value,
+            subMenu: subMenuItems.value,
+        }
+    }))
+    ElMessage.success(t('common.deleteSuccess') || '已删除')
+    // 同步到后端
+    try {
+        await client.put('/admin/menu-config', {
+            mainMenu: mainMenuItems.value,
+            subMenu: subMenuItems.value,
+        })
+    } catch {
+        ElMessage.error(t('admin.menuConfig.saveFailed') || '保存失败')
+    }
 }
 
 const moveUp = (row) => {

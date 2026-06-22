@@ -1570,7 +1570,8 @@
         "settings": "系统设置"
       },
       "saveSuccess": "配置已保存",
-      "saveFailed": "保存失败"
+      "saveFailed": "保存失败",
+      "deleteBlockedHasChildren": "该导航下存在子级，请先删除子级导航"
     }
   },
   "team": {

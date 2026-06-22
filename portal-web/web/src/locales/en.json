@@ -1465,8 +1465,9 @@
         "finance": "Finance",
         "settings": "Settings"
       },
-      "saveSuccess": "Config saved",
-      "saveFailed": "Save failed"
+      "saveSuccess": "Configuration saved",
+      "saveFailed": "Save failed",
+      "deleteBlockedHasChildren": "This menu has sub-items. Please delete them first."
     }
   },
   "team": {

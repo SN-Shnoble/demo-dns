@@ -1372,7 +1372,8 @@
         "settings": "설정"
       },
       "saveSuccess": "구성이 저장되었습니다",
-      "saveFailed": "저장 실패"
+      "saveFailed": "저장 실패",
+      "deleteBlockedHasChildren": "이 메뉴에는 하위 항목이 있습니다. 먼저 하위 항목을 삭제하세요."
     }
   },
   "team": {
