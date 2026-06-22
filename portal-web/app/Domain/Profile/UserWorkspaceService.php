@@ -246,9 +246,11 @@ final class UserWorkspaceService
         $profile = $this->resolveProfile($userId, $profileId);
         $normalizedListType = $listType === 'allow' ? 'allowlist' : 'denylist';
 
-        // 前端传来的 include_subdomains=true 时，强制使用 suffix 匹配，自动覆盖该域名下所有子域名
-        $includeSubdomains = (bool) ($payload['include_subdomains'] ?? true);
-        $matchType = $payload['match_type'] ?? ($includeSubdomains ? 'suffix' : 'exact');
+        // 2026-06-22: 系统默认按 suffix 匹配，自动覆盖该域名下所有子域名，前端不再展示 match_type 表单
+        $matchType = (string) ($payload['match_type'] ?? 'suffix');
+        if (!in_array($matchType, ['exact', 'suffix', 'wildcard'], true)) {
+            $matchType = 'suffix';
+        }
 
         return $this->profileRuleService->create($userId, $profile->id, [
             'list_type' => $normalizedListType,

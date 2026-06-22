@@ -13,10 +13,6 @@
         @size-change="(s) => { perPage = s; page = 1; fetchNodes() }"
     >
         <template #actions>
-            <el-button size="small" type="success" :loading="exporting" @click="handleExport">
-                <el-icon class="el-icon--left"><Download /></el-icon>
-                <span>{{ t('common.export') || '导出' }}</span>
-            </el-button>
             <el-button
                 type="danger"
                 plain
@@ -29,6 +25,27 @@
             <el-button type="primary" size="small" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
                 <span>{{ t('admin.nodes.create') }}</span>
+            </el-button>
+        </template>
+
+        <template #filters>
+            <el-input
+                v-model="filterKeyword"
+                :placeholder="t('admin.nodes.searchPlaceholder') || '搜索节点ID或别名'"
+                size="small"
+                style="width:260px"
+                clearable
+                @keyup.enter="onSearch"
+                @clear="onSearch"
+            >
+                <template #prefix><el-icon><Search /></el-icon></template>
+            </el-input>
+            <el-button size="small" type="primary" @click="onSearch">
+                <el-icon class="el-icon--left"><Search /></el-icon>
+                <span>{{ t('common.search') || '搜索' }}</span>
+            </el-button>
+            <el-button size="small" @click="onReset">
+                <span>{{ t('common.reset') || '重置' }}</span>
             </el-button>
         </template>
 
@@ -48,7 +65,7 @@
             </el-tag>
         </div>
 
-        <el-table v-loading="loading" :data="nodes" stripe style="margin-top:12px" @selection-change="onSelectionChange">
+        <el-table v-loading="loading" :data="nodes" stripe style="margin-top:12px;width:100%" @selection-change="onSelectionChange">
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Connection /></el-icon>
@@ -57,13 +74,18 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column :label="t('admin.nodes.nodeName')" min-width="160">
+            <el-table-column :label="t('admin.nodes.nodeId')" min-width="160">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
                         <!-- 2026-06-22: 单一事实源 — 直接读 row.runtime_status，不再看任何 DB 原始字段 -->
                         <el-icon :color="row.runtime_status === 'online' ? '#67c23a' : (row.runtime_status === 'degraded' ? '#e6a23c' : (row.runtime_status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><Connection /></el-icon>
-                        <span>{{ row.node_alias || row.node_name }}</span>
+                        <code class="node-code">{{ row.node_code }}</code>
                     </div>
+                </template>
+            </el-table-column>
+            <el-table-column :label="t('admin.nodes.nodeAlias')" min-width="160" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <span>{{ row.node_alias || '—' }}</span>
                 </template>
             </el-table-column>
             <el-table-column :label="t('admin.nodes.status')" min-width="110">
@@ -101,14 +123,21 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column :label="t('admin.nodes.actions')" min-width="140" fixed="right">
+            <el-table-column :label="t('admin.nodes.actions')" min-width="160" fixed="right">
                 <template #default="{ row }">
                     <div style="white-space:nowrap;display:flex;gap:4px;align-items:center">
                         <el-button size="small" text type="primary" @click="openEditDialog(row)">
                             <el-icon><Edit /></el-icon>
+                            <span>{{ t('common.edit') || '编辑' }}</span>
                         </el-button>
-                        <el-button size="small" text type="success" @click="openKeyDialog(row)">
-                            <el-icon><Connection /></el-icon>
+                        <!-- 2026-06-22: 已安装节点不显示「部署」按钮；仅展示文字，去除图标 -->
+                        <el-button
+                            v-if="row.install_status !== 'installed'"
+                            size="small"
+                            text
+                            type="success"
+                            @click="openKeyDialog(row)"
+                        >
                             <span>{{ t('admin.nodes.deploy') }}</span>
                         </el-button>
                         <el-button size="small" text type="danger" @click="handleDelete(row.id)">
@@ -122,16 +151,16 @@
 
     <el-dialog v-model="showEditDialog" :title="editingId ? t('admin.nodes.edit') : t('admin.nodes.create')" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="t('admin.nodes.name')" prop="name">
-                <el-input v-model="form.name" :placeholder="t('admin.nodes.namePlaceholder') || '节点名称'" />
+            <el-form-item v-if="editingId" :label="t('admin.nodes.nodeId')">
+                <code class="node-code">{{ form.node_code }}</code>
             </el-form-item>
-            <el-form-item :label="t('admin.nodes.region')">
+            <el-form-item :label="t('admin.nodes.region')" prop="region">
                 <el-select v-model="form.region" filterable clearable :placeholder="t('admin.nodes.regionPlaceholder') || '选择区域'" style="width:100%">
                     <el-option v-for="r in regions" :key="r.code" :label="`${r.code} - ${r.name}`" :value="r.code" />
                 </el-select>
             </el-form-item>
             <el-form-item :label="t('admin.nodes.nodeAlias')" prop="node_alias">
-                <el-input v-model="form.node_alias" />
+                <el-input v-model="form.node_alias" :placeholder="t('admin.nodes.nodeAliasPlaceholder') || '可选，留空将自动生成 node-xxxxxx'" />
             </el-form-item>
             <el-form-item :label="t('admin.nodes.ipv4')">
                 <el-input v-model="form.public_ipv4" />
@@ -180,7 +209,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CircleCheck, Connection, CopyDocument, Delete, Download, Edit, InfoFilled, Key, Plus, VideoPause, VideoPlay, WarningFilled } from '@element-plus/icons-vue'
+import { CircleCheck, Connection, CopyDocument, Delete, Edit, InfoFilled, Key, Plus, Search, VideoPause, VideoPlay, WarningFilled } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 import { useSystemConfig } from '@/composables/useSystemConfig'
@@ -192,8 +221,8 @@ const meta = ref({})
 const selected = ref([])
 const page = ref(1)
 const perPage = ref(20)
-const exporting = ref(false)
 const loading = ref(false)
+const filterKeyword = ref('')
 
 const showEditDialog = ref(false)
 const showTokenResultDialog = ref(false)
@@ -229,11 +258,11 @@ const copyDeployCmd = async () => {
         ElMessage.error('复制失败')
     }
 }
-const form = reactive({ name: '', node_alias: '', region: '', public_ipv4: '', weight: 100, capacity_qps: 5000 })
+// 2026-06-22: 创建弹窗不展示 name 字段，仅保留 alias / region / ipv4 / weight / capacity；node_code 列表展示
+const form = reactive({ node_code: '', node_alias: '', region: '', public_ipv4: '', weight: 100, capacity_qps: 5000 })
 const rules = {
-    name: [{ required: true, message: t('admin.nodes.nameRequired') || 'Name is required', trigger: 'blur' }],
-    node_alias: [{ required: true, message: t('admin.nodes.nodeAliasRequired') || 'Node alias is required', trigger: 'blur' }],
-    region: [{ required: true, message: t('admin.nodes.regionRequired') || 'Region is required', trigger: 'blur' }],
+    node_alias: [{ required: false, message: t('admin.nodes.nodeAliasRequired') || 'Node alias is required', trigger: 'blur' }],
+    region: [{ required: true, message: t('admin.nodes.regionRequired') || 'Region is required', trigger: 'change' }],
 }
 
 const formatTime = (ts) => {
@@ -244,7 +273,10 @@ const formatTime = (ts) => {
 const fetchNodes = async () => {
     loading.value = true
     try {
-        const { data } = await client.get('/admin/nodes', { params: { page: page.value, per_page: perPage.value } })
+        const params = { page: page.value, per_page: perPage.value }
+        const kw = filterKeyword.value.trim()
+        if (kw) params.q = kw
+        const { data } = await client.get('/admin/nodes', { params })
         nodes.value = data.data ?? []
         meta.value = data.meta ?? {}
     } catch (err) {
@@ -255,29 +287,21 @@ const fetchNodes = async () => {
     }
 }
 
-const handleExport = async () => {
-    exporting.value = true
-    try {
-        const { data } = await client.get('/admin/nodes', { params: { page: 1, per_page: 10000 }, responseType: 'blob' })
-        const blob = new Blob([data], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `nodes-${new Date().toISOString().slice(0, 10)}.csv`
-        a.click()
-        window.URL.revokeObjectURL(url)
-        ElMessage.success(t('common.exportSuccess') || 'Export completed')
-    } catch {
-        ElMessage.error(t('common.exportFailed') || 'Export failed')
-    } finally {
-        exporting.value = false
-    }
+const onSearch = () => {
+    page.value = 1
+    fetchNodes()
+}
+
+const onReset = () => {
+    filterKeyword.value = ''
+    page.value = 1
+    fetchNodes()
 }
 
 const onSelectionChange = (rows) => { selected.value = rows }
 
 const resetForm = () => {
-    form.name = ''
+    form.node_code = ''
     form.node_alias = ''
     form.region = ''
     form.public_ipv4 = ''
@@ -293,9 +317,9 @@ const openCreateDialog = () => {
 
 const openEditDialog = (row) => {
     editingId.value = row.id
-    // 2026-06-22: 完整回填所有字段，避免保存时缺失 name / node_alias / region
-    form.name = row.name || ''
-    form.node_alias = row.node_alias || row.node_name || ''
+    // 2026-06-22: 完整回填所有字段，避免保存时缺失 node_alias / region / node_code
+    form.node_code = row.node_code || ''
+    form.node_alias = row.node_alias || ''
     form.region = row.region || ''
     form.public_ipv4 = row.public_ipv4 ?? ''
     form.weight = row.weight ?? 100
@@ -308,17 +332,26 @@ const handleSave = async () => {
     if (!valid) return
     saving.value = true
     try {
+        // 2026-06-22: 不再传 node_code / name 字段；alias 留空由后端生成；name 字段后端会从 alias 同步
+        const payload = {
+            node_alias: form.node_alias || '',
+            region: form.region,
+            public_ipv4: form.public_ipv4,
+            weight: form.weight,
+            capacity_qps: form.capacity_qps,
+        }
         if (editingId.value) {
-            await client.put(`/admin/nodes/${editingId.value}`, form)
+            await client.put(`/admin/nodes/${editingId.value}`, payload)
             ElMessage.success(t('admin.nodes.updated'))
         } else {
-            await client.post('/admin/nodes', form)
+            await client.post('/admin/nodes', payload)
             ElMessage.success(t('admin.nodes.created'))
         }
         showEditDialog.value = false
         await fetchNodes()
-    } catch {
-        ElMessage.error(t('admin.nodes.saveFailed'))
+    } catch (err) {
+        const msg = err.response?.data?.message || err.message || t('admin.nodes.saveFailed')
+        ElMessage.error(msg)
     } finally {
         saving.value = false
     }
@@ -434,6 +467,15 @@ onMounted(() => {
 .empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }
 .empty-desc { font-size: 13px; color: #94a3b8; margin: 0; }
 .name-cell { display: flex; align-items: center; gap: 8px; }
+.node-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    color: #1e293b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
 
 /* Heartbeat freshness (2026-06-22 单一事实源) */
 .hb-stale { color: #f56c6c; font-weight: 500; }

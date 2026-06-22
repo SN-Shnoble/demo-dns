@@ -224,9 +224,10 @@ final class UserWorkspaceController
 
     public function createRule(Request $request, string $listType): JsonResponse
     {
+        // 2026-06-22: match_type 不再必填，系统默认 suffix 匹配（覆盖子域名）
         $validated = $request->validate([
             'domain' => 'required|string|max:255',
-            'match_type' => ['required', Rule::in(['exact', 'suffix', 'wildcard'])],
+            'match_type' => ['sometimes', Rule::in(['exact', 'suffix', 'wildcard'])],
         ]);
 
         return response()->json([

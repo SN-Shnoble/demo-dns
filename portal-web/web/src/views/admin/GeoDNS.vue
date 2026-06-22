@@ -35,13 +35,18 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column :label="$t('admin.geoDns.nodeName')" :min-width="160">
+            <el-table-column :label="$t('admin.geoDns.nodeId') || '节点ID'" :min-width="180">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
                         <!-- 2026-06-22: 单一事实源 — row.status 是后端用 $mapping->runtimeStatus() / $node->runtimeStatus() 算出来的 -->
                         <el-icon :color="row.status === 'online' ? '#67c23a' : (row.status === 'degraded' ? '#e6a23c' : (row.status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><Connection /></el-icon>
-                        <span>{{ row.node_name || row.region || ('#' + row.id) }}</span>
+                        <code class="node-code">{{ row.node_code || (row.target_node_id ? '#' + row.target_node_id : ('#' + row.id)) }}</code>
                     </div>
+                </template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.geoDns.nodeAlias') || '节点别名'" :min-width="160" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <span>{{ row.node_alias || '—' }}</span>
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.installStatus')" :min-width="110">
@@ -102,13 +107,19 @@
 
     <el-dialog v-model="showDialog" :title="editingId ? $t('admin.geoDns.edit') : $t('admin.geoDns.addServer')" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="$t('admin.geoDns.nodeName')" prop="node_name">
-                <el-input v-model="form.node_name" maxlength="100" :placeholder="$t('admin.geoDns.nodeNamePlaceholder') || '例: kr-test'" />
+            <el-form-item v-if="editingId" :label="$t('admin.geoDns.nodeId') || '节点ID'">
+                <code class="node-code">{{ form.node_code || (editingId ? ('#' + editingId) : '') }}</code>
             </el-form-item>
             <el-form-item :label="$t('admin.geoDns.region')" prop="region">
                 <el-select v-model="form.region" filterable clearable :placeholder="$t('admin.geoDns.regionPlaceholder') || '选择区域'" style="width:100%">
                     <el-option v-for="r in regions" :key="r.code" :label="`${r.code} - ${r.name}`" :value="r.code" />
                 </el-select>
+            </el-form-item>
+            <el-form-item :label="$t('admin.geoDns.nodeAlias') || '节点别名'">
+                <el-input v-model="form.node_alias" :placeholder="$t('admin.geoDns.nodeAliasPlaceholder') || '可选，留空将自动生成 geodns-xxxxxx'" />
+            </el-form-item>
+            <el-form-item :label="$t('admin.geoDns.nodeName')" prop="node_name">
+                <el-input v-model="form.node_name" maxlength="100" :placeholder="$t('admin.geoDns.nodeNamePlaceholder') || '例: kr-test'" />
             </el-form-item>
             <el-form-item :label="$t('admin.geoDns.ipAddress')">
                 <el-input v-model="form.public_ipv4" maxlength="45" :placeholder="$t('admin.geoDns.ipPlaceholder') || '例: 10.20.30.40'" />
@@ -174,10 +185,10 @@ const editingId = ref(null)
 const saving = ref(false)
 const formRef = ref(null)
 const deployData = reactive({ node_id: '', api_key: '' })
-const form = reactive({ region: '', node_name: '', public_ipv4: '', enabled: true })
+const form = reactive({ region: '', node_name: '', node_alias: '', node_code: '', public_ipv4: '', enabled: true })
 const rules = {
-    region: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
-    node_name: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
+    region: [{ required: true, message: t('admin.geoDns.required') || 'Required', trigger: 'change' }],
+    node_name: [{ required: false, message: t('admin.geoDns.required') || 'Required', trigger: 'blur' }],
 }
 const { siteUrl, loadSystemConfig } = useSystemConfig()
 const deployCmdPreview = computed(() => {
@@ -217,6 +228,8 @@ const fetchMappings = async () => {
 const resetForm = () => {
     form.region = ''
     form.node_name = ''
+    form.node_alias = ''
+    form.node_code = ''
     form.public_ipv4 = ''
     form.enabled = true
 }
@@ -231,6 +244,8 @@ const openEditDialog = (row) => {
     editingId.value = row.id
     form.region = row.region
     form.node_name = row.node_name || ''
+    form.node_alias = row.node_alias || ''
+    form.node_code = row.node_code || ''
     form.public_ipv4 = row.public_ipv4 || ''
     form.enabled = row.enabled !== false
     showDialog.value = true
@@ -323,6 +338,16 @@ onUnmounted(() => {
 .token-section .section-header { display: flex; justify-content: space-between; align-items: center; }
 .deploy-code { background: #0f172a; color: #e2e8f0; padding: 12px 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; margin: 0; }
 .token-footer-tip { display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 12px; margin-top: 8px; }
+.name-cell { display: flex; align-items: center; gap: 8px; }
+.node-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    color: #1e293b;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
 
 /* Heartbeat freshness (2026-06-22 单一事实源) */
 .hb-stale { color: #f56c6c; font-weight: 500; }

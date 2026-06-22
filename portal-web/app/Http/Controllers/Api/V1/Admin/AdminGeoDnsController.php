@@ -9,6 +9,7 @@ use App\Models\GeoDnsMapping;
 use App\Models\Node;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 final class AdminGeoDnsController
 {
@@ -63,9 +64,10 @@ final class AdminGeoDnsController
                 'region' => $node->region ?? '',
                 'target_node_id' => $node->id,
                 'node_id' => $node->id,
+                'node_code' => $node->node_code,
                 'node_name' => $node->node_name ?? $node->name,
+                'node_alias' => $node->node_alias ?? null,
                 'public_ipv4' => $node->public_ipv4,
-                'node_alias' => null,
                 'target_endpoint' => null,
                 'priority' => 0,
                 'weight' => 0,
@@ -116,6 +118,11 @@ final class AdminGeoDnsController
             'weight' => 'integer|min:0|max:10000',
             'enabled' => 'boolean',
         ]);
+
+        // 2026-06-22: 别名留空时自动按 geodns-{6位随机} 生成
+        if (blank($validated['node_alias'] ?? null)) {
+            $validated['node_alias'] = 'geodns-' . Str::lower(Str::random(6));
+        }
 
         $node = $this->resolveNode($validated['node_id'] ?? null, $validated['node_name'] ?? null);
 
@@ -350,6 +357,7 @@ final class AdminGeoDnsController
         $row = $mapping->toArray();
         $row['node_id'] = $mapping->target_node_id;
         $row['node_name'] = $mapping->node_name ?? $mapping->node?->node_name ?? $mapping->node?->name;
+        $row['node_code'] = $mapping->node?->node_code;
         $row['public_ipv4'] = $mapping->public_ipv4 ?? $mapping->node?->public_ipv4;
 
         return $row;

@@ -14,11 +14,23 @@ use Illuminate\Support\Str;
 
 final class AdminNodeController
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         // 2026-06-22: 单一事实源 — nodes.status 列已 drop，"是否在线/降级/离线"全由 Node::runtimeStatus() 现算。
         // 前端读 row.runtime_status / row.install_status / row.last_seen_ago 渲染。
-        $nodes = Node::query()->orderBy('node_code')->get()->map(function (Node $node): array {
+        $query = Node::query();
+
+        // 2026-06-22: 支持按节点ID / 节点别名模糊检索
+        $keyword = trim((string) $request->input('q', ''));
+        if ($keyword !== '') {
+            $query->where(function ($q) use ($keyword): void {
+                $q->where('node_code', 'ilike', '%' . $keyword . '%')
+                    ->orWhere('node_alias', 'ilike', '%' . $keyword . '%')
+                    ->orWhere('name', 'ilike', '%' . $keyword . '%');
+            });
+        }
+
+        $nodes = $query->orderBy('node_code')->get()->map(function (Node $node): array {
             $row = $node->toArray();
             $row['runtime_status'] = $node->runtimeStatus();
             $row['last_seen_ago'] = $node->lastSeenAgo();
@@ -67,16 +79,13 @@ final class AdminNodeController
     public function store(Request $request): JsonResponse
     {
         $actorId = $request->user()?->admin_id;
-        $request->merge([
-            'node_code' => $request->input('node_code', Str::lower(Str::random(10))),
-            'name' => $request->input('name', $request->input('node_name')),
-        ]);
+
         $validated = $request->validate([
-            'node_code' => 'required|string|max:64|unique:nodes,node_code',
-            'name' => 'required|string|max:120',
+            'node_code' => 'nullable|string|max:64|unique:nodes,node_code',
+            'name' => 'nullable|string|max:120',
             'node_name' => 'nullable|string|max:120',
             'node_alias' => 'nullable|string|max:100',
-            'region' => 'nullable|string|max:40',
+            'region' => 'required|string|max:40',
             'city' => 'nullable|string|max:80',
             'public_ipv4' => 'nullable|string|max:45',
             'public_ipv6' => 'nullable|string|max:64',
@@ -85,6 +94,22 @@ final class AdminNodeController
             'supported_protocols' => 'array',
             'supported_protocols.*' => 'string',
         ]);
+
+        // 2026-06-22: 节点代码缺省时自动生成 10 位随机
+        if (blank($validated['node_code'] ?? null)) {
+            $validated['node_code'] = Str::lower(Str::random(10));
+        }
+
+        // 2026-06-22: 节点别名为非必填，留空时按 "node-{6位code}" 自动生成
+        $aliasInput = trim((string) ($validated['node_alias'] ?? ''));
+        if ($aliasInput === '') {
+            $validated['node_alias'] = 'node-' . Str::lower(Str::random(6));
+        } else {
+            $validated['node_alias'] = $aliasInput;
+        }
+
+        // name 字段保留作兼容；如果未传，从 alias 同步
+        $validated['name'] = $validated['name'] ?? $validated['node_alias'];
 
         // 2026-06-22: 单一事实源 — status 列已 drop，新建节点不写 status，仅设 install_status=pending。
         $node = Node::create(array_merge($validated, [
