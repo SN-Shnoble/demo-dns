@@ -13,7 +13,8 @@ class JobExecution extends Model
 {
     public const STATUS_PENDING = 'pending';
     public const STATUS_RUNNING = 'running';
-    public const STATUS_SUCCESS = 'success';
+    // 2026-06-22 P0 修复：dns_job_executions.status 实际 enum 是 ('running','succeeded','failed')
+    public const STATUS_SUCCESS = 'succeeded';
     public const STATUS_FAILED = 'failed';
 
     public const FAILURE_THRESHOLD = 3;

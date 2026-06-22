@@ -239,20 +239,41 @@ const onCurrentChange = (page) => {
     background: var(--color-bg-secondary, #f8fafc);
     border: 1px solid var(--color-border-light, #edf2f7);
     border-radius: 8px;
+    min-height: 72px;
 }
+/* 2026-06-22: 全局统一 search form 高度：所有 el-input/select/date-editor/button 在 filter bar 中保持 40px */
 .filter-bar :deep(.el-input),
 .filter-bar :deep(.el-select),
 .filter-bar :deep(.el-date-editor),
 .filter-bar :deep(.el-button) {
+    height: 40px;
     min-height: 40px;
 }
 .filter-bar :deep(.el-input__wrapper),
 .filter-bar :deep(.el-select .el-input__wrapper),
 .filter-bar :deep(.el-date-editor .el-input__wrapper) {
     min-height: 40px !important;
+    height: 40px !important;
+    box-sizing: border-box;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+/* 2026-06-22: 强制把内部 input 高度拉到 40px，避免 size=small 时只有 24px */
+.filter-bar :deep(.el-input__inner) {
+    height: 38px !important;
+    line-height: 38px !important;
+}
+.filter-bar :deep(.el-date-editor.el-input, .filter-bar :deep(.el-date-editor.el-input__wrapper)) {
+    height: 40px !important;
 }
 .filter-bar :deep(.el-button) {
     white-space: nowrap;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+/* 2026-06-22: select 默认 .el-input.is-focus 等需要与 wrapper 等高 */
+.filter-bar :deep(.el-select__wrapper) {
+    min-height: 40px !important;
 }
 
 /* ===== Pagination ===== */

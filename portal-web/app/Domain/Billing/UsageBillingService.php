@@ -21,8 +21,10 @@ use Illuminate\Support\Facades\DB;
 final class UsageBillingService
 {
     public function __construct(
-        private readonly ?ClickHouseClient $clickhouseClient = null,
+        private readonly ?ClickHouseClient $clickhouseClient = new ClickHouseClient(),
     ) {
+        // 默认实例化 ClickHouseClient（与 ClickHouseStatsService 保持一致），
+        // 避免 DI 未注入时 fetchUsageEvents 抛 "ClickHouse client not configured" 永久失败。
     }
 
     /**
@@ -32,8 +34,12 @@ final class UsageBillingService
     public function aggregateOnce(?string $since = null): array
     {
         return JobRunner::run('usage_aggregation', function () use ($since) {
-            $offset = DB::table('aggregation_offsets')->where('job_type', 'usage_aggregation')->first();
-            $sinceIso = $since ?? $offset?->last_processed_at;
+            // 实际 schema：dns_aggregation_offsets(id, topic, window_start, processed_at, record_count, status, error_message, ...)
+            $offset = DB::table('aggregation_offsets')
+                ->where('topic', 'usage_aggregation')
+                ->orderByDesc('id')
+                ->first();
+            $sinceIso = $since ?? $offset?->processed_at;
             $events = $this->fetchUsageEvents($sinceIso);
 
             $buckets = [];
@@ -51,30 +57,58 @@ final class UsageBillingService
             foreach ($buckets as $key => $count) {
                 [$userId, $profileId, $deviceId, $category] = explode('|', $key);
                 $period = $this->ensureOpenPeriod($userId);
-                $planCode = DB::table('subscriptions')->where('user_id', $userId)->value('plan_code') ?? 'free';
-                DB::table('usage_records')->updateOrInsert(
-                    [
-                        'user_id' => $userId,
-                        'profile_id' => $profileId,
-                        'device_id' => $deviceId !== '' ? $deviceId : null,
-                        'billing_category' => $category,
-                        'billing_period_id' => $period->id,
-                    ],
-                    [
-                        'plan_code' => $planCode,
-                        'query_count' => DB::raw('COALESCE(usage_records.query_count, 0) + ' . (int) $count),
-                        'amount_minor' => DB::raw('COALESCE(usage_records.amount_minor, 0)'),
-                        'last_aggregated_at' => $now,
-                        'updated_at' => $now,
-                        'created_at' => DB::raw('COALESCE(usage_records.created_at, NOW())'),
-                    ],
-                );
+                // 实际 schema：dns_usage_records 无 plan_code 列；user_id/profile_id/billing_period_id 必填
+                // 同样不能 UPDATE SET 引用同表列，先 PHP 端按唯一键查找决定 created_at
+                $existingUsage = DB::table('usage_records')
+                    ->where('user_id', $userId)
+                    ->where('profile_id', $profileId)
+                    ->where('device_id', $deviceId !== '' ? $deviceId : null)
+                    ->where('billing_category', $category)
+                    ->where('billing_period_id', $period->id)
+                    ->first();
+                $usagePayload = [
+                    'query_count' => (int) ($existingUsage->query_count ?? 0) + (int) $count,
+                    'amount_minor' => (int) ($existingUsage->amount_minor ?? 0),
+                    'last_aggregated_at' => $now,
+                    'updated_at' => $now,
+                ];
+                if ($existingUsage === null) {
+                    $usagePayload['user_id'] = $userId;
+                    $usagePayload['profile_id'] = $profileId;
+                    $usagePayload['device_id'] = $deviceId !== '' ? $deviceId : null;
+                    $usagePayload['billing_category'] = $category;
+                    $usagePayload['billing_period_id'] = $period->id;
+                    $usagePayload['created_at'] = $now;
+                    DB::table('usage_records')->insert($usagePayload);
+                } else {
+                    DB::table('usage_records')
+                        ->where('id', $existingUsage->id)
+                        ->update($usagePayload);
+                }
             }
 
-            DB::table('aggregation_offsets')->updateOrInsert(
-                ['job_type' => 'usage_aggregation'],
-                ['last_processed_at' => $now, 'status' => 'idle', 'updated_at' => $now],
-            );
+            // 写回 offset：以 topic + window_start(now) 唯一键写一条 done 记录
+            // MySQL 限制：UPDATE 的 SET 不能引用同表列，因此不在 SQL 内做 COALESCE(created_at)
+            $existingOffset = DB::table('aggregation_offsets')
+                ->where('topic', 'usage_aggregation')
+                ->where('window_start', $now)
+                ->first();
+            $offsetPayload = [
+                'topic' => 'usage_aggregation',
+                'window_start' => $now,
+                'processed_at' => $now,
+                'record_count' => count($events),
+                'status' => 'done',
+                'updated_at' => $now,
+            ];
+            if ($existingOffset === null) {
+                $offsetPayload['created_at'] = $now;
+                DB::table('aggregation_offsets')->insert($offsetPayload);
+            } else {
+                DB::table('aggregation_offsets')
+                    ->where('id', $existingOffset->id)
+                    ->update($offsetPayload);
+            }
             return ['buckets' => count($buckets), 'events' => count($events)];
         });
     }

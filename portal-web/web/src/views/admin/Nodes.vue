@@ -37,8 +37,14 @@
                 <el-icon class="el-icon--left"><CircleCheck /></el-icon>
                 <span>{{ meta?.online ?? 0 }} {{ t('admin.nodes.online') }}</span>
             </el-tag>
+            <el-tag v-if="(meta?.degraded ?? 0) > 0" size="small" type="warning" effect="light">
+                <span>{{ meta?.degraded }} 降级</span>
+            </el-tag>
             <el-tag v-if="(meta?.offline ?? 0) > 0" size="small" type="danger" effect="light">
                 <span>{{ meta?.offline }} {{ t('admin.nodes.offline') }}</span>
+            </el-tag>
+            <el-tag v-if="(meta?.not_installed ?? 0) > 0" size="small" type="info" effect="plain">
+                <span>{{ meta?.not_installed }} 未安装</span>
             </el-tag>
         </div>
 
@@ -54,25 +60,29 @@
             <el-table-column :label="t('admin.nodes.nodeName')" min-width="160">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
-                        <el-icon :color="row.status === 'online' ? '#67c23a' : '#f56c6c'" size="14"><Connection /></el-icon>
+                        <!-- 2026-06-22: 单一事实源 — 直接读 row.runtime_status，不再看任何 DB 原始字段 -->
+                        <el-icon :color="row.runtime_status === 'online' ? '#67c23a' : (row.runtime_status === 'degraded' ? '#e6a23c' : (row.runtime_status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><Connection /></el-icon>
                         <span>{{ row.node_alias || row.node_name }}</span>
                     </div>
                 </template>
             </el-table-column>
             <el-table-column :label="t('admin.nodes.status')" min-width="110">
                 <template #default="{ row }">
-                    <el-tag v-if="row.status === 'online'" type="success" size="small" effect="light" style="white-space:nowrap">已安装</el-tag>
-                    <el-tag v-else-if="row.status === 'pending'" type="warning" size="small" effect="light" style="white-space:nowrap">待安装</el-tag>
-                    <el-tag v-else-if="row.status === 'disabled'" type="info" size="small" effect="light" style="white-space:nowrap">已禁用</el-tag>
-                    <el-tag v-else type="danger" size="small" effect="light" style="white-space:nowrap">离线</el-tag>
+                    <!-- install_status 是 DB 原值：pending / installed / failed -->
+                    <el-tag v-if="row.install_status === 'installed'" type="success" size="small" effect="light" style="white-space:nowrap">已安装</el-tag>
+                    <el-tag v-else-if="row.install_status === 'failed'" type="danger" size="small" effect="light" style="white-space:nowrap">安装失败</el-tag>
+                    <el-tag v-else type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
                 </template>
             </el-table-column>
             <el-table-column label="在线状态" min-width="100">
+                <!-- 2026-06-22: 4 档: online / degraded / offline / not_installed -->
                 <template #default="{ row }">
-                    <el-tag v-if="row.status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
+                    <el-tag v-if="row.runtime_status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:4px" />
                         在线
                     </el-tag>
+                    <el-tag v-else-if="row.runtime_status === 'degraded'" type="warning" size="small" effect="dark" style="white-space:nowrap">降级</el-tag>
+                    <el-tag v-else-if="row.runtime_status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
                     <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">离线</el-tag>
                 </template>
             </el-table-column>
@@ -81,8 +91,15 @@
             <el-table-column :label="t('admin.nodes.config')" min-width="70">
                 <template #default="{ row }">v{{ row.current_config_version }}</template>
             </el-table-column>
-            <el-table-column :label="t('admin.nodes.heartbeat')" min-width="150">
-                <template #default="{ row }">{{ formatTime(row.last_heartbeat_at) }}</template>
+            <el-table-column :label="t('admin.nodes.heartbeat')" min-width="180">
+                <template #default="{ row }">
+                    <div style="display:flex;flex-direction:column;line-height:1.3">
+                        <span :class="row.runtime_status === 'online' ? '' : (row.runtime_status === 'offline' ? 'hb-stale' : (row.runtime_status === 'degraded' ? 'hb-warn' : 'hb-none'))">
+                            {{ row.last_seen_ago || (row.last_heartbeat_at ? formatTime(row.last_heartbeat_at) : '从未心跳') }}
+                        </span>
+                        <span v-if="row.last_heartbeat_at" class="hb-exact">{{ formatTime(row.last_heartbeat_at) }}</span>
+                    </div>
+                </template>
             </el-table-column>
             <el-table-column :label="t('admin.nodes.actions')" min-width="140" fixed="right">
                 <template #default="{ row }">
@@ -212,8 +229,9 @@ const copyDeployCmd = async () => {
         ElMessage.error('复制失败')
     }
 }
-const form = reactive({ node_alias: '', region: '', public_ipv4: '', weight: 100, capacity_qps: 5000 })
+const form = reactive({ name: '', node_alias: '', region: '', public_ipv4: '', weight: 100, capacity_qps: 5000 })
 const rules = {
+    name: [{ required: true, message: t('admin.nodes.nameRequired') || 'Name is required', trigger: 'blur' }],
     node_alias: [{ required: true, message: t('admin.nodes.nodeAliasRequired') || 'Node alias is required', trigger: 'blur' }],
     region: [{ required: true, message: t('admin.nodes.regionRequired') || 'Region is required', trigger: 'blur' }],
 }
@@ -275,8 +293,10 @@ const openCreateDialog = () => {
 
 const openEditDialog = (row) => {
     editingId.value = row.id
+    // 2026-06-22: 完整回填所有字段，避免保存时缺失 name / node_alias / region
+    form.name = row.name || ''
     form.node_alias = row.node_alias || row.node_name || ''
-    form.region = row.region
+    form.region = row.region || ''
     form.public_ipv4 = row.public_ipv4 ?? ''
     form.weight = row.weight ?? 100
     form.capacity_qps = row.capacity_qps ?? 5000
@@ -414,6 +434,12 @@ onMounted(() => {
 .empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }
 .empty-desc { font-size: 13px; color: #94a3b8; margin: 0; }
 .name-cell { display: flex; align-items: center; gap: 8px; }
+
+/* Heartbeat freshness (2026-06-22 单一事实源) */
+.hb-stale { color: #f56c6c; font-weight: 500; }
+.hb-warn  { color: #e6a23c; font-weight: 500; }
+.hb-none  { color: #94a3b8; }
+.hb-exact { color: #94a3b8; font-size: 12px; }
 
 /* Token 结果弹窗 */
 .token-result-dialog :deep(.el-dialog__body) {

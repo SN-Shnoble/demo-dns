@@ -54,7 +54,7 @@
             </el-button>
         </template>
 
-        <el-table v-loading="loading" :data="bills" stripe style="width: 100%" min-width="1100">
+        <el-table v-loading="loading" :data="bills" stripe style="width: 100%">
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Tickets /></el-icon>
@@ -71,7 +71,7 @@
             <el-table-column prop="currency" :label="$t('admin.finance.currency') || '货币'" width="80" />
             <el-table-column prop="status" :label="$t('admin.finance.status') || '状态'" width="100">
                 <template #default="{ row }">
-                    <el-tag :type="getStatusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
+                    <el-tag :type="getStatusType(row.status)" size="small" effect="light">{{ transactionStatusLabel(row.status) }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="issued_at" :label="$t('admin.finance.issuedAt') || '开具日期'" width="180">
@@ -98,7 +98,7 @@
             <el-descriptions-item :label="$t('admin.finance.amountPaid') || '已付'">{{ formatMoney(selectedBill.amount_paid_minor, selectedBill.currency) }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.amountDue') || '待付'">{{ formatMoney(selectedBill.amount_due_minor, selectedBill.currency) }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.status') || '状态'">
-                <el-tag :type="getStatusType(selectedBill.status)" size="small">{{ selectedBill.status }}</el-tag>
+                <el-tag :type="getStatusType(selectedBill.status)" size="small">{{ transactionStatusLabel(selectedBill.status) }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.issuedAt') || '开具日期'">{{ selectedBill.issued_at ? new Date(selectedBill.issued_at).toLocaleString() : '-' }}</el-descriptions-item>
         </el-descriptions>
@@ -142,6 +142,17 @@ const formatMoney = (minor, currency = 'CNY') => {
 const getStatusType = (status) => {
     const map = { draft: 'info', pending: 'warning', paid: 'success', canceled: 'danger', refunded: 'warning' }
     return map[status] || 'info'
+}
+
+const transactionStatusLabel = (status) => {
+    const map = {
+        draft: t('admin.finance.statusDraft') || '草稿',
+        pending: t('admin.finance.statusPending') || '待支付',
+        paid: t('admin.finance.statusPaid') || '已支付',
+        canceled: t('admin.finance.statusCanceled') || '已取消',
+        refunded: t('admin.finance.statusRefunded') || '已退款',
+    }
+    return map[status] || status || '-'
 }
 
 const fetchBills = async () => {

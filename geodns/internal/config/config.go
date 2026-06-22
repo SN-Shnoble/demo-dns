@@ -30,9 +30,16 @@ type RoutingConfig struct {
 
 // NodeConfig 节点鉴权配置。
 // 2026-06-22 改造：删除 HMACSecret 字段，统一使用 Token 鉴权。
+// 2026-06-22 改造：新增 NodeID 字段。install 时把 console 预签发的
+// node-id（如 "phqval3wur"）写入此处，业务请求 (register/heartbeat) 时
+// body 里的 node_id 字段直接读自这里，避免与 token 串值混淆。
+// 2026-06-22 改造：新增 APIKeyPath 字段。install 时把 register 签发的
+// api_key 缓存路径写入此处，server 启动时优先读这个路径的 api_key。
 type NodeConfig struct {
 	Token       string `yaml:"token"`
+	NodeID      string `yaml:"node_id"`
 	APIEndpoint string `yaml:"api_endpoint"`
+	APIKeyPath  string `yaml:"api_key_path"`
 }
 
 func (c *Config) RefreshDuration() time.Duration {
@@ -79,6 +86,24 @@ func (c *Config) NodeToken() string {
 		return t
 	}
 	return os.Getenv("GEODNS_NODE_TOKEN")
+}
+
+// NodeID 返回 console 预签发的节点 code（如 "phqval3wur"）。
+// 2026-06-22 新增：用于 register 端点 body 的 node_id 字段。
+func (c *Config) NodeID() string {
+	if id := c.Node.NodeID; id != "" {
+		return id
+	}
+	return os.Getenv("GEODNS_NODE_ID")
+}
+
+// APIKeyPath 返回 register 签发的 api_key 缓存文件绝对路径。
+// 2026-06-22 新增：避免 server 启动时基于 CWD 找 api_key。
+func (c *Config) APIKeyPath() string {
+	if p := c.Node.APIKeyPath; p != "" {
+		return p
+	}
+	return os.Getenv("GEODNS_API_KEY_PATH")
 }
 
 func (c *Config) NodeAPIEndpoint() string {

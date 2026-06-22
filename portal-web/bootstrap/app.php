@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'shared.token' => \App\Http\Middleware\RequireSharedToken::class,
             'user.only' => \App\Http\Middleware\UserOnly::class,
             'admin.only' => \App\Http\Middleware\AdminOnly::class,
+            // 2026-06-22: 节点 API 请求日志
+            'api.log' => \App\Http\Middleware\ApiRequestLog::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -63,14 +63,15 @@ final class AdminQueryLogController
 
         // 导出模式返回全部匹配数据
         if (! empty($validated['export'])) {
-            $all = $query->orderByDesc('queried_at')->limit(10000)->get();
+            // 2026-06-22: 列表按 id DESC 展示，与前端默认排序保持一致（queried_at 有同秒重复风险）
+            $all = $query->orderByDesc('id')->limit(10000)->get();
             $rows = $this->enrich($all);
 
             return response()->json(['data' => $rows]);
         }
 
         $perPage = (int) ($validated['per_page'] ?? 20);
-        $paginator = $query->orderByDesc('queried_at')->paginate(min($perPage, 100));
+        $paginator = $query->orderByDesc('id')->orderByDesc('queried_at')->paginate(min($perPage, 100));
         $rows = $this->enrich(collect($paginator->items()));
 
         return response()->json([

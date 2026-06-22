@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.auditLogs.title') || '审计日志'"
+        :title="$t('admin.auditLogs.title') || '管理员操作日志'"
         
         i18n-key="admin.auditLogs"
         icon-name="Document"
@@ -91,7 +91,7 @@
             <el-table-column prop="actor_id" :label="$t('admin.auditLogs.actor') || '操作者'" width="220" show-overflow-tooltip />
             <el-table-column prop="action" :label="$t('admin.auditLogs.action') || '操作'" width="260">
                 <template #default="{ row }">
-                    <el-tag size="small" effect="light">{{ row.action }}</el-tag>
+                    <el-tag size="small" :type="actionTagType(row.action)" effect="light">{{ actionLabel(row.action) }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="target_type" :label="$t('admin.auditLogs.resourceType') || '资源类型'" width="140" />
@@ -128,6 +128,25 @@ const perPage = ref(20)
 const formatTime = (ts) => {
     if (!ts) return '-'
     return new Date(ts).toLocaleString()
+}
+
+// 2026-06-22: 把 action 拆分为人类可读名（"user.create" -> "Create"）
+const actionLabel = (action) => {
+    if (!action) return '-'
+    const map = t('admin.auditLogs.actionsMap') || {}
+    const lastPart = String(action).split('.').pop()
+    if (map[lastPart]) return map[lastPart]
+    if (map[action]) return map[action]
+    return action
+}
+
+const actionTagType = (action) => {
+    if (!action) return 'info'
+    const s = String(action).toLowerCase()
+    if (s.includes('delete') || s.includes('destroy') || s.includes('clear') || s.includes('disable')) return 'danger'
+    if (s.includes('create') || s.includes('enable') || s.includes('publish') || s.includes('snapshot') || s.includes('approve')) return 'success'
+    if (s.includes('update') || s.includes('edit') || s.includes('assign') || s.includes('regenerate')) return 'warning'
+    return 'info'
 }
 
 const onSelectionChange = (rows) => { selected.value = rows }

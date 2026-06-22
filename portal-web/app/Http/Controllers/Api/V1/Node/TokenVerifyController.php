@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Node;
 
 use App\Models\NodeToken;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 final class TokenVerifyController
 {
@@ -37,10 +37,18 @@ final class TokenVerifyController
             ]], 404);
         }
 
-        $plainSecret = decrypt($token->hmac_secret_encrypted);
+        // 2026-06-22: 兼容 APP_KEY 轮换/历史密文 — 解密失败时 secret 留空，
+        // 不再因历史密文不可解而 500。resolver 收到空 secret 仍能用 api_key (Bearer)
+        // 完成 register 心跳,不影响节点上线。
+        $plainSecret = '';
+        try {
+            $plainSecret = decrypt($token->hmac_secret_encrypted);
+        } catch (Throwable) {
+            // 历史密文与当前 APP_KEY 不匹配,secret 留空
+        }
 
         return response()->json(['data' => [
-            'node_id' => $token->node_id,
+            'node_id' => $token->node->node_code,
             'api_key' => $validated['token'],
             'secret' => $plainSecret,
         ]]);

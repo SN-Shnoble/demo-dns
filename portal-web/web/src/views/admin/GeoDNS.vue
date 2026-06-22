@@ -38,27 +38,27 @@
             <el-table-column :label="$t('admin.geoDns.nodeName')" :min-width="160">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
-                        <el-icon :color="row.node_status === 'online' ? '#67c23a' : '#f56c6c'" size="14"><Connection /></el-icon>
+                        <!-- 2026-06-22: 单一事实源 — row.status 是后端用 $mapping->runtimeStatus() / $node->runtimeStatus() 算出来的 -->
+                        <el-icon :color="row.status === 'online' ? '#67c23a' : (row.status === 'degraded' ? '#e6a23c' : (row.status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><Connection /></el-icon>
                         <span>{{ row.node_name || row.region || ('#' + row.id) }}</span>
                     </div>
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.installStatus')" :min-width="110">
                 <template #default="{ row }">
-                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain" style="white-space:nowrap">{{ $t('admin.geoDns.notLinked') || '未关联' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'pending'" type="warning" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusPending') || '待安装' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusOnline') || '已安装' }}</el-tag>
-                    <el-tag v-else-if="row.node_status === 'offline'" type="danger" size="small" effect="light" style="white-space:nowrap">{{ $t('admin.geoDns.statusOffline') || '已下线' }}</el-tag>
-                    <el-tag v-else type="info" size="small" effect="light" style="white-space:nowrap">{{ row.node_status }}</el-tag>
+                    <el-tag v-if="row.install_status === 'installed'" type="success" size="small" effect="light" style="white-space:nowrap">已安装</el-tag>
+                    <el-tag v-else type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.onlineStatus')" :min-width="100">
+                <!-- 4 档: online / degraded / offline / not_installed -->
                 <template #default="{ row }">
-                    <el-tag v-if="!row.node_status" type="info" size="small" effect="plain" style="white-space:nowrap">-</el-tag>
-                    <el-tag v-else-if="row.node_status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
+                    <el-tag v-if="row.status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:4px" />
                         {{ $t('admin.geoDns.online') || '在线' }}
                     </el-tag>
+                    <el-tag v-else-if="row.status === 'degraded'" type="warning" size="small" effect="dark" style="white-space:nowrap">降级</el-tag>
+                    <el-tag v-else-if="row.status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
                     <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
                 </template>
             </el-table-column>
@@ -70,8 +70,15 @@
                     <span v-else class="text-gray-400">-</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.heartbeat')" :min-width="150">
-                <template #default="{ row }">{{ formatTime(row.node_last_heartbeat_at) }}</template>
+            <el-table-column :label="$t('admin.geoDns.heartbeat')" :min-width="180">
+                <template #default="{ row }">
+                    <div style="display:flex;flex-direction:column;line-height:1.3">
+                        <span :class="row.status === 'online' ? '' : (row.status === 'offline' ? 'hb-stale' : (row.status === 'degraded' ? 'hb-warn' : 'hb-none'))">
+                            {{ row.node_last_seen_ago || (row.node_last_heartbeat_at ? formatTime(row.node_last_heartbeat_at) : '从未心跳') }}
+                        </span>
+                        <span v-if="row.node_last_heartbeat_at" class="hb-exact">{{ formatTime(row.node_last_heartbeat_at) }}</span>
+                    </div>
+                </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.actions')" fixed="right">
                 <template #default="{ row }">
@@ -313,7 +320,13 @@ onUnmounted(() => {
 .empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }
 .empty-desc { font-size: 13px; color: #94a3b8; margin: 0; }
 .token-section { margin-bottom: 12px; }
-.section-header { display: flex; justify-content: space-between; align-items: center; }
+.token-section .section-header { display: flex; justify-content: space-between; align-items: center; }
 .deploy-code { background: #0f172a; color: #e2e8f0; padding: 12px 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; margin: 0; }
 .token-footer-tip { display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 12px; margin-top: 8px; }
+
+/* Heartbeat freshness (2026-06-22 单一事实源) */
+.hb-stale { color: #f56c6c; font-weight: 500; }
+.hb-warn  { color: #e6a23c; font-weight: 500; }
+.hb-none  { color: #94a3b8; }
+.hb-exact { color: #94a3b8; font-size: 12px; }
 </style>

@@ -82,11 +82,11 @@ final class AdminPublishController
             $targetFilter = [];
         }
 
-        // Count target nodes
+        // Count target nodes — 2026-06-22: 用 Node::online() scope 取代 where('status','online')。
         $targetNodeCount = match ($targetScope) {
-            'all_nodes' => \App\Models\Node::where('status', 'online')->count(),
+            'all_nodes' => \App\Models\Node::online()->count(),
             'specific_nodes' => count($validated['target_node_ids'] ?? []),
-            'all_profiles' => \App\Models\Node::where('status', 'online')->count(),
+            'all_profiles' => \App\Models\Node::online()->count(),
             default => 0,
         };
 

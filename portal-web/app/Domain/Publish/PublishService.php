@@ -49,8 +49,9 @@ final class PublishService
             'created_at' => now(),
         ]);
 
-        $activeStatuses = ['pending', 'online', 'degraded', 'maintenance'];
-        $targetNodes = Node::whereIn('status', $activeStatuses)->get(['id']);
+        // 2026-06-22: 单一事实源 — 用 Node::online() scope 取真正在岗的节点（last_heartbeat_at 距 now 不超过阈值）。
+        // 之前的 $activeStatuses = ['pending','online','degraded','maintenance'] 是基于已 drop 的 status 列。
+        $targetNodes = Node::online()->get(['id']);
 
         $publishTask = PublishTask::create([
             'config_version_id' => $configVersion->id,
@@ -80,7 +81,8 @@ final class PublishService
             TaskExecution::insert($rows);
         }
 
-        Node::whereIn('status', $activeStatuses)->update([
+        // 2026-06-22: desired_config_version 只下发给真正能拉到配置的节点。
+        Node::online()->update([
             'desired_config_version' => $globalVersion,
         ]);
 

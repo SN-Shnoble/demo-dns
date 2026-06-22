@@ -15,10 +15,12 @@ final class AdminStatsController
 {
     public function overview(): JsonResponse
     {
-        // 节点只关心 online / offline（pending 视作离线，disabled 不计入）
+        // 2026-06-22: 单一事实源 — 用 Node::online() scope 算在线数，不再依赖 nodes.status 列（已 drop）。
+        // 离线 = 总数 - 在线 - 未装（degraded 也算"还在岗"故计入在线）。
         $totalNodes = Node::count();
-        $onlineNodes = Node::where('status', 'online')->count();
-        $offlineNodes = max($totalNodes - $onlineNodes, 0);
+        $onlineNodes = (int) Node::online()->count();
+        $notInstalledNodes = (int) Node::where('install_status', '!=', 'installed')->count();
+        $offlineNodes = max($totalNodes - $onlineNodes - $notInstalledNodes, 0);
 
         $publishes = PublishTask::count();
         $completedPublishes = PublishTask::where('status', 'succeeded')->count();
@@ -32,6 +34,7 @@ final class AdminStatsController
                     'total' => $totalNodes,
                     'online' => $onlineNodes,
                     'offline' => $offlineNodes,
+                    'not_installed' => $notInstalledNodes,
                 ],
                 'publishes' => [
                     'total' => $publishes,

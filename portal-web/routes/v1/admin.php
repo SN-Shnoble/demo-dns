@@ -175,8 +175,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
         Route::put('nodes/{nodeId}', [AdminNodeController::class, 'update']);
         Route::delete('nodes/{nodeId}', [AdminNodeController::class, 'destroy']);
         Route::post('nodes/batch-destroy', [AdminNodeController::class, 'batchDestroy']);
-        Route::post('nodes/{nodeId}/enable', [AdminNodeController::class, 'enable']);
-        Route::post('nodes/{nodeId}/disable', [AdminNodeController::class, 'disable']);
+
         Route::post('nodes/{nodeId}/tokens', [AdminNodeController::class, 'issueToken']);
         Route::post('nodes/{nodeId}/tokens/{tokenId}/revoke', [AdminNodeController::class, 'revokeToken']);
     });

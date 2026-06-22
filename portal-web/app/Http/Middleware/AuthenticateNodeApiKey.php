@@ -47,7 +47,7 @@ final class AuthenticateNodeApiKey
 
         $node = Node::query()
             ->where('api_key', hash('sha256', $key))
-            ->where('status', '!=', 'disabled')
+            ->where('install_status', '!=', 'failed')
             ->first();
 
         if (! $node) {

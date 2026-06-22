@@ -73,4 +73,16 @@ class GeoDnsMapping extends Model
     {
         $this->attributes['target_node_id'] = $value;
     }
+
+    /**
+     * 2026-06-22: 单一事实源 — mapping 的"在线/离线"完全由关联节点的 last_heartbeat_at 决定，
+     * 没有关联节点时是 not_installed。
+     */
+    public function runtimeStatus(): string
+    {
+        if (! $this->target_node_id) {
+            return 'not_installed';
+        }
+        return $this->node?->runtimeStatus() ?? 'offline';
+    }
 }

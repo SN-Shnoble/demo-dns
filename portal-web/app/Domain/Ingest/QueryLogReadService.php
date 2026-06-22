@@ -97,7 +97,7 @@ final class QueryLogReadService
             ->all();
 
         $topBlocked = $entries
-            ->where('action', 'blocked')
+            ->where('action', 'block')
             ->countBy('query_name')
             ->map(fn (int $count, string $domain): array => ['domain' => $domain, 'count' => $count])
             ->sortByDesc('count')
@@ -107,7 +107,7 @@ final class QueryLogReadService
 
         return [
             'today_queries' => $entries->count(),
-            'today_blocked' => $entries->where('action', 'blocked')->count(),
+            'today_blocked' => $entries->where('action', 'block')->count(),
             'period_queries' => $entries->count(),
             'top_domains' => $topDomains,
             'top_blocked' => $topBlocked,

@@ -11,9 +11,10 @@ final class GeoDNSConfigController
 {
     public function show(): JsonResponse
     {
+        // 2026-06-22: 单一事实源 — nodes.status 列已 drop，"在线" 用 Node::online() scope 算。
         $resolvers = Node::query()
             ->where('node_type', 'resolver')
-            ->where('status', 'online')
+            ->online()
             ->select([
                 'node_code',
                 'region',
@@ -27,7 +28,7 @@ final class GeoDNSConfigController
 
         $geodnsNodes = Node::query()
             ->where('node_type', 'geodns')
-            ->where('status', 'online')
+            ->online()
             ->whereNotNull('domain')
             ->select(['domain', 'public_ipv4', 'public_ipv6'])
             ->get();

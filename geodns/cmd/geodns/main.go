@@ -90,6 +90,10 @@ install flags:
   --listen-addr ADDR     HTTP listen address (default: :5354)
   --dns-addr ADDR        DNS listen address (default: :53)
   --health-token TOKEN   Internal health-view token (shared with portal-web)
+  --install-dir DIR      Base dir for configs/ and api_key
+  --start                After install, auto-start the node (systemd preferred, fallback nohup)
+  --no-start             Skip auto-start (overrides --start; default for raw 'geodns install')
+  --systemd-unit PATH    Custom systemd unit path (default: /etc/systemd/system/geodns.service)
   --force                Overwrite existing config file
 
 Example:
@@ -99,6 +103,12 @@ Example:
     --token=xxxxx \
     --node-id=xxxxx
 
-  # Start the daemon
+  # Provision + auto-start via systemd (or nohup fallback)
+  geodns install --start \
+    --server=https://console.ocerlink.com \
+    --token=xxxxx \
+    --node-id=xxxxx
+
+  # Start the daemon manually
   geodns --config=configs/config.yaml`)
 }

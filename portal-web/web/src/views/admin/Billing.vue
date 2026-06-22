@@ -31,7 +31,7 @@
             <el-table :data="transactions" stripe :empty-text="$t('common.noData')" style="width: 100%">
                 <el-table-column prop="type" :label="$t('admin.billing.type') || 'Type'" width="110">
                     <template #default="{ row }">
-                        <el-tag :type="row.type === 'charge' ? 'success' : 'danger'" size="small" effect="light">{{ row.type }}</el-tag>
+                        <el-tag :type="row.type === 'charge' ? 'success' : 'danger'" size="small" effect="light">{{ transactionTypeLabel(row.type) }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column prop="amount_minor" :label="$t('admin.billing.amount') || 'Amount'" width="140">
@@ -44,7 +44,7 @@
                 <el-table-column prop="description" :label="$t('admin.billing.description') || 'Description'" min-width="260" show-overflow-tooltip />
                 <el-table-column prop="status" :label="$t('admin.billing.status') || 'Status'" width="100">
                     <template #default="{ row }">
-                        <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small" effect="light">{{ row.status }}</el-tag>
+                        <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small" effect="light">{{ transactionStatusLabel(row.status) }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column :label="$t('admin.billing.time') || 'Time'" width="180">

@@ -28,16 +28,22 @@ final class AdminGeoDnsController
             $query->where('enabled', filter_var($request->input('enabled'), FILTER_VALIDATE_BOOLEAN));
         }
 
+        // 2026-06-22: 单一事实源 — "是否在线/降级/离线"全部从 $mapping->runtimeStatus() 取（已 drop 的 nodes.status 不再读）。
         $mappings = $query->orderByDesc('id')->get()->map(function (GeoDnsMapping $mapping): array {
             $row = $this->presentMapping($mapping);
             $row['node_count'] = 1;
-            $row['node_status'] = $mapping->node?->status;
+            $row['node_status'] = $mapping->node?->runtimeStatus();
             $row['node_last_heartbeat_at'] = $mapping->node?->last_heartbeat_at?->toIso8601String();
+            $row['node_last_seen_ago'] = $mapping->node?->lastSeenAgo();
+            $row['install_status'] = $mapping->target_node_id ? 'installed' : 'not_installed';
+            $row['node_heartbeat_stale'] = ! ($mapping->node?->isOnline() ?? false);
+            // 4 档: not_installed / online / degraded / offline
+            $row['status'] = $mapping->runtimeStatus();
 
             return $row;
         })->all();
 
-        // 2026-06-22 NEW P0#1 (联调发现): 已安装的 geodns 节点若未在 geo_dns_mappings
+        // 2026-06-22 P0#1: 已安装的 geodns 节点若未在 geo_dns_mappings
         // 创建映射（例如通过 geodns-install.sh 直接安装，或 mapping 被误删），
         // 会导致 /admin/geo-dns 列表看不到这些节点。补上"已存在但无 mapping"的 fallback 行。
         $mappedNodeIds = GeoDnsMapping::query()
@@ -63,12 +69,17 @@ final class AdminGeoDnsController
                 'target_endpoint' => null,
                 'priority' => 0,
                 'weight' => 0,
-                'enabled' => $node->status === 'online',
+                // 2026-06-22: orphan 节点 is_orphan=true (装了没建 mapping)，按节点自身 runtimeStatus() 走。
+                'enabled' => $node->isOnline(),
                 'created_at' => $node->created_at?->toIso8601String(),
                 'updated_at' => $node->updated_at?->toIso8601String(),
                 'node_count' => 1,
-                'node_status' => $node->status,
+                'node_status' => $node->runtimeStatus(),
                 'node_last_heartbeat_at' => $node->last_heartbeat_at?->toIso8601String(),
+                'node_last_seen_ago' => $node->lastSeenAgo(),
+                'node_heartbeat_stale' => ! $node->isOnline(),
+                'install_status' => 'installed',
+                'status' => $node->runtimeStatus(),
                 'is_orphan' => true,
             ];
         }
@@ -114,8 +125,9 @@ final class AdminGeoDnsController
                 'name' => $validated['node_name'] ?? $validated['region'],
                 'region' => $validated['region'],
                 'public_ipv4' => $validated['public_ipv4'] ?? null,
-                'status' => 'pending',
+                // 2026-06-22: 单一事实源 — status 列已 drop，不再写 status=pending。新建节点默认 install_status=pending。
                 'node_type' => 'geodns',
+                'install_status' => 'pending',
             ]);
         }
 
@@ -268,7 +280,7 @@ final class AdminGeoDnsController
                 'city' => 'Shanghai',
                 'public_ipv4' => $validated['public_ipv4'] ?? '127.0.0.1',
                 'public_ipv6' => $validated['public_ipv6'] ?? null,
-                'status' => 'online',
+                // 2026-06-22: 单一事实源 — status 列已 drop，不再写 status=online。runtimeStatus() 看 last_heartbeat_at。
                 'supported_protocols' => ['doh', 'dot', 'udp'],
                 'current_config_version' => 0,
                 'desired_config_version' => 1,

@@ -16,17 +16,31 @@ final class AdminNodeController
 {
     public function index(): JsonResponse
     {
-        $nodes = Node::query()->orderBy('node_code')->get()->toArray();
+        // 2026-06-22: 单一事实源 — nodes.status 列已 drop，"是否在线/降级/离线"全由 Node::runtimeStatus() 现算。
+        // 前端读 row.runtime_status / row.install_status / row.last_seen_ago 渲染。
+        $nodes = Node::query()->orderBy('node_code')->get()->map(function (Node $node): array {
+            $row = $node->toArray();
+            $row['runtime_status'] = $node->runtimeStatus();
+            $row['last_seen_ago'] = $node->lastSeenAgo();
+            $row['is_online'] = $node->isOnline();
+            return $row;
+        })->all();
+
+        // meta 用 runtimeStatus() 分类统计
         $totalNodes = count($nodes);
-        // 节点只关心 online / offline：pending/disabled 视作离线
-        $onlineNodes = count(array_filter($nodes, fn (array $node): bool => $node['status'] === 'online'));
+        $onlineNodes = count(array_filter($nodes, fn (array $n): bool => $n['runtime_status'] === 'online'));
+        $degradedNodes = count(array_filter($nodes, fn (array $n): bool => $n['runtime_status'] === 'degraded'));
+        $offlineNodes = count(array_filter($nodes, fn (array $n): bool => $n['runtime_status'] === 'offline'));
+        $notInstalledNodes = count(array_filter($nodes, fn (array $n): bool => $n['runtime_status'] === 'not_installed'));
 
         return response()->json([
             'data' => $nodes,
             'meta' => [
                 'total' => $totalNodes,
                 'online' => $onlineNodes,
-                'offline' => max($totalNodes - $onlineNodes, 0),
+                'degraded' => $degradedNodes,
+                'offline' => $offlineNodes,
+                'not_installed' => $notInstalledNodes,
             ],
         ]);
     }
@@ -72,8 +86,9 @@ final class AdminNodeController
             'supported_protocols.*' => 'string',
         ]);
 
+        // 2026-06-22: 单一事实源 — status 列已 drop，新建节点不写 status，仅设 install_status=pending。
         $node = Node::create(array_merge($validated, [
-            'status' => 'pending',
+            'install_status' => 'pending',
             'current_config_version' => 0,
             'desired_config_version' => 1,
             'created_by_admin_id' => $actorId,
@@ -138,29 +153,6 @@ final class AdminNodeController
         AdminAuditLog::record('node.batch_delete', 'node', null, ['ids' => $validated['ids'], 'count' => $count], $actorId, null, $request->ip(), $request->userAgent());
 
         return response()->json(['data' => ['deleted' => $count]]);
-    }
-
-    public function enable(Request $request, string $nodeId): JsonResponse
-    {
-        $actorId = $request->user()?->admin_id;
-        $node = Node::query()->findOrFail($nodeId);
-        // 只允许从 disabled → pending，等心跳确认真实在线
-        $node->update(['status' => 'pending']);
-
-        AdminAuditLog::record('node.enable', 'node', $nodeId, [], $actorId, null, $request->ip(), $request->userAgent());
-
-        return response()->json(['data' => $node->fresh()->toArray()]);
-    }
-
-    public function disable(Request $request, string $nodeId): JsonResponse
-    {
-        $actorId = $request->user()?->admin_id;
-        $node = Node::query()->findOrFail($nodeId);
-        $node->update(['status' => 'disabled']);
-
-        AdminAuditLog::record('node.disable', 'node', $nodeId, [], $actorId, null, $request->ip(), $request->userAgent());
-
-        return response()->json(['data' => $node->fresh()->toArray()]);
     }
 
     public function issueToken(Request $request, string $nodeId): JsonResponse

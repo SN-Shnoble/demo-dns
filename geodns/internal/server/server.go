@@ -35,12 +35,20 @@ func New(cfg *config.Config) *Server {
 	// 2026-06-22 改造：删除 HMACSecret 条件判断，只要 Token + Endpoint 都有就启用 heartbeat。
 	// 2026-06-21 改造：传入 APIKeyPath 字段，让 heartbeat 优先从 api_key 文件读取鉴权。
 	if cfg.NodeToken() != "" && cfg.NodeAPIEndpoint() != "" {
+		// 2026-06-22: 优先用 cfg.APIKeyPath()（install 写入的绝对路径），
+		// 兼容老版本相对路径 "configs/api_key"。
+		apiKeyPath := cfg.APIKeyPath()
+		if apiKeyPath == "" {
+			apiKeyPath = "configs/api_key"
+		}
 		hb = node.NewHeartbeatClientWithAPIKeyPath(
 			cfg.NodeAPIEndpoint(),
 			cfg.NodeToken(),
-			"configs/api_key",
+			apiKeyPath,
 			timeout,
 		)
+		log.Printf("geodns: heartbeat enabled (endpoint=%s, api_key=%s, node_id=%s)",
+			cfg.NodeAPIEndpoint(), apiKeyPath, cfg.NodeID())
 	} else {
 		log.Printf("geodns: heartbeat disabled (token/endpoint not all set)")
 	}
@@ -84,9 +92,13 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.HandleFunc("/health-view", s.handleHealthView)
 	mux.HandleFunc("/pick", s.handlePick)
 
+	// 2026-06-22: 用 access log middleware 包裹 mux，记录所有 HTTP 请求
+	// (method, path, status, latency, remote_addr)。便于部署后调试。
+	handler := s.accessLog(mux)
+
 	httpServer := &http.Server{
 		Addr:              s.cfg.Server.ListenAddr,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -220,4 +232,35 @@ func (s *Server) boundedTTL(ttl int) int {
 		return 60
 	}
 	return ttl
+}
+
+// accessLog 是 2026-06-22 新增的 HTTP access log middleware。
+// 记录每个请求：method, path, status, latency, remote_addr, query。
+// 健康检查端点（/health）不记录，避免日志被探活刷爆。
+func (s *Server) accessLog(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rw, r)
+		latency := time.Since(start)
+
+		// /health 是探活端点，跳过记录
+		if r.URL.Path == "/health" {
+			return
+		}
+
+		log.Printf("access method=%s path=%s status=%d latency=%s remote=%s query=%s",
+			r.Method, r.URL.Path, rw.status, latency, r.RemoteAddr, r.URL.RawQuery)
+	})
+}
+
+// statusRecorder 包装 http.ResponseWriter 以捕获 status code
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
 }

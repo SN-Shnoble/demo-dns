@@ -8,7 +8,6 @@ use App\Models\Node;
 use App\Models\NodeHeartbeat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 final class HeartbeatController
 {
@@ -32,11 +31,12 @@ final class HeartbeatController
         $heartbeat['current_config_version'] = (int) ($heartbeat['current_config_version'] ?? $node->current_config_version);
         $heartbeat['node_id'] = $node->id;
 
+        // 历史心跳表保留 status（自报），便于审计 / 趋势分析。
         NodeHeartbeat::create([
             'node_id' => $node->id,
             'status' => $heartbeat['status'],
             'uptime_seconds' => (int) ($heartbeat['uptime_seconds'] ?? 0),
-            'version' => $heartbeat['version'] ?? $node->version,
+            'version' => $heartbeat['version'] ?? null,
             'current_config_version' => $heartbeat['current_config_version'],
             'profiles_loaded' => (int) ($heartbeat['profiles_loaded'] ?? 0),
             'last_config_pull_at' => $heartbeat['last_config_pull_at'] ?? null,
@@ -45,16 +45,16 @@ final class HeartbeatController
             'created_at' => now(),
         ]);
 
-        // 在 update node 之前记录"旧"心跳时间，用于超时告警判断
+        // 2026-06-22: 单一事实源 — nodes 表上不再写 status 列（已 drop）。
+        // "是否在线" 任何读路径都用 $node->isOnline() 现算。
+        // 这里只更新 last_heartbeat_at 与 config 版本，足够让 isOnline() 返回 true。
         $previousLastHeartbeatAt = $node->last_heartbeat_at;
-        $previousNodeStatus = $node->status;
-
         $node->update([
-            'status' => $service->computeStatus($heartbeat),
-            'version' => $heartbeat['version'] ?? $node->version,
             'current_config_version' => $heartbeat['current_config_version'],
             'last_heartbeat_at' => now(),
         ]);
+        // 关键：refresh 让后续的 isOnline() / runtimeStatus() 走的是更新后的 last_heartbeat_at。
+        $node->refresh();
 
         $result = response()->json([
             'data' => $service->evaluate($heartbeat, [
@@ -62,7 +62,8 @@ final class HeartbeatController
             ]),
         ]);
 
-        // 告警场景 1: 节点上报 status=degraded 或 offline (自身报告异常)
+        // 告警场景 1: 节点自报 status=degraded / offline（节点自己看到异常了，通报一下）
+        // 与「心跳超时」不同：这里是 agent 主动报告，不是控制平面超时检测。
         $reportedStatus = (string) ($heartbeat['status'] ?? HeartbeatService::STATUS_ONLINE);
         if (in_array($reportedStatus, ['degraded', 'offline'], true)) {
             Alert::create([
@@ -77,13 +78,15 @@ final class HeartbeatController
             ]);
         }
 
-        // 告警场景 2: 节点超时（之前 last_heartbeat_at 超过 5 分钟未更新，但刚收到心跳）
-        // 即: 这是节点超时后第一次恢复心跳，记录超时事件
+        // 告警场景 2: 节点超时后第一次恢复心跳 — 用「旧 last_heartbeat_at 距 now > 5 分钟」+「更新前 isOnline() 为 false」判断
         $threshold = now()->subSeconds(300);
+        // isOnline() 用「更新前的 last_heartbeat_at」独立算一遍（不等同于 runtimeStatus()，因为后者还会查 install_status）
+        $wasOnlineBefore = $previousLastHeartbeatAt instanceof \Carbon\Carbon
+            && $previousLastHeartbeatAt->gt(now()->subSeconds($node->getHeartbeatStaleSeconds()));
         if (
             $previousLastHeartbeatAt instanceof \Carbon\Carbon
             && $previousLastHeartbeatAt->lt($threshold)
-            && $previousNodeStatus !== 'online'
+            && ! $wasOnlineBefore
         ) {
             Alert::create([
                 'code' => 'node_heartbeat_timeout',

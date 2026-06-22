@@ -65,6 +65,16 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // 2026-06-22: 节点 API 专用 channel（register / heartbeat / config ...）。
+        // 单独写文件便于调试：tail -f storage/logs/node-api.log
+        'node_api' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/node-api.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_NODE_API_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

@@ -34,7 +34,7 @@ use Illuminate\Support\Facades\Route;
 |   - register：node.token 鉴权（旧 token），签发 api_key
 |   - 其他业务接口：node.api_key 鉴权（register 签发的明文 key）
 */
-Route::prefix('node')->group(function (): void {
+Route::prefix('node')->middleware(['api.log'])->group(function (): void {
 
     // === 共用端点（顶层） ===
     Route::post('tokens/verify', [TokenVerifyController::class, 'verify']);

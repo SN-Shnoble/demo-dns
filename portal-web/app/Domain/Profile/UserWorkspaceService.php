@@ -398,8 +398,12 @@ final class UserWorkspaceService
         $shortId = $profile->profile_uid;
 
         // 收集在线 resolver 节点的 public IPv4（用作家庭网络兜底）
+        // 2026-06-22: 单一事实源 — nodes.status 列已 drop，用 install_status + last_heartbeat_at 阈值即时算"在线"。
+        $threshold = (int) env('NODE_HEARTBEAT_STALE_SECONDS', 90);
         $ipv4List = DB::table('nodes')
-            ->where('status', 'online')
+            ->where('install_status', 'installed')
+            ->whereNotNull('last_heartbeat_at')
+            ->where('last_heartbeat_at', '>', now()->subSeconds($threshold))
             ->whereNotNull('public_ipv4')
             ->where('public_ipv4', '!=', '')
             ->orderBy('id')
@@ -587,10 +591,10 @@ final class UserWorkspaceService
     {
         return [
             'today_queries' => $logs->count(),
-            'today_blocked' => $logs->where('action', 'blocked')->count(),
+            'today_blocked' => $logs->where('action', 'block')->count(),
             'period_queries' => $logs->count(),
             'top_domains' => $this->aggregateDomains($logs),
-            'top_blocked' => $this->aggregateDomains($logs->where('action', 'blocked')),
+            'top_blocked' => $this->aggregateDomains($logs->where('action', 'block')),
         ];
     }
 

@@ -228,6 +228,7 @@ const titleMap = {
     AdminRoleManagement: 'admin.rbac.title',
     AdminMenuConfig: 'admin.menuConfig.title',
     AdminAdmins: 'admin.adminUsers.title',
+    AdminUserPolicyServices: 'admin.userPolicyServices.title',
 }
 
 const pageTitle = computed(() => (titleMap[route.name] || 'admin.title'))

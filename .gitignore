@@ -25,3 +25,4 @@ portal-web/web/node_modules
 *.log
 !/logs/.gitkeep
 portal-web/web/node_modules
+portal-web/public/dist

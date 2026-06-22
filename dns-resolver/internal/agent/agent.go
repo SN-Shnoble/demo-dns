@@ -585,14 +585,23 @@ func (a *Agent) doNodeRequest(method, path string, body io.Reader) (*http.Respon
 	return a.client.Do(req)
 }
 
-// loadBearer 2026-06-21: 优先从 api_key 文件读，fallback 到 APIKey。
-// 路径固定为 "configs/api_key"，由 install 阶段写入。
+// loadBearer 2026-06-22: 优先从 control_plane.api_key_path 读，fallback 到
+// "configs/api_key" (CWD-相对)，最后回退到 yaml 里的 APIKey 字段。
+// 关键：优先使用绝对路径，避免 systemd CWD=/ 时 CWD-相对路径解析不到
+// 而误用 yaml 中可能已过期的旧格式 token。
 func (a *Agent) loadBearer() string {
-	const apiKeyPath = "configs/api_key"
-	if data, err := os.ReadFile(apiKeyPath); err == nil {
-		key := strings.TrimSpace(string(data))
-		if key != "" {
-			return key
+	candidates := []string{}
+	if p := strings.TrimSpace(a.cfg.ControlPlane.APIKeyPath); p != "" {
+		candidates = append(candidates, p)
+	}
+	candidates = append(candidates, "configs/api_key")
+
+	for _, p := range candidates {
+		if data, err := os.ReadFile(p); err == nil {
+			key := strings.TrimSpace(string(data))
+			if key != "" {
+				return key
+			}
 		}
 	}
 	return a.cred.APIKey

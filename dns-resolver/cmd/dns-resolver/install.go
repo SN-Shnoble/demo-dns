@@ -9,8 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -31,7 +34,12 @@ type installOptions struct {
 	City     string
 	Provider string
 	Name     string
-	Force    bool
+	// 2026-06-22: 安装完成后是否自动启动节点。
+	// 优先级: --start=true > --no-start > --start=false
+	// 默认 false(保持向后兼容);dns-resolver-install.sh 包装层默认开 --start。
+	Start bool
+	// 2026-06-22: 自定义 systemd unit 路径,留空使用默认 /etc/systemd/system/dns-resolver.service
+	SystemdUnit string
 }
 
 // runInstall 实现 `resolver install` 子命令：
@@ -59,11 +67,22 @@ func runInstall(args []string) error {
 	fs.StringVar(&opts.Country, "country", "", "Optional country code, e.g. JP")
 	fs.StringVar(&opts.City, "city", "", "Optional city, e.g. Tokyo")
 	fs.StringVar(&opts.Provider, "provider", "", "Optional provider tag, e.g. AWS")
-	// 2026-06-22: --force 已废弃（install 始终覆盖配置），保留以兼容旧脚本，忽略即可。
-	fs.BoolVar(&opts.Force, "force", false, "Deprecated: install now always overwrites")
+	// 2026-06-22 NEW: --start/--no-start 控制安装完成后是否自动拉起节点。
+	// systemd 优先(systemd 不存在/无权限写 unit 时降级为 nohup 后台进程)。
+	// 三态解析:先看 --start 显式值,再看 --no-start,最后回退到 false(向后兼容)。
+	startFlag := fs.Bool("start", false, "After install, automatically start the node (systemd preferred, fallback to nohup)")
+	noStartFlag := fs.Bool("no-start", false, "Disable auto-start even if --start is set (alias for safety in scripts)")
+	fs.StringVar(&opts.SystemdUnit, "systemd-unit", "", "systemd unit file path (default: /etc/systemd/system/dns-resolver.service)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// 2026-06-22: 解析 --start/--no-start,显式 --no-start 永远关闭
+	if *noStartFlag {
+		opts.Start = false
+	} else {
+		opts.Start = *startFlag
 	}
 
 	// 如果传了 --token，用 token 换取 api_key
@@ -88,7 +107,7 @@ func runInstall(args []string) error {
 		return fmt.Errorf("port check failed: %w", err)
 	}
 
-	if err := writeConfigAtomic(opts.ConfigPath, cfg, opts.Force); err != nil {
+	if err := writeConfigAtomic(opts.ConfigPath, cfg); err != nil {
 		return fmt.Errorf("write config failed: %w", err)
 	}
 
@@ -113,7 +132,17 @@ func runInstall(args []string) error {
 	} else {
 		fmt.Println("✔ console register: success")
 	}
-	fmt.Println("Next: run `resolver` to start the node.")
+
+	// 2026-06-22 NEW: --start 开启时自动拉起节点。
+	// 顺序:systemd(写 unit + daemon-reload + enable --now) → 失败降级 nohup 后台进程。
+	// 任一方式成功都打印 ✔;完全失败时打 ⚠ 保留手动启动指引。
+	if opts.Start {
+		if startErr := startService(&opts); startErr != nil {
+			fmt.Printf("⚠ auto-start failed: %v\n", startErr)
+		}
+	} else {
+		fmt.Println("Next: run `resolver` to start the node (or re-run with --start).")
+	}
 	return nil
 }
 
@@ -183,6 +212,19 @@ func buildInstalledConfig(opts *installOptions) *config.Config {
 	cfg.ControlPlane.APIKey = strings.TrimSpace(opts.APIKey)
 	cfg.ControlPlane.NodeID = strings.TrimSpace(opts.NodeID)
 
+	// 2026-06-22: 把 api_key 缓存路径固定为 config 同目录下的绝对路径，
+	// 避免 systemd / nohup 启动时 CWD=/ 找不到 CWD-相对的 "configs/api_key"
+	// 而 fallback 到 yaml 中旧格式的 ocnd_ token (被服务端 401 拒掉)。
+	if cfg.ControlPlane.APIKeyPath == "" {
+		cfgDir := filepath.Dir(opts.ConfigPath)
+		if !filepath.IsAbs(cfgDir) {
+			if wd, err := os.Getwd(); err == nil {
+				cfgDir = filepath.Join(wd, cfgDir)
+			}
+		}
+		cfg.ControlPlane.APIKeyPath = filepath.Join(cfgDir, "api_key")
+	}
+
 	// 同步节点标识，便于 console 在 Node 表上做匹配
 	cfg.Node.NodeUID = cfg.ControlPlane.NodeID
 	if name := strings.TrimSpace(opts.Name); name != "" {
@@ -212,14 +254,8 @@ func buildInstalledConfig(opts *installOptions) *config.Config {
 }
 
 // writeConfigAtomic 原子写入配置文件，避免半写导致 resolver 启动读坏文件
-func writeConfigAtomic(path string, cfg *config.Config, force bool) error {
-	// 已有配置且未传 --force 时直接拒绝，避免误覆盖
-	if !force {
-		if _, err := os.Stat(path); err == nil {
-			return fmt.Errorf("config already exists at %s; pass --force to overwrite", path)
-		}
-	}
-
+// 2026-06-22: install 始终覆盖,无需 force 参数。
+func writeConfigAtomic(path string, cfg *config.Config) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
@@ -353,9 +389,16 @@ func registerNodeToConsole(cfg *config.Config) error {
 		return nil
 	}
 
-	apiKeyPath := result.Data.APIKeyPath
+	// 2026-06-22: 始终用 cfg.ControlPlane.APIKeyPath (绝对路径) 写 api_key，
+	// 避免 CWD 不同时文件落到错误位置，并让运行时 loadBearer() 能直接读到。
+	apiKeyPath := strings.TrimSpace(cfg.ControlPlane.APIKeyPath)
 	if apiKeyPath == "" {
 		apiKeyPath = "configs/api_key"
+	}
+	if !filepath.IsAbs(apiKeyPath) {
+		if abs, err := filepath.Abs(apiKeyPath); err == nil {
+			apiKeyPath = abs
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(apiKeyPath), 0o755); err != nil {
 		return fmt.Errorf("create api_key dir: %w", err)
@@ -382,16 +425,18 @@ Environment:
                    Useful for Docker / Kubernetes / systemd where flags are awkward.
 
 install flags:
-  --console URL   portal-web admin Base URL, e.g. https://console.ocerlink.com
-  --node-id ID    Node ID assigned by console, e.g. hk-01
-  --api-key KEY   Node API key issued by console (ak_xxx)
-  --config PATH   Output config path (default: configs/server.yaml)
-  --name NAME     Optional human-friendly node name
-  --region CODE   Optional region, e.g. ap-northeast-1
-  --country CODE  Optional country code, e.g. JP
-  --city NAME     Optional city
-  --provider TAG  Optional provider tag, e.g. AWS
-  --force         Overwrite existing config file
+  --console URL     portal-web admin Base URL, e.g. https://console.ocerlink.com
+  --node-id ID      Node ID assigned by console, e.g. hk-01
+  --api-key KEY     Node API key issued by console (ak_xxx)
+  --config PATH     Output config path (default: configs/server.yaml)
+  --name NAME       Optional human-friendly node name
+  --region CODE     Optional region, e.g. ap-northeast-1
+  --country CODE    Optional country code, e.g. JP
+  --city NAME       Optional city
+  --provider TAG    Optional provider tag, e.g. AWS
+  --start           After install, auto-start the node (systemd preferred, fallback nohup)
+  --no-start        Skip auto-start (overrides --start; default for raw 'resolver install')
+  --systemd-unit P  Custom systemd unit path (default: /etc/systemd/system/dns-resolver.service)
 
 Example:
   # Use a custom config path
@@ -404,5 +449,205 @@ Example:
   resolver install \
     --console=https://console.ocerlink.com \
     --node-id=hk-01 \
+    --api-key=ak_xxx
+
+  # Provision + auto-start via systemd (or nohup fallback)
+  resolver install --start \
+    --console=https://console.ocerlink.com \
+    --node-id=hk-01 \
     --api-key=ak_xxx`)
+}
+
+// =============================================================================
+//  2026-06-22 NEW: 安装完成后自动启动节点(systemd 优先 + nohup 降级)
+// =============================================================================
+
+// resolverSystemdUnitTemplate 渲染生成的 dns-resolver.service。
+// 关键点:
+//   - Type=simple 配合 Restart=on-failure,崩了会自动拉起
+//   - ReadWritePaths 限定只能写 configs/ 目录,避免 sandbox 把日志/缓冲写到只读
+//   - LimitNOFILE=65536 保证 DNS 高并发场景不爆 fd
+const resolverSystemdUnitTemplate = `[Unit]
+Description=OcerDNS DNS Resolver Node ({{.NodeID}})
+Documentation=https://test-dns.ocerlinkdata.com
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 2026-06-22: WorkingDirectory 固定为 config 同目录，
+# 这样 loadBearer() fallback 的 CWD-相对路径 "configs/api_key"
+# 也能命中同目录下的 api_key 文件 (api_key_path 优先)。
+WorkingDirectory={{.ConfigDir}}
+ExecStart={{.Binary}} --config={{.Config}}
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+
+# sandbox: 禁止提权,只放开 configs 目录
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+ReadWritePaths={{.ConfigDir}}
+
+[Install]
+WantedBy=multi-user.target
+`
+
+// startService 安装完成后拉起节点。
+// 策略:systemd 优先(写 unit + daemon-reload + enable --now)→
+//
+//	systemd 不可用/无权限时降级为 nohup 后台进程(写 PID 文件)。
+//
+// 返回 error 时说明两种方式都失败,调用方应打 ⚠ 提示用户手动启动。
+func startService(opts *installOptions) error {
+	if err := tryResolverStartViaSystemd(opts); err != nil {
+		fmt.Printf("⚠ systemd path unavailable: %v, falling back to nohup\n", err)
+		return startResolverViaNohup(opts)
+	}
+	return nil
+}
+
+// tryResolverStartViaSystemd 尝试把节点装成 systemd 服务并 enable --now。
+// 失败场景(不视为 fatal):
+//   - systemctl 不存在 (macOS / 容器里无 systemd)
+//   - /etc/systemd/system 不可写 (非 root / 容器 readonly)
+//   - systemctl 子命令失败(systemd 用户实例未启动等)
+func tryResolverStartViaSystemd(opts *installOptions) error {
+	if _, err := exec.LookPath("systemctl"); err != nil {
+		return fmt.Errorf("systemctl not found: %w", err)
+	}
+
+	unitPath := opts.SystemdUnit
+	if unitPath == "" {
+		unitPath = "/etc/systemd/system/dns-resolver.service"
+	}
+	configDir := filepath.Dir(opts.ConfigPath)
+
+	// 2026-06-22: 将配置路径转为绝对路径，避免 systemd 工作目录为 / 时找不到配置文件
+	absConfig := opts.ConfigPath
+	if !filepath.IsAbs(absConfig) {
+		if wd, err := os.Getwd(); err == nil {
+			absConfig = filepath.Join(wd, absConfig)
+		}
+	}
+
+	rendered := strings.NewReplacer(
+		"{{.NodeID}}", opts.NodeID,
+		"{{.Binary}}", "/usr/local/bin/dns-resolver",
+		"{{.Config}}", absConfig,
+		"{{.ConfigDir}}", configDir,
+	).Replace(resolverSystemdUnitTemplate)
+
+	// 先 dry-write 到 /tmp,确认模板渲染没问题再写正式路径
+	tmpUnit := filepath.Join(os.TempDir(), "dns-resolver.service.tmp")
+	if err := os.WriteFile(tmpUnit, []byte(rendered), 0o644); err != nil {
+		return fmt.Errorf("render unit template: %w", err)
+	}
+	if err := copyResolverFile(unitPath, tmpUnit, 0o644); err != nil {
+		return fmt.Errorf("write unit %s: %w (need root)", unitPath, err)
+	}
+	_ = os.Remove(tmpUnit)
+
+	// daemon-reload + enable --now。任何一步失败都放弃 systemd 路径。
+	for _, args := range [][]string{
+		{"daemon-reload"},
+		{"enable", "dns-resolver.service"},
+		{"start", "dns-resolver.service"},
+	} {
+		cmd := exec.Command("systemctl", args...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("systemctl %s failed: %w (%s)", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+		}
+	}
+
+	fmt.Printf("✔ systemd: dns-resolver.service installed and started\n")
+	fmt.Printf("    systemctl status dns-resolver    # check status\n")
+	fmt.Printf("    journalctl -u dns-resolver -f    # tail logs\n")
+	return nil
+}
+
+// startResolverViaNohup 没有 systemd 时的降级方案。
+// 把 dns-resolver 用 setsid 拉成后台进程,写 PID 文件方便后续 stop。
+func startResolverViaNohup(opts *installOptions) error {
+	binary, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("locate self binary: %w", err)
+	}
+
+	pidFile := filepath.Join(filepath.Dir(opts.ConfigPath), "dns-resolver.pid")
+	logFile := filepath.Join(filepath.Dir(opts.ConfigPath), "dns-resolver.log")
+
+	// 避免重复启动:已有 PID 文件且进程活着就直接复用
+	if pid, perr := readResolverPIDFile(pidFile); perr == nil && processResolverAlive(pid) {
+		fmt.Printf("✔ dns-resolver already running (pid=%d)\n", pid)
+		return nil
+	}
+
+	cmd := exec.Command(binary, "--config="+opts.ConfigPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	out, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+	if err != nil {
+		return fmt.Errorf("open log file %s: %w", logFile, err)
+	}
+	defer out.Close()
+	cmd.Stdout = out
+	cmd.Stderr = out
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("spawn dns-resolver: %w", err)
+	}
+	_ = cmd.Process.Release()
+
+	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0o644); err != nil {
+		// PID 写不进去不影响服务运行,只警告
+		fmt.Printf("⚠ write pid file %s failed: %v\n", pidFile, err)
+	}
+
+	// 简单探活 1s,确保进程没秒崩
+	time.Sleep(1 * time.Second)
+	if !processResolverAlive(cmd.Process.Pid) {
+		return fmt.Errorf("dns-resolver exited immediately, see log: %s", logFile)
+	}
+
+	fmt.Printf("✔ dns-resolver started in background (pid=%d)\n", cmd.Process.Pid)
+	fmt.Printf("    log:    %s\n", logFile)
+	fmt.Printf("    pid:    %s\n", pidFile)
+	fmt.Printf("    stop:   kill $(cat %s)\n", pidFile)
+	return nil
+}
+
+// readResolverPIDFile 从 PID 文件读取整数 PID,失败返回 0 + error
+func readResolverPIDFile(path string) (int, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return 0, err
+	}
+	return pid, nil
+}
+
+// processResolverAlive 探活(Linux: Signal 0 不真发信号,仅做存在性检查)
+func processResolverAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+// copyResolverFile 简单文件复制(不走 io.Copy 是因为要控制 mode)
+func copyResolverFile(dst, src string, mode os.FileMode) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, mode)
 }

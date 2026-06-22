@@ -73,7 +73,9 @@ func (c *Client) loadAPIKey() string {
 }
 
 func (c *Client) GetConfig() (*GeoDNSConfig, error) {
-	url := c.APIEndpoint + "/node/geodns/config"
+	// 2026-06-21 fix: 补全 /api/v1 前缀，与 HeartbeatClient 拼接方式保持一致。
+	// APIEndpoint 是 base URL（如 https://host），不带路径。
+	url := c.APIEndpoint + "/api/v1/node/geodns/config"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
