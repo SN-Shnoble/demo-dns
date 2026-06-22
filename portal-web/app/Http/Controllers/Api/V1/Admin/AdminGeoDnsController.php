@@ -39,7 +39,7 @@ final class AdminGeoDnsController
             ->all();
 
         // 2026-06-22: 单一事实源 — "是否在线/降级/离线"全部从 $mapping->runtimeStatus() 取（已 drop 的 nodes.status 不再读）。
-        $mappings = $query->orderByDesc('id')->get()->map(function (GeoDnsMapping $mapping) use ($dnsNodeCounts): array {
+        $mappings = $query->orderBy('server_id', 'desc')->get()->map(function (GeoDnsMapping $mapping) use ($dnsNodeCounts): array {
             $row = $this->presentMapping($mapping);
             $row['node_count'] = 1;
             $row['node_status'] = $mapping->node?->runtimeStatus();
@@ -65,7 +65,7 @@ final class AdminGeoDnsController
         $orphanNodes = \App\Models\Node::query()
             ->where('node_type', 'geodns')
             ->whereNotIn('node_id', $mappedNodeIds)
-            ->orderByDesc('id')
+            ->orderByDesc('node_id')
             ->get();
         foreach ($orphanNodes as $node) {
             $mappings[] = [
@@ -163,7 +163,7 @@ final class AdminGeoDnsController
             'enabled' => $validated['enabled'] ?? true,
         ]);
 
-        AdminAuditLog::record('geo_dns.create', 'geo_dns_mapping', $mapping->id, $this->presentMapping($mapping->fresh('node')), $actorId, null, $request->ip(), $request->userAgent());
+        AdminAuditLog::record('geo_dns.create', 'geo_dns_mapping', $mapping->server_id, $this->presentMapping($mapping->fresh('node')), $actorId, null, $request->ip(), $request->userAgent());
 
         return response()->json(['data' => $this->presentMapping($mapping->fresh('node'))], 201);
     }
@@ -232,12 +232,12 @@ final class AdminGeoDnsController
             'ids.*' => 'required',
         ]);
 
-        $targetNodeIds = GeoDnsMapping::whereIn('id', $validated['ids'])
+        $targetNodeIds = GeoDnsMapping::whereIn('server_id', $validated['ids'])
             ->whereNotNull('target_node_id')
             ->pluck('target_node_id')
             ->all();
 
-        $count = GeoDnsMapping::whereIn('id', $validated['ids'])->delete();
+        $count = GeoDnsMapping::whereIn('server_id', $validated['ids'])->delete();
 
         if (! empty($targetNodeIds)) {
             GeoDnsNode::query()->whereIn('node_id', $targetNodeIds)->delete();
@@ -261,7 +261,7 @@ final class AdminGeoDnsController
         $seeder->run();
 
         $createdNodes = \App\Models\Node::query()->whereIn('node_code', ['nd_local_mac', 'nd_cn_shanghai', 'nd_us_silicon', 'nd_eu_frankfurt'])->get(['node_id', 'node_code']);
-        $createdMappings = GeoDnsMapping::query()->where('domain', 'resolver.ocerlink.com')->get(['id', 'country', 'region', 'target_node_id']);
+        $createdMappings = GeoDnsMapping::query()->where('domain', 'resolver.ocerlink.com')->get(['server_id', 'country', 'region', 'target_node_id']);
 
         AdminAuditLog::record('geo_dns.seed_demo', 'geo_dns_mapping', null, [
             'nodes' => $createdNodes->pluck('node_code')->all(),
@@ -325,11 +325,11 @@ final class AdminGeoDnsController
 
         AdminAuditLog::record('geo_dns.bind_local_node', 'node', (string) $node->node_id, [
             'node_code' => $node->node_code,
-            'mapping_id' => $mapping->id,
+            'mapping_id' => $mapping->server_id,
         ], $actorId, null, $request->ip(), $request->userAgent());
 
         $row = $node->fresh()->toArray();
-        $row['mapping_id'] = $mapping->id;
+        $row['mapping_id'] = $mapping->server_id;
 
         return response()->json(['data' => $row]);
     }

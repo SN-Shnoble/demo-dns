@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GeoDnsMapping extends Model
 {
-    protected $table = 'geo_dns_mappings';
+    protected $table = 'geodns';
 
+    protected $primaryKey = 'server_id';
     public $incrementing = true;
     protected $keyType = 'int';
+
+    protected $appends = ['id'];
 
     protected $fillable = [
         'domain',
@@ -57,6 +60,11 @@ class GeoDnsMapping extends Model
                 $mapping->domain = 'resolver.ocerlink.com';
             }
         });
+    }
+
+    public function getIdAttribute(): mixed
+    {
+        return $this->server_id;
     }
 
     public function node(): BelongsTo
