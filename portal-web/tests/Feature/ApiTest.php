@@ -16,33 +16,29 @@ use App\Models\Node;
 use App\Models\RuleSource;
 use App\Models\GeoDnsMapping;
 use App\Models\PublishTask;
-use App\Models\AuditLog;
 use App\Models\SystemConfig;
 use App\Models\Device;
-use App\Models\Role;
-use App\Models\Permission;
-use App\Models\Alert;
 use Tests\TestCase;
 
 class ApiTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
-    protected $userToken;
-    protected $adminToken;
-    protected $userId;
-    protected $adminId;
-    protected $profileId;
-    protected $teamId;
-    protected $apiKeyId;
-    protected $nodeId;
-    protected $ruleId;
-    protected $geoId;
-    protected $publishId;
-    protected $auditId;
-    protected $deviceId;
-    protected $roleId;
-    protected $alertId;
+    protected ?string $userToken;
+    protected ?string $adminToken;
+    protected ?int $userId;
+    protected ?int $adminId;
+    protected ?int $profileId;
+    protected ?int $teamId;
+    protected ?int $apiKeyId;
+    protected ?int $nodeId;
+    protected ?int $ruleId;
+    protected ?int $geoId;
+    protected ?int $publishId;
+    protected ?int $auditId;
+    protected ?int $deviceId;
+    protected ?int $roleId;
+    protected ?int $alertId;
 
     protected function setUp(): void
     {
@@ -781,7 +777,7 @@ class ApiTest extends TestCase
             'plan_code' => 'free',
         ]);
         $token = 'accept_tok_' . time();
-        $invitation = TeamInvitation::create([
+        TeamInvitation::create([
             'team_id' => $this->teamId,
             'email' => $invitee->email,
             'token_hash' => \Illuminate\Support\Facades\Hash::make($token),
@@ -1133,9 +1129,9 @@ class ApiTest extends TestCase
         ], 201);
     }
 
-    public function test_273_admin_billing_invoices()
+    public function test_273_admin_billing_bills()
     {
-        $this->callAdminApi('GET', '/api/v1/admin/billing/invoices', [], 200);
+        $this->callAdminApi('GET', '/api/v1/admin/billing/bills', [], 200);
     }
 
     public function test_274_admin_billing_export()
@@ -1603,17 +1599,17 @@ class ApiTest extends TestCase
 
     // ==================== Helper Methods ====================
 
-    protected function callMemberApi($method, $url, $data = [], $status = 200)
+    protected function callMemberApi(string $method, string $url, array $data = [], int $status = 200)
     {
         return $this->callApiWithToken($method, $url, $this->userToken, $data, $status);
     }
 
-    protected function callAdminApi($method, $url, $data = [], $status = 200)
+    protected function callAdminApi(string $method, string $url, array $data = [], int $status = 200)
     {
         return $this->callApiWithToken($method, $url, $this->adminToken, $data, $status);
     }
 
-    protected function callInternalApi($method, $url, $data = [], $status = 200)
+    protected function callInternalApi(string $method, string $url, array $data = [], int $status = 200)
     {
         $headers = ['Authorization' => 'Internal internal-local-token'];
         $method = strtoupper($method);
@@ -1640,7 +1636,7 @@ class ApiTest extends TestCase
         return $response;
     }
 
-    protected function callApiWithToken($method, $url, $token, $data = [], $status = 200)
+    protected function callApiWithToken(string $method, string $url, ?string $token, array $data = [], int $status = 200)
     {
         $method = strtoupper($method);
         

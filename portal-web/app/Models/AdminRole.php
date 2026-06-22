@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AdminRole extends Model
 {
@@ -21,11 +20,6 @@ class AdminRole extends Model
             "admin_role_id",
             "admin_permission_id"
         );
-    }
-
-    public function navRules(): HasMany
-    {
-        return $this->hasMany(AdminRoleNavRule::class, "admin_role_id");
     }
 
     public function admins(): BelongsToMany

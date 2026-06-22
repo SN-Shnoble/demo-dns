@@ -48,7 +48,7 @@ final class AdminFinanceController
         return response()->json(['data' => $this->exportTransactions($request, 'credit', 'topup')]);
     }
 
-    /** GET /admin/finance/bills — billing invoices */
+    /** GET /admin/finance/bills */
     public function bills(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -58,7 +58,7 @@ final class AdminFinanceController
         ]);
 
         $service = new \App\Domain\Billing\BillingService();
-        $result = $service->invoices(
+        $result = $service->bills(
             $validated['user_id'] ?? '',
             (int) ($validated['page'] ?? 1),
             (int) ($validated['per_page'] ?? 20),
@@ -76,7 +76,7 @@ final class AdminFinanceController
         ]);
 
         $service = new \App\Domain\Billing\BillingService();
-        $result = $service->invoices($validated['user_id'] ?? '', 1, (int) ($validated['limit'] ?? 1000));
+        $result = $service->bills($validated['user_id'] ?? '', 1, (int) ($validated['limit'] ?? 1000));
 
         return response()->json(['data' => $result['data'] ?? []]);
     }

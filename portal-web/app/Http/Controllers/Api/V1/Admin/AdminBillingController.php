@@ -52,7 +52,7 @@ final class AdminBillingController
         return response()->json(['data' => $result], 201);
     }
 
-    public function invoices(Request $request): JsonResponse
+    public function bills(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'user_id' => 'nullable|string|max:40',
@@ -60,7 +60,7 @@ final class AdminBillingController
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $result = $this->service->invoices(
+        $result = $this->service->bills(
             $validated['user_id'] ?? '',
             (int) ($validated['page'] ?? 1),
             (int) ($validated['per_page'] ?? 20),
@@ -75,7 +75,7 @@ final class AdminBillingController
             'user_id' => 'nullable|string|max:40',
         ]);
 
-        $result = $this->service->invoices(
+        $result = $this->service->bills(
             $validated['user_id'] ?? '',
             1,
             10000,

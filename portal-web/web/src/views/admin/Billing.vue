@@ -10,14 +10,14 @@
                 <div class="card-header">
                     <div class="card-title">
                         <el-icon class="title-icon is-warning"><List /></el-icon>
-                        <span class="title-text">{{ $t('admin.billing.transactions') || 'Transactions' }} ({{ invoiceMeta?.total ?? 0 }})</span>
+                        <span class="title-text">{{ $t('admin.billing.transactions') || 'Transactions' }} ({{ billMeta?.total ?? 0 }})</span>
                     </div>
                     <div class="card-actions">
-                        <el-input v-model="invoiceFilter.user_id" :placeholder="$t('admin.billing.userId') || 'User ID'" size="default" style="width:180px" clearable @keyup.enter="fetchInvoices">
+                        <el-input v-model="billFilter.user_id" :placeholder="$t('admin.billing.userId') || 'User ID'" size="default" style="width:180px" clearable @keyup.enter="fetchBills">
                             <template #prefix><el-icon><Search /></el-icon></template>
                         </el-input>
-                        <el-button size="default" @click="fetchInvoices">{{ $t('common.search') || '搜索' }}</el-button>
-                        <el-button size="default" @click="handleResetInvoice">{{ $t('common.reset') || '重置' }}</el-button>
+                        <el-button size="default" @click="fetchBills">{{ $t('common.search') || '搜索' }}</el-button>
+                        <el-button size="default" @click="handleResetBill">{{ $t('common.reset') || '重置' }}</el-button>
                         <el-button size="default" type="success" :loading="exporting" @click="handleExport">
                             <el-icon class="el-icon--left"><Download /></el-icon>
                             <span>{{ $t('common.export') || '导出' }}</span>
@@ -52,18 +52,18 @@
                 </el-table-column>
             </el-table>
 
-            <div v-if="invoiceMeta?.total > invoicePageSize" class="pagination-bar">
+            <div v-if="billMeta?.total > billPageSize" class="pagination-bar">
                 <div class="pagination-total">
-                    {{ $t('common.totalPrefix') || '共' }} <strong>{{ invoiceMeta.total ?? 0 }}</strong> {{ $t('common.itemsSuffix') || '条' }}
+                    {{ $t('common.totalPrefix') || '共' }} <strong>{{ billMeta.total ?? 0 }}</strong> {{ $t('common.itemsSuffix') || '条' }}
                 </div>
                 <el-pagination
-                    v-model:current-page="invoicePage"
-                    :page-size="invoicePageSize"
-                    :total="invoiceMeta.total ?? 0"
+                    v-model:current-page="billPage"
+                    :page-size="billPageSize"
+                    :total="billMeta.total ?? 0"
                     layout="sizes, prev, pager, next"
                     background
-                    @size-change="invoicePageSize = $event; invoicePage = 1; fetchInvoices()"
-                    @current-change="fetchInvoices"
+                    @size-change="billPageSize = $event; billPage = 1; fetchBills()"
+                    @current-change="fetchBills"
                 />
             </div>
         </el-card>
@@ -116,10 +116,10 @@ import client from '@/api/client'
 const { t } = useI18n()
 
 const transactions = ref([])
-const invoiceMeta = ref(null)
-const invoicePage = ref(1)
-const invoicePageSize = ref(20)
-const invoiceFilter = reactive({ user_id: '' })
+const billMeta = ref(null)
+const billPage = ref(1)
+const billPageSize = ref(20)
+const billFilter = reactive({ user_id: '' })
 const exporting = ref(false)
 const showCharge = ref(false)
 const showRefund = ref(false)
@@ -198,30 +198,30 @@ const handleRefund = async () => {
     }
 }
 
-const fetchInvoices = async () => {
+const fetchBills = async () => {
     try {
-        const params = { page: invoicePage.value, per_page: invoicePageSize.value }
-        if (invoiceFilter.user_id) params.user_id = invoiceFilter.user_id
-        const { data } = await client.get('/admin/billing/invoices', { params })
+        const params = { page: billPage.value, per_page: billPageSize.value }
+        if (billFilter.user_id) params.user_id = billFilter.user_id
+        const { data } = await client.get('/admin/billing/bills', { params })
         transactions.value = data.data ?? []
-        invoiceMeta.value = data.meta ?? null
+        billMeta.value = data.meta ?? null
     } catch {
         transactions.value = []
     }
 }
 
-const handleResetInvoice = () => {
-    invoiceFilter.user_id = ''
-    invoicePageSize.value = 20
-    invoicePage.value = 1
-    fetchInvoices()
+const handleResetBill = () => {
+    billFilter.user_id = ''
+    billPageSize.value = 20
+    billPage.value = 1
+    fetchBills()
 }
 
 const handleExport = async () => {
     exporting.value = true
     try {
         const params = {}
-        if (invoiceFilter.user_id) params.user_id = invoiceFilter.user_id
+        if (billFilter.user_id) params.user_id = billFilter.user_id
         const response = await client.get('/admin/billing/export', { params, responseType: 'blob' })
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
@@ -240,7 +240,7 @@ const handleExport = async () => {
 }
 
 onMounted(() => {
-    fetchInvoices()
+    fetchBills()
 })
 </script>
 
@@ -248,105 +248,5 @@ onMounted(() => {
 .list-page {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-}
-
-.page-header {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 4px;
-}
-.breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--color-text-muted, #64748b);
-    margin-bottom: 2px;
-}
-
-.page-title {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--color-text, #0f172a);
-    letter-spacing: -0.3px;
-}
-.page-desc {
-    margin: 4px 0 0;
-    font-size: 13px;
-    color: var(--color-text-muted, #64748b);
-}
-
-.list-card {
-    border-radius: 12px !important;
-    border: 1px solid var(--color-border, #e2e8f0) !important;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
-}
-.list-card :deep(.el-card__header) {
-    padding: 20px 24px !important;
-    border-bottom: 1px solid var(--color-border, #e2e8f0) !important;
-}
-.list-card :deep(.el-card__body) {
-    padding: 24px !important;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.card-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-.title-icon {
-    font-size: 16px;
-    color: var(--color-primary, #2563eb);
-    background: rgba(37, 99, 235, 0.08);
-    border-radius: 6px;
-    padding: 5px;
-    box-sizing: content-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.title-icon.is-success { color: #16a34a; background: rgba(22, 163, 74, 0.08); }
-.title-icon.is-warning { color: #d97706; background: rgba(217, 119, 6, 0.08); }
-.title-icon.is-danger { color: #dc2626; background: rgba(220, 38, 38, 0.08); }
-.title-icon.is-info { color: #475569; background: rgba(71, 85, 105, 0.08); }
-.title-text {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--color-text, #0f172a);
-}
-.card-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.pagination-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-top: 16px;
-}
-.pagination-total {
-    font-size: 13px;
-    color: var(--color-text-muted, #64748b);
-}
-.pagination-total strong {
-    color: var(--color-text, #0f172a);
-    font-weight: 600;
-    margin: 0 2px;
 }
 </style>

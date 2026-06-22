@@ -201,7 +201,7 @@ final class FinanceVerifier
         return [
             'check' => 'billings (plan) link to subscription or billing_period',
             'ok' => $bad->isEmpty(),
-            'detail' => $bad->isEmpty() ? 'all plan invoices linked' : sprintf('%d unlinked', $bad->count()),
+            'detail' => $bad->isEmpty() ? 'all plan bills linked' : sprintf('%d unlinked', $bad->count()),
             'samples' => $samples,
         ];
     }

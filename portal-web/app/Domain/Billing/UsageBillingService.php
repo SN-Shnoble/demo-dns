@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  * UI.md #67/#70 — Usage 聚合 + 账单生成。
  *
  * 1) Usage Aggregation: ClickHouse usage_events → PostgreSQL usage_records
- * 2) Billing Generation: usage_records (按 period) → invoices(billing_type=usage)
+ * 2) Billing Generation: usage_records (按 period) → billings
  *
  * 增量偏移锁：
  *   用 aggregation_offsets.max_timestamp 代替 processed_at 做游标，

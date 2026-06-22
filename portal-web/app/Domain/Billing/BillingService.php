@@ -190,7 +190,7 @@ final class BillingService
     /**
      * 账单历史
      */
-    public function invoices(string $userId, int $page = 1, int $perPage = 20): array
+    public function bills(string $userId, int $page = 1, int $perPage = 20): array
     {
         $query = DB::table('billings')->orderByDesc('created_at');
         if ($userId !== '') {
@@ -203,7 +203,7 @@ final class BillingService
         $items = $query->forPage($page, $perPage)->get()->map(fn ($row): array => [
             'id' => (string) $row->id,
             'user_id' => $row->user_id,
-            'invoice_no' => $row->billing_no,
+            'billing_no' => $row->billing_no,
             'amount_minor' => (int) $row->total_minor,
             'currency' => $row->currency,
             'status' => $row->status,

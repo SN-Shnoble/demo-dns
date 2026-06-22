@@ -92,7 +92,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
     // Billing
     Route::middleware('permission:admin.billing.read')->group(function (): void {
         Route::get('billing/balance/{user_id}', [AdminBillingController::class, 'balance']);
-        Route::get('billing/invoices', [AdminBillingController::class, 'invoices']);
+        Route::get('billing/bills', [AdminBillingController::class, 'bills']);
         Route::get('billing/export', [AdminBillingController::class, 'export']);
         Route::get('plans', [AdminPlanController::class, 'index']);
     });

@@ -61,7 +61,7 @@
                     <p class="empty-title">{{ $t('common.noData') || '暂无数据' }}</p>
                 </div>
             </template>
-            <el-table-column prop="invoice_no" :label="$t('admin.finance.invoiceNo') || '账单号'" width="180" show-overflow-tooltip />
+            <el-table-column prop="billing_no" :label="$t('admin.finance.invoiceNo') || '账单号'" width="180" show-overflow-tooltip />
             <el-table-column prop="user_id" :label="$t('admin.finance.userId') || '用户ID'" width="200" show-overflow-tooltip />
             <el-table-column prop="total_amount_minor" :label="$t('admin.finance.totalAmount') || '总金额'" width="140">
                 <template #default="{ row }">
@@ -87,7 +87,7 @@
 
     <el-dialog v-model="showBillDetail" :title="$t('admin.finance.billDetail') || '账单详情'" width="600px">
         <el-descriptions v-if="selectedBill" :column="2" border>
-            <el-descriptions-item :label="$t('admin.finance.invoiceNo') || '账单号'">{{ selectedBill.invoice_no }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.invoiceNo') || '账单号'">{{ selectedBill.billing_no }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.userId') || '用户ID'">{{ selectedBill.user_id }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.subtotal') || '小计'">{{ formatMoney(selectedBill.subtotal_amount_minor, selectedBill.currency) }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.discount') || '折扣'">{{ formatMoney(selectedBill.discount_amount_minor, selectedBill.currency) }}</el-descriptions-item>

@@ -178,7 +178,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CopyDocument, Delete, Edit, InfoFilled, Refresh } from '@element-plus/icons-vue'
+import { Aim, CopyDocument, Delete, Edit, InfoFilled, Plus, Refresh, Search } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 import { useSystemConfig } from '@/composables/useSystemConfig'

@@ -64,8 +64,6 @@ final class AdminBillingStatsController
                 ],
                 'billing' => [
                     'total_revenue_minor' => 0,
-                    'pending_invoices' => 0,
-                    'overdue_invoices' => 0,
                     'monthly_new_users' => User::where('created_at', '>=', now()->startOfMonth())->count(),
                 ],
                 'plans' => [
