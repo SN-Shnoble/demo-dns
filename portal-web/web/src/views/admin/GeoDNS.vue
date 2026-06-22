@@ -95,7 +95,7 @@
                         <el-icon><Connection /></el-icon>
                         <span>{{ $t('admin.nodes.deploy') || '部署' }}</span>
                     </el-button>
-                    <el-button v-if="!row.is_orphan" size="small" text type="danger" @click="handleDelete(row.id)">
+                    <el-button size="small" text type="danger" @click="handleDelete(row.id)">
                         <el-icon><Delete /></el-icon>
                         <span>{{ $t('common.delete') || '删除' }}</span>
                     </el-button>
