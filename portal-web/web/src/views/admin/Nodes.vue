@@ -30,18 +30,15 @@
 
         <template #filters>
             <el-input
-                v-model="filterKeyword"
-                :placeholder="t('admin.nodes.searchPlaceholder') || '搜索节点ID或别名'"
-                size="small"
-                style="width:260px"
+                v-model="searchKeyword"
+                :placeholder="t('admin.nodes.searchPlaceholder') || '搜索节点ID/别名/IP'"
+                class="search-input"
                 clearable
                 @keyup.enter="onSearch"
                 @clear="onSearch"
             >
-                <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
             <el-button size="small" type="primary" @click="onSearch">
-                <el-icon class="el-icon--left"><Search /></el-icon>
                 <span>{{ t('common.search') || '搜索' }}</span>
             </el-button>
             <el-button size="small" @click="onReset">
@@ -51,7 +48,6 @@
 
         <div class="status-summary">
             <el-tag size="small" type="success" effect="light">
-                <el-icon class="el-icon--left"><CircleCheck /></el-icon>
                 <span>{{ meta?.online ?? 0 }} {{ t('admin.nodes.online') }}</span>
             </el-tag>
             <el-tag v-if="(meta?.degraded ?? 0) > 0" size="small" type="warning" effect="light">
