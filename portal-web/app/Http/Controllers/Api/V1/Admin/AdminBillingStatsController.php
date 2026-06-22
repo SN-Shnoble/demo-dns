@@ -2,20 +2,40 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Models\QueryLogIngestBatch;
+use App\Infrastructure\ClickHouse\ClickHouseClient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
+/**
+ * 2026-06-22: query_log_ingest_batches 表已删除，统计改为从 ClickHouse dns_logs 取。
+ */
 final class AdminBillingStatsController
 {
     public function overview(): JsonResponse
     {
         $totalUsers = User::count();
+        $clickhouse = new ClickHouseClient();
 
-        // 从 query_log_ingest_batches 获取拦截统计
-        $todayQueries = (int) QueryLogIngestBatch::where('received_at', '>=', now()->startOfDay())->sum('item_count');
-        $totalQueries = (int) QueryLogIngestBatch::sum('item_count');
-        $todayBatches = QueryLogIngestBatch::where('received_at', '>=', now()->startOfDay())->count();
+        // 从 ClickHouse dns_logs 获取统计
+        $todayQueries = 0;
+        $totalQueries = 0;
+        $todayBatches = 0;
+        try {
+            $todayRow = $clickhouse->jsonSelect(
+                "SELECT count() AS c FROM dns_logs WHERE event_time >= toDate(now())"
+            );
+            $todayQueries = (int) ($todayRow[0]['c'] ?? 0);
+
+            $allRow = $clickhouse->jsonSelect("SELECT count() AS c FROM dns_logs");
+            $totalQueries = (int) ($allRow[0]['c'] ?? 0);
+
+            $todayBatchesRow = $clickhouse->jsonSelect(
+                "SELECT uniqExact(node_id) AS n FROM dns_logs WHERE event_time >= toDate(now())"
+            );
+            $todayBatches = (int) ($todayBatchesRow[0]['n'] ?? 0);
+        } catch (\Throwable) {
+            // ClickHouse 不可用时静默返回 0
+        }
 
         // 套餐分布（从用户 plan_code 统计）
         $planDistribution = User::selectRaw("COALESCE(plan_code, 'free') as plan, COUNT(*) as count")
@@ -23,7 +43,6 @@ final class AdminBillingStatsController
             ->pluck('count', 'plan')
             ->toArray();
 
-        // 模拟财务概览（从 subscription 等衍生）
         $freeUsers = $planDistribution['free'] ?? 0;
         $proUsers = ($planDistribution['pro'] ?? 0) + ($planDistribution['pro_monthly'] ?? 0) + ($planDistribution['pro_yearly'] ?? 0);
         $businessUsers = $planDistribution['business'] ?? 0;

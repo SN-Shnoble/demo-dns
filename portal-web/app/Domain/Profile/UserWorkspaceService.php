@@ -315,17 +315,10 @@ final class UserWorkspaceService
 
     public function analytics(string $userId, ?string $profileId = null): array
     {
-        // 区分 CH 与 PG 端的 profile_id 类型：CH dns_logs.profile_id 存 uid 字符串，PG query_log_entries.profile_id 存 pk int
-        $profileUid = ($profileId !== null && $profileId !== '') ? $profileId : null;
-        $profilePk = null;
-        if ($profileUid !== null) {
-            $profilePk = (int) ($this->resolveProfile($userId, $profileUid)->id ?? 0);
-            if ($profilePk <= 0) {
-                $profilePk = null;
-            }
-        }
+        // CH dns_logs.profile_id 存 uid 字符串
+        $profileUid = ($profileId !== null && $profileId !== ') ? $profileId : null;
 
-        // Primary source: ClickHouse analytics (dns_logs) - uses profileUid
+        // ClickHouse analytics (dns_logs)
         $ch = $this->clickhouseAnalytics->summaryForUser($userId, $profileUid);
         if (($ch['period_queries'] ?? 0) > 0) {
             return array_merge($ch, [
@@ -340,9 +333,8 @@ final class UserWorkspaceService
             ]);
         }
 
-        // Fallback: PostgreSQL query_log_entries (covers warm-up window) - uses profilePk
-        $pg = $this->queryLogReader->analytics($userId, $profilePk !== null ? (string) $profilePk : null);
-        return array_merge($pg, [
+        // 2026-06-22: query_log_entries (PG) fallback 已删除，该表不再写入。
+        return array_merge($ch, [
             'allowed_domains' => [],
             'blocked_domains' => [],
             'block_reasons'   => [],
@@ -353,8 +345,6 @@ final class UserWorkspaceService
             'dnssec'          => ['total' => 0, 'validated' => 0, 'ratio_percent' => 0],
         ]);
     }
-
-    public function logs(string $userId, array $filters): array
     {
         // 当前 profile 隔离：必须按 profile PK 过滤，且 ownership 校验
         $profileUid = isset($filters['profile_id']) && is_string($filters['profile_id']) ? $filters['profile_id'] : null;
@@ -500,7 +490,6 @@ final class UserWorkspaceService
 
     public function topDomains(string $userId): array
     {
-        // 1. ClickHouse (authoritative when the writer is the dns-resolver).
         $ch = $this->clickhouseAnalytics->summaryForUser($userId);
         if (($ch['period_queries'] ?? 0) > 0) {
             return [
@@ -509,20 +498,12 @@ final class UserWorkspaceService
             ];
         }
 
-        // 2. Postgres query_log_entries (covers the warm-up window
-        //    before the ClickHouse materialized views have rolled up).
-        //    Same image and same database as the resolver now, so this
-        //    is an in-process read with no HTTP and no fallback.
-        $analytics = $this->queryLogReader->analytics($userId);
-        if (($analytics['period_queries'] ?? 0) > 0) {
-            return [
-                'top_visited' => $analytics['top_domains'] ?? [],
-                'top_blocked' => $analytics['top_blocked'] ?? [],
-            ];
-        }
-
+        // 2026-06-22: query_log_entries (PG) fallback 已删除。
         return [
             'top_visited' => [],
+            'top_blocked' => [],
+        ];
+    }
             'top_blocked' => [],
         ];
     }

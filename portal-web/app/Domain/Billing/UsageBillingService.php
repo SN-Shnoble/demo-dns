@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Domain\Billing;
 
 use App\Infrastructure\ClickHouse\ClickHouseClient;
-use App\Models\JobExecution;
 use App\Domain\Jobs\JobRunner;
 use Illuminate\Support\Facades\DB;
 
@@ -15,16 +14,17 @@ use Illuminate\Support\Facades\DB;
  * 1) Usage Aggregation: ClickHouse usage_events → PostgreSQL usage_records
  * 2) Billing Generation: usage_records (按 period) → invoices(billing_type=usage)
  *
- * 当前实现：聚合逻辑 + 账单生成，使用 JobRunner 包裹 + 失败告警。
- * ClickHouse 客户端通过 Infrastructure\ClickHouse\ClickHouseClient 注入。
+ * 增量偏移锁：
+ *   用 aggregation_offsets.max_timestamp 代替 processed_at 做游标，
+ *   避免 processed_at（PHP 写入完成时间）与 event timestamp（查询时间）不同步导致的漏聚合。
+ *   max_timestamp 是本次拉取到的最后一条 usage_events.timestamp。
+ *   window_start 固定为前置调用的时间戳，用作同一轮去重键（幂等）。
  */
 final class UsageBillingService
 {
     public function __construct(
         private readonly ?ClickHouseClient $clickhouseClient = new ClickHouseClient(),
     ) {
-        // 默认实例化 ClickHouseClient（与 ClickHouseStatsService 保持一致），
-        // 避免 DI 未注入时 fetchUsageEvents 抛 "ClickHouse client not configured" 永久失败。
     }
 
     /**
@@ -34,16 +34,53 @@ final class UsageBillingService
     public function aggregateOnce(?string $since = null): array
     {
         return JobRunner::run('usage_aggregation', function () use ($since) {
-            // 实际 schema：dns_aggregation_offsets(id, topic, window_start, processed_at, record_count, status, error_message, ...)
+            // 1) 读取上次偏移量（max_timestamp 是最后一条 event 的 timestamp，不是 processed_at）
             $offset = DB::table('aggregation_offsets')
                 ->where('topic', 'usage_aggregation')
                 ->orderByDesc('id')
                 ->first();
-            $sinceIso = $since ?? $offset?->processed_at;
+            $sinceIso = $since ?? $offset?->max_timestamp;
+
+            // 2) 拉取增量 events（注意：WHERE timestamp > 用严格大于避免重复）
             $events = $this->fetchUsageEvents($sinceIso);
 
-            // 2026-06-22: 预加载有效 profile_id 集合，孤儿事件（如节点已删/uid 改写）直接 skip，
-            // 避免 MySQL FK 约束 1452 导致整批回滚 → 聚合永远卡住。
+            if (empty($events)) {
+                // 无新数据时只更新 processed_at，不改变 max_timestamp
+                $now = now();
+                $existingOffset = DB::table('aggregation_offsets')
+                    ->where('topic', 'usage_aggregation')
+                    ->where('window_start', $now->format('Y-m-d H:i:00'))
+                    ->first();
+                $payload = [
+                    'processed_at' => $now,
+                    'updated_at' => $now,
+                ];
+                if ($existingOffset === null) {
+                    $payload['topic'] = 'usage_aggregation';
+                    $payload['window_start'] = $now->format('Y-m-d H:i:00');
+                    $payload['max_timestamp'] = $sinceIso;
+                    $payload['record_count'] = 0;
+                    $payload['status'] = 'done';
+                    $payload['created_at'] = $now;
+                    DB::table('aggregation_offsets')->insert($payload);
+                } else {
+                    DB::table('aggregation_offsets')
+                        ->where('id', $existingOffset->id)
+                        ->update($payload);
+                }
+                return ['buckets' => 0, 'events' => 0, 'skipped_orphans' => 0];
+            }
+
+            // 3) 算出拉取到的最大 timestamp，用作下次偏移量
+            $maxTimestamp = '';
+            foreach ($events as $e) {
+                $ts = (string) ($e['timestamp'] ?? '');
+                if ($ts !== '' && $ts > $maxTimestamp) {
+                    $maxTimestamp = $ts;
+                }
+            }
+
+            // 4) 预加载有效 profile_id 集合，孤儿事件直接 skip
             $profileIds = array_values(array_unique(array_filter(array_map(
                 static fn (array $e) => (int) ($e['profile_id'] ?? 0),
                 $events
@@ -54,6 +91,7 @@ final class UsageBillingService
             $validProfileSet = array_flip(array_map('intval', $validProfileIds));
             $skippedOrphans = 0;
 
+            // 5) 聚合成 bucket
             $buckets = [];
             foreach ($events as $e) {
                 $pid = (int) ($e['profile_id'] ?? 0);
@@ -70,12 +108,12 @@ final class UsageBillingService
                 );
                 $buckets[$key] = ($buckets[$key] ?? 0) + 1;
             }
+
+            // 6) 写入 / 更新 usage_records
             $now = now();
             foreach ($buckets as $key => $count) {
                 [$userId, $profileId, $deviceId, $category] = explode('|', $key);
                 $period = $this->ensureOpenPeriod($userId);
-                // 实际 schema：dns_usage_records 无 plan_code 列；user_id/profile_id/billing_period_id 必填
-                // 同样不能 UPDATE SET 引用同表列，先 PHP 端按唯一键查找决定 created_at
                 $existingUsage = DB::table('usage_records')
                     ->where('user_id', $userId)
                     ->where('profile_id', $profileId)
@@ -104,15 +142,16 @@ final class UsageBillingService
                 }
             }
 
-            // 写回 offset：以 topic + window_start(now) 唯一键写一条 done 记录
-            // MySQL 限制：UPDATE 的 SET 不能引用同表列，因此不在 SQL 内做 COALESCE(created_at)
+            // 7) 写回 offset：用 max_timestamp 做游标，window_start 固定为分钟粒度做幂等
+            $windowKey = $now->format('Y-m-d H:i:00');
             $existingOffset = DB::table('aggregation_offsets')
                 ->where('topic', 'usage_aggregation')
-                ->where('window_start', $now)
+                ->where('window_start', $windowKey)
                 ->first();
             $offsetPayload = [
                 'topic' => 'usage_aggregation',
-                'window_start' => $now,
+                'window_start' => $windowKey,
+                'max_timestamp' => $maxTimestamp,
                 'processed_at' => $now,
                 'record_count' => count($events),
                 'status' => 'done',
@@ -122,10 +161,13 @@ final class UsageBillingService
                 $offsetPayload['created_at'] = $now;
                 DB::table('aggregation_offsets')->insert($offsetPayload);
             } else {
+                // 同一分钟窗口内重入时只更新 processed_at，不覆盖 max_timestamp（以第一次为准）
                 DB::table('aggregation_offsets')
                     ->where('id', $existingOffset->id)
+                    ->where('max_timestamp', $sinceIso) // 仅当本次是增量时才更新
                     ->update($offsetPayload);
             }
+
             return ['buckets' => count($buckets), 'events' => count($events), 'skipped_orphans' => $skippedOrphans];
         });
     }
@@ -217,9 +259,6 @@ final class UsageBillingService
         return DB::table('billing_periods')->where('id', $id)->first();
     }
 
-    /**
-     * 简化定价：normal_query=0, encrypted_dns=1 分/千次, dnssec=2 分/千次。
-     */
     private function priceFor(string $category, int $count): int
     {
         $unit = $this->unitPrice($category);
@@ -235,19 +274,16 @@ final class UsageBillingService
         };
     }
 
-    /**
-     * 抽象 ClickHouse 拉取：依赖未注入时直接失败（避免账单为 0）。
-     */
     private function fetchUsageEvents(?string $sinceIso): array
     {
         if ($this->clickhouseClient === null) {
-            // 关键路径：ClickHouse 未配置 → 必须显式失败，不能聚合为 0。
             throw new \RuntimeException(
                 'ClickHouse client not configured. Refuse to aggregate usage with empty source.'
             );
         }
+        // 用 max_timestamp 做游标，严格大于避免重复
         $sql = 'SELECT user_id, profile_id, device_id, billing_category, timestamp FROM usage_events';
-        if ($sinceIso) {
+        if ($sinceIso !== null && $sinceIso !== '') {
             $sql .= " WHERE timestamp > '" . addslashes($sinceIso) . "'";
         }
         $sql .= ' ORDER BY timestamp LIMIT 10000';

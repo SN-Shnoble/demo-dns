@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\ProfileVersion;
 use App\Models\Device;
 use App\Models\Node;
-use App\Models\QueryLogIngestBatch;
 use App\Models\User;
 use App\Infrastructure\ClickHouse\ClickHouseClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -12,15 +12,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        // 1) query log ingest batches: item_count
-        if (Schema::hasTable('query_log_ingest_batches') && ! Schema::hasColumn('query_log_ingest_batches', 'item_count')) {
-            Schema::table('query_log_ingest_batches', function (Blueprint $t) {
-                $t->unsignedInteger('item_count')->default(0)->after('batch_id');
-            });
-            DB::table('query_log_ingest_batches')->update([
-                'item_count' => DB::raw('event_count'),
-            ]);
-        }
+        // 2026-06-22: query_log_ingest_batches table has been removed (migration deleted).
 
         // 2) geo dns mappings: priority
         if (Schema::hasTable('geo_dns_mappings') && ! Schema::hasColumn('geo_dns_mappings', 'priority')) {
