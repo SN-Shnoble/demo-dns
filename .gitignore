@@ -26,3 +26,9 @@ portal-web/web/node_modules
 !/logs/.gitkeep
 portal-web/web/node_modules
 portal-web/public/dist
+# 节点运行时配置（含 api_key / 部署信息），不提交
+/configs/
+/geodns/configs/api_key
+# 临时测试脚本与 env 备份
+/portal-web/_test_admin_token.php
+/portal-web/.env.bak.*
