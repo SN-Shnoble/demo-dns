@@ -44,11 +44,11 @@
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column :label="$t('admin.geoDns.nodeId') || '节点ID'" :min-width="180">
+            <el-table-column :label="$t('admin.geoDns.nodeId') || 'GeoDNS节点ID'" :min-width="180">
                 <template #default="{ row }">
                     <div class="name-cell" style="white-space:nowrap">
                         <!-- 2026-06-22: 单一事实源 — row.status 是后端用 $mapping->runtimeStatus() / $node->runtimeStatus() 算出来的 -->
-                        <el-icon :color="row.status === 'online' ? '#67c23a' : (row.status === 'degraded' ? '#e6a23c' : (row.status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><Connection /></el-icon>
+                        <el-icon :color="row.status === 'online' ? '#67c23a' : (row.status === 'degraded' ? '#e6a23c' : (row.status === 'not_installed' ? '#94a3b8' : '#f56c6c'))" size="14"><MapLocation /></el-icon>
                         <code class="node-code">{{ row.node_code || (row.target_node_id ? '#' + row.target_node_id : ('#' + row.id)) }}</code>
                     </div>
                 </template>
@@ -175,7 +175,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim, Connection, CopyDocument, Delete, Edit, InfoFilled, Plus, Search } from '@element-plus/icons-vue'
+import { Aim, Connection, CopyDocument, Delete, Edit, InfoFilled, MapLocation, Plus, Search } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 import { useSystemConfig } from '@/composables/useSystemConfig'
