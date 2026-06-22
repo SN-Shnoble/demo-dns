@@ -104,7 +104,7 @@
                         在线
                     </el-tag>
                     <el-tag v-else-if="row.runtime_status === 'degraded'" type="warning" size="small" effect="dark" style="white-space:nowrap">降级</el-tag>
-                    <el-tag v-else-if="row.runtime_status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
+                    <el-tag v-else-if="row.runtime_status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">--</el-tag>
                     <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">离线</el-tag>
                 </template>
             </el-table-column>

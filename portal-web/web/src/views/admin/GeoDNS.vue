@@ -52,7 +52,7 @@
             <el-table-column :label="$t('admin.geoDns.installStatus')" :min-width="110">
                 <template #default="{ row }">
                     <el-tag v-if="row.install_status === 'installed'" type="success" size="small" effect="light" style="white-space:nowrap">已安装</el-tag>
-                    <el-tag v-else type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
+                    <el-tag v-else type="info" size="small" effect="plain" style="white-space:nowrap">待安装</el-tag>
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.onlineStatus')" :min-width="100">
@@ -63,7 +63,7 @@
                         {{ $t('admin.geoDns.online') || '在线' }}
                     </el-tag>
                     <el-tag v-else-if="row.status === 'degraded'" type="warning" size="small" effect="dark" style="white-space:nowrap">降级</el-tag>
-                    <el-tag v-else-if="row.status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">未安装</el-tag>
+                    <el-tag v-else-if="row.status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">--</el-tag>
                     <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
                 </template>
             </el-table-column>
@@ -97,6 +97,7 @@
                     </el-button>
                     <el-button v-if="!row.is_orphan" size="small" text type="danger" @click="handleDelete(row.id)">
                         <el-icon><Delete /></el-icon>
+                        <span>{{ $t('common.delete') || '删除' }}</span>
                     </el-button>
                     <el-tag v-if="row.is_orphan" size="small" type="info" effect="plain" style="white-space:nowrap">{{ $t('admin.geoDns.orphanTag') || '无映射' }}</el-tag>
                 </div>
