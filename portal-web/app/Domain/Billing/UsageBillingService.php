@@ -42,8 +42,25 @@ final class UsageBillingService
             $sinceIso = $since ?? $offset?->processed_at;
             $events = $this->fetchUsageEvents($sinceIso);
 
+            // 2026-06-22: 预加载有效 profile_id 集合，孤儿事件（如节点已删/uid 改写）直接 skip，
+            // 避免 MySQL FK 约束 1452 导致整批回滚 → 聚合永远卡住。
+            $profileIds = array_values(array_unique(array_filter(array_map(
+                static fn (array $e) => (int) ($e['profile_id'] ?? 0),
+                $events
+            ))));
+            $validProfileIds = $profileIds === []
+                ? []
+                : DB::table('profiles')->whereIn('id', $profileIds)->pluck('id')->all();
+            $validProfileSet = array_flip(array_map('intval', $validProfileIds));
+            $skippedOrphans = 0;
+
             $buckets = [];
             foreach ($events as $e) {
+                $pid = (int) ($e['profile_id'] ?? 0);
+                if ($pid <= 0 || ! isset($validProfileSet[$pid])) {
+                    $skippedOrphans++;
+                    continue;
+                }
                 $key = sprintf(
                     '%s|%s|%s|%s',
                     $e['user_id'],
@@ -109,7 +126,7 @@ final class UsageBillingService
                     ->where('id', $existingOffset->id)
                     ->update($offsetPayload);
             }
-            return ['buckets' => count($buckets), 'events' => count($events)];
+            return ['buckets' => count($buckets), 'events' => count($events), 'skipped_orphans' => $skippedOrphans];
         });
     }
 

@@ -560,9 +560,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 4px 0 8px 42px;
+    padding: 4px 0 8px 18px;
     border-left: 1px solid rgba(148, 163, 184, 0.18);
-    margin-left: 28px;
+    margin-left: 12px;
 }
 
 .nav-item {

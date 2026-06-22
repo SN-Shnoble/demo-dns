@@ -57,9 +57,15 @@ final class NodeRegistryService
         $online = ResolverNode::where('status', ResolverNode::STATUS_ONLINE)->count();
         $offline = ResolverNode::where('status', ResolverNode::STATUS_OFFLINE)->count();
         $error = ResolverNode::where('status', ResolverNode::STATUS_ERROR)->count();
-        $outOfSync = ResolverNode::where('status', ResolverNode::STATUS_ONLINE)
+        $out_of_sync = ResolverNode::where('status', ResolverNode::STATUS_ONLINE)
             ->where('policy_version', '<', $latestPublishedVersion)
             ->count();
-        return compact('total', 'online', 'offline', 'error', 'out_of_sync');
+        return [
+            'total' => $total,
+            'online' => $online,
+            'offline' => $offline,
+            'error' => $error,
+            'out_of_sync' => $out_of_sync,
+        ];
     }
 }
