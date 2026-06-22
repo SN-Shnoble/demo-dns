@@ -170,3 +170,5 @@
 
 | 2026-06-22 | code | 修复 UsageBillingService::aggregateOnce 增量偏移逻辑：偏移量改用 max_timestamp（拉取的最后一笔 event 时间）代替 processed_at（PHP 完成时间），避免两者不同步导致的漏聚合；window_start 固定为分钟粒度去重键，防止同一个窗口重复 insert；无新数据时只更新 processed_at 不变 max_timestamp；空拉取直接提前返回不写空 bucket | app/Domain/Billing/UsageBillingService.php | ok |
 
+| 2026-06-22 | code | 新增 migration 2026_06_22_000008：aggregation_offsets 表加 max_timestamp datetime 列，初始化旧记录 max_timestamp=processed_at，清理重复 window_start 记录 | database/migrations/2026_06_22_000008_add_max_timestamp_to_aggregation_offsets.php | ok |
+

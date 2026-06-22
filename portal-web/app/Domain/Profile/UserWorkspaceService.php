@@ -316,7 +316,7 @@ final class UserWorkspaceService
     public function analytics(string $userId, ?string $profileId = null): array
     {
         // CH dns_logs.profile_id 存 uid 字符串
-        $profileUid = ($profileId !== null && $profileId !== ') ? $profileId : null;
+        $profileUid = ($profileId !== null $profileUid = ($profileId !== null && $profileId !== ') ?$profileUid = ($profileId !== null && $profileId !== ') ? $profileId !== '') ? $profileId : null;
 
         // ClickHouse analytics (dns_logs)
         $ch = $this->clickhouseAnalytics->summaryForUser($userId, $profileUid);
@@ -334,6 +334,7 @@ final class UserWorkspaceService
         }
 
         // 2026-06-22: query_log_entries (PG) fallback 已删除，该表不再写入。
+    public function logs(string $userId, array $filters): array
         return array_merge($ch, [
             'allowed_domains' => [],
             'blocked_domains' => [],
@@ -501,10 +502,6 @@ final class UserWorkspaceService
         // 2026-06-22: query_log_entries (PG) fallback 已删除。
         return [
             'top_visited' => [],
-            'top_blocked' => [],
-        ];
-    }
-            'top_blocked' => [],
         ];
     }
 
