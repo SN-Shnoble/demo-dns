@@ -43,6 +43,7 @@ type NodeConfig struct {
 type ListenConfig struct {
 	DoH int `yaml:"doh"`
 	DoT int `yaml:"dot"`
+	DoQ int `yaml:"doq"`
 	TCP int `yaml:"tcp"`
 	UDP int `yaml:"udp"`
 }
@@ -87,9 +88,9 @@ type RedisConfig struct {
 
 // DNSCacheConfig 配置 DNS 响应本地缓存
 type DNSCacheConfig struct {
-	Enabled  bool `yaml:"enabled"`
-	MaxSize  int  `yaml:"max_size"`  // 最大缓存条目数
-	MaxTTL   int  `yaml:"max_ttl"`   // 最大 TTL（秒）
+	Enabled bool `yaml:"enabled"`
+	MaxSize int  `yaml:"max_size"` // 最大缓存条目数
+	MaxTTL  int  `yaml:"max_ttl"`  // 最大 TTL（秒）
 }
 
 type LoggingConfig struct {
@@ -131,7 +132,7 @@ func (c *Config) Validate() error {
 	if strings.TrimSpace(c.ControlPlane.NodeID) == "" {
 		return fmt.Errorf("control_plane.node_id is required (run `resolver install` to provision)")
 	}
-	if c.Listen.DoH == 0 && c.Listen.UDP == 0 && c.Listen.DoT == 0 && c.Listen.TCP == 0 {
+	if c.Listen.DoH == 0 && c.Listen.UDP == 0 && c.Listen.DoT == 0 && c.Listen.TCP == 0 && c.Listen.DoQ == 0 {
 		return fmt.Errorf("at least one listen port must be configured")
 	}
 	return nil
@@ -152,6 +153,7 @@ func Default() *Config {
 		Listen: ListenConfig{
 			DoH: 8443,
 			DoT: 853,
+			DoQ: 784,
 			TCP: 53,
 			UDP: 53,
 		},
@@ -175,7 +177,7 @@ func Default() *Config {
 			Enabled:  false,
 		},
 		Logging: LoggingConfig{
-			Level:         "info",
+			Level: "info",
 			// 2026-06-22: 改用 /var/lib/ocer-dns/log-buffer，避免 systemd-tmpfiles
 			// 清理 /tmp 造成断网恢复期的日志丢失。macOS 开发机可通过 yaml 覆盖
 			// 写到 ~/Library/Application Support/ocer-dns/log-buffer。

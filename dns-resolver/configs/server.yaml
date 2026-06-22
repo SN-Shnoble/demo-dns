@@ -7,8 +7,11 @@ node:
     provider: local
     public_ipv4: 127.0.0.1
 listen:
-    doh: 8444
-    udp: 5355
+    doh: 443
+    udp: 53
+    tcp: 53
+    dot: 853
+    doq: 784
 control_plane:
     endpoint: http://localhost:8081
     api_key: ocnd_ywOOlWPNeSeSzWNWZRSzART2ODy19hqMPo8lcNLX
