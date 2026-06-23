@@ -27,6 +27,7 @@ final class AuthenticateNodeToken
 
         $request->attributes->set('node', $resolved['node']);
         $request->attributes->set('node_token', $resolved['token']);
+        $request->attributes->set('node_token_plain', (string) $request->bearerToken());
 
         return $next($request);
     }

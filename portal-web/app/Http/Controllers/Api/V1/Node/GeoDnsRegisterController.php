@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 /**
  * GeoDNS 节点注册端点（2026-06-23 重构）
@@ -50,14 +49,16 @@ final class GeoDnsRegisterController
             ]
         );
 
-        // 签发 api_key
+        // 签发 api_key — 复用 node token 明文，保证与 config.yaml 中的 token 一致
         $apiKeyPlain = null;
         if (Schema::hasColumn('geodns', 'api_key')) {
-            $apiKeyPlain = 'ak_' . Str::random(40);
-            $node->update([
-                'api_key' => hash('sha256', $apiKeyPlain),
-                'api_key_issued_at' => now(),
-            ]);
+            $apiKeyPlain = (string) $request->attributes->get('node_token_plain');
+            if ($apiKeyPlain !== '') {
+                $node->update([
+                    'api_key' => hash('sha256', $apiKeyPlain),
+                    'api_key_issued_at' => now(),
+                ]);
+            }
         }
 
         $response = [
