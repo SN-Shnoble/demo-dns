@@ -515,15 +515,23 @@ func setupCaddy(domain string) error {
 
 	// 4. 通过 systemd 启动 Caddy
 	if _, sysErr := exec.LookPath("systemctl"); sysErr == nil {
-		// daemon-reload + enable --now
-		for _, args := range [][]string{
-			{"daemon-reload"},
-			{"enable", "--now", "caddy"},
-		} {
-			cmd := exec.Command("systemctl", args...)
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return fmt.Errorf("%sCaddy systemctl %s 失败%s: %w (%s)", redFg, strings.Join(args, " "), resetSty, err, strings.TrimSpace(string(out)))
-			}
+		// 4a. 先停掉 apt 可能已启动的旧 Caddy 实例，避免配置冲突
+		_ = exec.Command("systemctl", "stop", "caddy").Run()
+
+		// 4b. daemon-reload 确保 systemd 加载最新 unit
+		if out, err := exec.Command("systemctl", "daemon-reload").CombinedOutput(); err != nil {
+			return fmt.Errorf("%sCaddy systemctl daemon-reload 失败%s: %w (%s)", redFg, resetSty, err, strings.TrimSpace(string(out)))
+		}
+
+		// 4c. enable（设置开机自启）
+		if out, err := exec.Command("systemctl", "enable", "caddy").CombinedOutput(); err != nil {
+			// enable 失败不阻塞启动，仅警告；可能容器环境不需要 enable
+			fmt.Printf("  %s⚠ caddy enable 失败: %s%s\n", yellowFg, strings.TrimSpace(string(out)), resetSty)
+		}
+
+		// 4d. start（启动 Caddy 并等待就绪）
+		if out, err := exec.Command("systemctl", "start", "caddy").CombinedOutput(); err != nil {
+			return fmt.Errorf("%sCaddy 启动失败%s: %w（请手动排查：systemctl status caddy; journalctl -xeu caddy.service）\n  systemctl start caddy 输出: %s", redFg, resetSty, err, strings.TrimSpace(string(out)))
 		}
 		fmt.Printf("  ✔ caddy started (https://%s → localhost:8443)\n", domain)
 	} else {
