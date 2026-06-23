@@ -464,6 +464,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.search-input { width: 280px; }
 .status-summary { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .status-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .status-toggle { line-height: 1; }

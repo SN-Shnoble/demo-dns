@@ -54,7 +54,7 @@ main() {
     # 获取当前版本并递增
     local current_version=$(read_version)
     local new_version=$(increment_version "$current_version")
-    local build_time=$(date '+%Y-%m-%d %H:%M:%S')
+    local build_time=$(date '+%Y-%m-%dT%H:%M:%S')
     
     log_info "当前版本: ${current_version}"
     log_info "新版本号:  ${new_version}"
