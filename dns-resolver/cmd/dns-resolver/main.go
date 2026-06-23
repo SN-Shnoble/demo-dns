@@ -258,7 +258,7 @@ func main() {
 	// Start DoQ (DNS over QUIC) server if port configured
 	var doqServer *doq.Server
 	if cfg.Listen.DoQ > 0 {
-		tlsCfg, err := dnsserver.LoadTLSConfig(cfg.Listen.TLSCertFile, cfg.Listen.TLSKeyFile)
+		tlsCfg, err := dnsserver.LoadTLSConfig(cfg.Listen.TLSCertFile, cfg.Listen.TLSKeyFile, cfg.ControlPlane.DNSDomain)
 		if err != nil {
 			log.Printf("doq: failed to load TLS config: %v (DoQ not started)", err)
 		} else {

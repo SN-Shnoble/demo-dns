@@ -71,7 +71,7 @@ func New(
 
 	// 初始化 DoT (DNS over TLS) 服务器 — 通过 GetConfigForClient 提取 SNI
 	if cfg.Listen.DoT > 0 {
-		baseTLS, err := LoadTLSConfig(cfg.Listen.TLSCertFile, cfg.Listen.TLSKeyFile)
+		baseTLS, err := LoadTLSConfig(cfg.Listen.TLSCertFile, cfg.Listen.TLSKeyFile, cfg.ControlPlane.DNSDomain)
 		if err != nil {
 			log.Printf("dot: failed to load TLS config: %v (DoT not started)", err)
 		} else {

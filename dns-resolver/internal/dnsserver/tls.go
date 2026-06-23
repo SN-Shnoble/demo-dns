@@ -16,13 +16,23 @@ import (
 	"time"
 )
 
+// certPaths 缓存解析成功的 Caddy 证书路径，避免每次握手都走 Glob。
+type certPaths struct {
+	certFile string
+	keyFile  string
+}
+
 // LoadTLSConfig 加载 TLS 配置。
-// 如果 certFile/keyFile 非空，使用 GetCertificate 回调动态加载（支持热更新，无需重启）；
-// 内部维护原子缓存：
-//   - 首次启动无证书时 → 自签名兜底（通常 install 尚未完成）
+// 参数策略（优先级递减）：
+//  1. certFile/keyFile 非空 → 使用 GetCertificate 从固定路径热加载
+//  2. dnsDomain 非空 → 使用 GetCertificate 动态发现 Caddy 证书（每次握手自动重试）
+//  3. 全部为空 → 生成自签名证书（开发测试用）
+//
+// GetCertificate 回调内部维护原子缓存：
+//   - 首次启动无证书时 → 自签名兜底
 //   - 一旦成功加载过正式证书 → 后续加载失败使用缓存证书，不回退自签名
-// 如果 certFile/keyFile 为空，直接生成自签名证书（开发测试用）。
-func LoadTLSConfig(certFile, keyFile string) (*tls.Config, error) {
+func LoadTLSConfig(certFile, keyFile, dnsDomain string) (*tls.Config, error) {
+	// 优先级 1：固定路径
 	if certFile != "" && keyFile != "" {
 		log.Printf("tls: will load certificate from %s (hot-reload via GetCertificate)", certFile)
 
@@ -31,7 +41,6 @@ func LoadTLSConfig(certFile, keyFile string) (*tls.Config, error) {
 			hasRealCert atomic.Bool
 		)
 
-		// 首次尝试加载，预先填充缓存（可能失败，不影响后续握手）
 		if initialCert, err := tls.LoadX509KeyPair(certFile, keyFile); err == nil {
 			cachedCert.Store(&initialCert)
 			hasRealCert.Store(true)
@@ -42,16 +51,13 @@ func LoadTLSConfig(certFile, keyFile string) (*tls.Config, error) {
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 				if err != nil {
-					// 有缓存 → 用最后一次成功的证书，不中断服务
 					if cached := cachedCert.Load(); cached != nil {
 						log.Printf("tls: reload failed (%v) — using cached cert", err)
 						return cached.(*tls.Certificate), nil
 					}
-					// 从未成功加载过 → 自签名兜底（仅首次启动）
 					log.Printf("tls: no cached cert available, falling back to self-signed: %v", err)
 					return generateSelfSignedCert()
 				}
-				// 成功加载 → 更新缓存
 				cachedCert.Store(&cert)
 				if !hasRealCert.Load() {
 					hasRealCert.Store(true)
@@ -63,6 +69,54 @@ func LoadTLSConfig(certFile, keyFile string) (*tls.Config, error) {
 		}, nil
 	}
 
+	// 优先级 2：动态发现（通过 dns_domain 自动查找 Caddy 证书）
+	if dnsDomain != "" {
+		log.Printf("tls: will discover certificates via Caddy storage for domain %s", dnsDomain)
+
+		var (
+			cachedCert atomic.Value // stores *tls.Certificate
+			knownPaths atomic.Value // stores *certPaths
+		)
+
+		return &tls.Config{
+			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				// 快速路径：使用上次发现成功的路径直接加载
+				if p := knownPaths.Load(); p != nil {
+					paths := p.(*certPaths)
+					cert, loadErr := tls.LoadX509KeyPair(paths.certFile, paths.keyFile)
+					if loadErr == nil {
+						cachedCert.Store(&cert)
+						return &cert, nil
+					}
+					// 文件级失败（续期、权限变更）→ 用缓存证书
+					if cached := cachedCert.Load(); cached != nil {
+						log.Printf("tls: known cert path failed (%v) — using cached cert", loadErr)
+						return cached.(*tls.Certificate), nil
+					}
+				}
+
+				// 发现阶段：搜索 Caddy 证书存储
+				certFile, keyFile, err := findCaddyCert(dnsDomain)
+				if err == nil {
+					if cert, loadErr := tls.LoadX509KeyPair(certFile, keyFile); loadErr == nil {
+						cachedCert.Store(&cert)
+						knownPaths.Store(&certPaths{certFile, keyFile})
+						return &cert, nil
+					}
+				}
+
+				// 完全失败 → 缓存回退或自签名
+				if cached := cachedCert.Load(); cached != nil {
+					return cached.(*tls.Certificate), nil
+				}
+				log.Printf("tls: no cert found for %s, using self-signed (Caddy may not have obtained it yet)", dnsDomain)
+				return generateSelfSignedCert()
+			},
+			MinVersion: tls.VersionTLS12,
+		}, nil
+	}
+
+	// 优先级 3：无证书配置 → 自签名（开发测试）
 	log.Printf("tls: no certificate configured, generating self-signed (dev-only)")
 	c, err := generateSelfSignedCert()
 	if err != nil {
