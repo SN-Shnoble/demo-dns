@@ -328,6 +328,7 @@
       "sunday": "Sunday"
     },
     "safeSearch": {
+      "safeSearch": "Safe Search",
       "title": "Safe Search",
       "desc": "Filter out search results containing adult content on major search engines, including images and videos.",
       "safeSearchDesc": "Filter out search results containing adult content on major search engines, including images and videos. If a search engine does not support this feature, the entire engine will be blocked.",

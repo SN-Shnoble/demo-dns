@@ -4,54 +4,61 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
+	"encoding/json"
 	"io"
 	"log"
 	"net"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
-	"ocer-dns/dns-resolver/internal/cache"
 	"ocer-dns/dns-resolver/internal/config"
 	"ocer-dns/dns-resolver/internal/logging"
 	"ocer-dns/dns-resolver/internal/metrics"
+	"ocer-dns/dns-resolver/internal/profile"
+	"ocer-dns/dns-resolver/internal/resolver"
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 )
 
 // Server handles DNS over QUIC (RFC 9250) with full Profile Resolution Layer.
-//
-// DoQ uses a single bidirectional QUIC stream per DNS query/response,
-// with a 2-byte big-endian length prefix (same wire format as TCP).
 type Server struct {
-	cfg             *config.Config
-	resolutionLayer any // placeholder for future policy engine integration
-	logBuffer       *logging.Buffer
-	metrics         *metrics.Metrics
-	cache           *cache.Cache
-	client          *dns.Client
-	dedupTTL        time.Duration
-	listener        *quic.Listener
-	mu              sync.Mutex
+	cfg       *config.Config
+	handler   *resolver.Handler
+	logBuffer *logging.Buffer
+	metrics   *metrics.Metrics
+	listener  *quic.Listener
+	mu        sync.Mutex
+}
+
+// activeConfig mirrors the DNS/DoH profile config schema.
+type activeConfig struct {
+	Profiles []struct {
+		ProfileID     string         `json:"profile_id"`
+		BlockResponse string         `json:"block_response"`
+		Quota         map[string]any `json:"quota"`
+		Parental      map[string]any `json:"parental"`
+		Devices       []struct {
+			DeviceID string `json:"device_id"`
+			SourceIP string `json:"source_ip"`
+		} `json:"devices"`
+	} `json:"profiles"`
 }
 
 // New creates a new DoQ server.
 func New(
 	cfg *config.Config,
+	handler *resolver.Handler,
 	logBuffer *logging.Buffer,
 	collector *metrics.Metrics,
-	cacheClient *cache.Cache,
 ) *Server {
 	return &Server{
 		cfg:       cfg,
+		handler:   handler,
 		logBuffer: logBuffer,
 		metrics:   collector,
-		cache:     cacheClient,
-		client: &dns.Client{
-			Net:     "udp",
-			Timeout: 5 * time.Second,
-		},
-		dedupTTL: 5 * time.Second,
 	}
 }
 
@@ -63,7 +70,7 @@ func (s *Server) Run(ctx context.Context, tlsCfg *tls.Config) error {
 	}
 
 	listener, err := quic.ListenAddr(
-		net.JoinHostPort("", s.portStr(addr)),
+		net.JoinHostPort("", intToStr(addr)),
 		tlsCfg,
 		&quic.Config{
 			MaxIdleTimeout:       30 * time.Second,
@@ -84,12 +91,11 @@ func (s *Server) Run(ctx context.Context, tlsCfg *tls.Config) error {
 		conn, err := listener.Accept(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
-				return nil // graceful shutdown
+				return nil
 			}
 			log.Printf("doq: accept error: %v", err)
 			return err
 		}
-
 		go s.handleConnection(ctx, conn)
 	}
 }
@@ -105,21 +111,21 @@ func (s *Server) Stop() error {
 }
 
 func (s *Server) handleConnection(ctx context.Context, conn *quic.Conn) {
+	remoteAddr := conn.RemoteAddr().String()
 	defer conn.CloseWithError(0, "bye")
-
 	for {
 		stream, err := conn.AcceptStream(ctx)
 		if err != nil {
 			return
 		}
-		go s.handleStream(stream)
+		go s.handleStream(stream, remoteAddr)
 	}
 }
 
-func (s *Server) handleStream(stream *quic.Stream) {
+func (s *Server) handleStream(stream *quic.Stream, remoteAddr string) {
 	defer stream.Close()
 
-	// Read 2-byte length prefix (big-endian, same as TCP wire format)
+	// Read 2-byte length prefix
 	var lenBuf [2]byte
 	if _, err := io.ReadFull(stream, lenBuf[:]); err != nil {
 		return
@@ -129,76 +135,167 @@ func (s *Server) handleStream(stream *quic.Stream) {
 		return
 	}
 
-	// Read DNS message
 	msgBuf := make([]byte, msgLen)
 	if _, err := io.ReadFull(stream, msgBuf); err != nil {
 		return
 	}
 
-	// Parse DNS query
 	req := new(dns.Msg)
 	if err := req.Unpack(msgBuf); err != nil {
 		return
 	}
 
-	s.metrics.IncQueries()
-
-	// Resolve via upstream
-	reply := s.resolve(req)
-	if reply == nil {
-		reply = new(dns.Msg)
+	// ① Profile 匹配（按客户端 IP）
+	profileID, blockResponse, deviceID, safeSearchEnabled, ok := s.resolveRuntimeProfile(remoteAddr)
+	if !ok {
+		reply := new(dns.Msg)
 		reply.SetReply(req)
-		reply.Rcode = dns.RcodeServerFailure
+		reply.Rcode = dns.RcodeNameError
+		s.writeStream(stream, reply)
+		s.metrics.IncErrors()
+		return
 	}
 
-	// Write response with 2-byte length prefix
+	// ② 配额检查
+	if s.isQuotaExceeded(profileID) {
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		reply.Rcode = dns.RcodeRefused
+		s.writeStream(stream, reply)
+		s.metrics.IncErrors()
+		return
+	}
+
+	// ③ 共享 pipeline
+	result := s.handler.Handle(req, remoteAddr, "doq", profileID, deviceID, blockResponse, safeSearchEnabled)
+
+	// ④ 写出响应
+	s.writeStream(stream, result.Reply)
+}
+
+func (s *Server) writeStream(stream *quic.Stream, reply *dns.Msg) {
 	packed, err := reply.Pack()
 	if err != nil {
 		s.metrics.IncErrors()
 		return
 	}
-
 	respLen := make([]byte, 2)
 	binary.BigEndian.PutUint16(respLen, uint16(len(packed)))
-	if _, err := stream.Write(respLen); err != nil {
-		return
-	}
-	if _, err := stream.Write(packed); err != nil {
-		return
-	}
+	(*stream).Write(respLen)
+	(*stream).Write(packed)
 }
 
-func (s *Server) resolve(req *dns.Msg) *dns.Msg {
-	reply, _, err := s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[0]))
+func (s *Server) isQuotaExceeded(profileID string) bool {
+	cfg, err := s.loadActiveConfig()
 	if err != nil {
-		if len(s.cfg.Upstream) > 1 {
-			reply, _, err = s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[1]))
-		}
-		if err != nil {
-			s.metrics.IncErrors()
-			return nil
+		return false
+	}
+	for _, p := range cfg.Profiles {
+		if p.ProfileID == profileID {
+			if p.Quota == nil {
+				return false
+			}
+			status, _ := p.Quota["quota_status"].(string)
+			return status == "exceeded"
 		}
 	}
-	return reply
+	return false
 }
 
-func (s *Server) portStr(port int) string {
-	if port == 0 {
+func (s *Server) resolveRuntimeProfile(remoteAddr string) (profileID string, blockResponse string, deviceID string, safeSearch bool, ok bool) {
+	cfg, err := s.loadActiveConfig()
+	if err != nil || len(cfg.Profiles) == 0 {
+		return "", "nxdomain", "", false, false
+	}
+
+	sourceMap := make(map[string]string)
+	deviceMap := make(map[string]string)
+	blockMap := make(map[string]string)
+
+	for _, profileConfig := range cfg.Profiles {
+		if profileConfig.ProfileID == "" {
+			continue
+		}
+		blockMap[profileConfig.ProfileID] = firstNonEmpty(profileConfig.BlockResponse, "nxdomain")
+		for _, device := range profileConfig.Devices {
+			if device.SourceIP == "" {
+				continue
+			}
+			sourceMap[device.SourceIP] = profileConfig.ProfileID
+			deviceMap[device.SourceIP] = device.DeviceID
+		}
+	}
+
+	resolver := profile.New(sourceMap)
+	pid, err := resolver.ResolveSourceIP(remoteAddr)
+	if err != nil || pid == "" {
+		return "", "nxdomain", "", false, false
+	}
+
+	host := remoteHost(remoteAddr)
+	for _, profileConfig := range cfg.Profiles {
+		if profileConfig.ProfileID != pid {
+			continue
+		}
+		safeSearch = boolFromMap(profileConfig.Parental, "safe_search") || boolFromMap(profileConfig.Parental, "force_safe_search")
+		break
+	}
+
+	return pid, firstNonEmpty(blockMap[pid], "nxdomain"), deviceMap[host], safeSearch, true
+}
+
+func (s *Server) loadActiveConfig() (*activeConfig, error) {
+	path := filepath.Join(s.cfg.ControlPlane.ProfilesPath, "active.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var cfg activeConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func remoteHost(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func boolFromMap(values map[string]any, key string) bool {
+	if values == nil {
+		return false
+	}
+	raw, ok := values[key]
+	if !ok {
+		return false
+	}
+	boolean, ok := raw.(bool)
+	return ok && boolean
+}
+
+func intToStr(n int) string {
+	if n == 0 {
 		return "0"
 	}
 	var buf [20]byte
 	pos := len(buf)
-	for port > 0 {
+	for n > 0 {
 		pos--
-		buf[pos] = byte('0' + port%10)
-		port /= 10
+		buf[pos] = byte('0' + n%10)
+		n /= 10
 	}
 	return string(buf[pos:])
-}
-
-func upstreamAddr(addr string) string {
-	if _, _, err := net.SplitHostPort(addr); err == nil {
-		return addr
-	}
-	return addr + ":53"
 }

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1\User;
 use App\Domain\Billing\OrderService;
 use App\Domain\Billing\PaymentService;
 use App\Domain\Billing\PlanCatalogService;
+use App\Domain\Billing\WalletService;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ final class OrderController
         private readonly OrderService $orders = new OrderService(),
         private readonly PaymentService $payments = new PaymentService(),
         private readonly PlanCatalogService $plans = new PlanCatalogService(),
+        private readonly WalletService $wallets = new WalletService(),
     ) {
     }
 
@@ -121,6 +123,49 @@ final class OrderController
                 'provider_session_id' => (string) $tx->provider_session_id,
             ],
         ], 201);
+    }
+
+    /** POST /api/v1/user/orders/{id}/pay-with-wallet — 使用余额支付订单 */
+    public function payWithWallet(Request $request, string $id): JsonResponse
+    {
+        $userId = (string) $request->user()->uid;
+
+        $order = Order::where('id', $id)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+        if ($order->status !== Order::STATUS_PENDING) {
+            return response()->json(['message' => 'Order is not payable.'], 422);
+        }
+
+        $wallet = $this->wallets->balance($userId);
+        $orderAmount = (int) $order->payable_amount_minor;
+
+        if ($wallet['balance_minor'] < $orderAmount) {
+            return response()->json([
+                'message' => 'Insufficient balance.',
+                'errors' => [
+                    'balance' => ['Insufficient balance. Please recharge your wallet.'],
+                ],
+            ], 422);
+        }
+
+        try {
+            $idempotencyKey = 'wallet_pay:' . $order->id . ':' . now()->format('YmdHisv');
+            $this->wallets->debit(
+                userId: $userId,
+                amountMinor: $orderAmount,
+                source: 'order_payment',
+                idempotencyKey: $idempotencyKey,
+                description: 'Payment for order ' . $order->order_no,
+            );
+
+            $this->orders->markPaid((string) $order->id, 'wallet');
+
+            $updatedOrder = $order->fresh();
+            return response()->json(['data' => $this->format($updatedOrder)]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     private function format(Order $order): array

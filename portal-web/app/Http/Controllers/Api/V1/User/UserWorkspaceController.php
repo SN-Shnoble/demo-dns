@@ -163,11 +163,11 @@ final class UserWorkspaceController
         }
 
         $validated = $request->validate([
-            'locale' => 'required|string|max:20',
-            'timezone' => 'required|string|max:64',
-            'profile_name' => 'required|string|max:100',
-            'default_action' => ['required', Rule::in(['allow', 'block'])],
-            'block_response' => ['required', Rule::in(['nxdomain', 'zero_ip', 'refused'])],
+            'locale' => 'nullable|string|max:20',
+            'timezone' => 'nullable|string|max:64',
+            'profile_name' => 'nullable|string|max:100',
+            'default_action' => ['nullable', Rule::in(['allow', 'block'])],
+            'block_response' => ['nullable', Rule::in(['nxdomain', 'zero_ip', 'refused'])],
         ]);
 
         return response()->json(['data' => $this->workspace->updateSettings($request->user()->uid, $validated, $this->profileId($request))]);

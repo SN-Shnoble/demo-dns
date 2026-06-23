@@ -114,6 +114,7 @@ Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function ():
         Route::post('', [OrderController::class, 'create']);
         Route::get('{id}', [OrderController::class, 'show']);
         Route::post('{id}/checkout', [OrderController::class, 'checkout']);
+        Route::post('{id}/pay-with-wallet', [OrderController::class, 'payWithWallet']);
     });
 
     // 套餐购买入口

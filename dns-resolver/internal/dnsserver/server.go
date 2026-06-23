@@ -2,22 +2,14 @@ package dnsserver
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
-	"ocer-dns/dns-resolver/internal/blockresponse"
-	"ocer-dns/dns-resolver/internal/cache"
 	"ocer-dns/dns-resolver/internal/config"
-	"ocer-dns/dns-resolver/internal/dnscache"
-	"ocer-dns/dns-resolver/internal/logging"
 	"ocer-dns/dns-resolver/internal/metrics"
 	"ocer-dns/dns-resolver/internal/profile"
 	"ocer-dns/dns-resolver/internal/resolver"
@@ -26,17 +18,12 @@ import (
 )
 
 type Server struct {
-	cfg             *config.Config
-	resolutionLayer *resolver.ProfileResolutionLayer
-	logBuffer       *logging.Buffer
-	metrics         *metrics.Metrics
-	cache           *cache.Cache
-	dnsCache        *dnscache.DNSCache
-	client          *dns.Client
-	udpServer       *dns.Server
-	tcpServer       *dns.Server
-	dotServer       *dns.Server
-	dedupTTL        time.Duration
+	cfg       *config.Config
+	handler   *resolver.Handler
+	metrics   *metrics.Metrics
+	udpServer *dns.Server
+	tcpServer *dns.Server
+	dotServer *dns.Server
 }
 
 type activeConfig struct {
@@ -54,40 +41,29 @@ type activeConfig struct {
 
 func New(
 	cfg *config.Config,
-	resolutionLayer *resolver.ProfileResolutionLayer,
-	logBuffer *logging.Buffer,
-	collector *metrics.Metrics,
-	cacheClient *cache.Cache,
-	dnsCache *dnscache.DNSCache,
+	handler *resolver.Handler,
+	metrics *metrics.Metrics,
 ) *Server {
-	handler := &Server{
-		cfg:             cfg,
-		resolutionLayer: resolutionLayer,
-		logBuffer:       logBuffer,
-		metrics:         collector,
-		cache:           cacheClient,
-		dnsCache:        dnsCache,
-		client: &dns.Client{
-			Net:     "udp",
-			Timeout: 5 * time.Second,
-		},
-		dedupTTL: 5 * time.Second,
+	s := &Server{
+		cfg:     cfg,
+		handler: handler,
+		metrics: metrics,
 	}
 
-	handler.udpServer = &dns.Server{
+	s.udpServer = &dns.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Listen.UDP),
 		Net:     "udp",
-		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { handler.handleQuery(w, req, "udp") }),
+		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { s.handleQuery(w, req, "udp") }),
 	}
 
 	tcpPort := cfg.Listen.TCP
 	if tcpPort == 0 {
 		tcpPort = cfg.Listen.UDP
 	}
-	handler.tcpServer = &dns.Server{
+	s.tcpServer = &dns.Server{
 		Addr:    fmt.Sprintf(":%d", tcpPort),
 		Net:     "tcp",
-		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { handler.handleQuery(w, req, "tcp") }),
+		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { s.handleQuery(w, req, "tcp") }),
 	}
 
 	// 初始化 DoT (DNS over TLS) 服务器
@@ -96,16 +72,16 @@ func New(
 		if err != nil {
 			log.Printf("dot: failed to load TLS config: %v (DoT not started)", err)
 		} else {
-			handler.dotServer = &dns.Server{
+			s.dotServer = &dns.Server{
 				Addr:      fmt.Sprintf(":%d", cfg.Listen.DoT),
 				Net:       "tcp-tls",
 				TLSConfig: tlsCfg,
-				Handler:   dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { handler.handleQuery(w, req, "dot") }),
+				Handler:   dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) { s.handleQuery(w, req, "dot") }),
 			}
 		}
 	}
 
-	return handler
+	return s
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -153,139 +129,32 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg, proto string) {
-	s.metrics.IncQueries()
-
-	reply := new(dns.Msg)
-	reply.SetReply(req)
-
-	if len(req.Question) == 0 {
-		reply.Rcode = dns.RcodeFormatError
-		_ = w.WriteMsg(reply)
-		s.metrics.IncErrors()
-		return
-	}
-
-	question := req.Question[0]
-	domain := strings.TrimSuffix(question.Name, ".")
-	queryType := dns.TypeToString[question.Qtype]
-	startedAt := time.Now()
-	clientIP := remoteHost(w.RemoteAddr().String())
-
-	// Query-count deduplication: skip the cache hit on the *log* path so we
-	// don't burn log bandwidth on the same client asking for the same name
-	// repeatedly. The DNS response itself is still served so the client
-	// experience is identical. The dedup window is intentionally short
-	// (default 5s) — long enough to collapse retransmits, short enough
-	// not to hide traffic spikes.
-	dedupKey := dedupFingerprint(clientIP, domain, queryType)
-	dedupCtx, dedupCancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
-	firstSeen, dedupErr := s.cache.MarkSeen(dedupCtx, dedupKey, s.dedupTTL)
-	dedupCancel()
-	if dedupErr != nil {
-		// On cache transport errors we still resolve and log the query —
-		// the dedup is a best-effort optimization, never a correctness gate.
-		log.Printf("dedup: cache error for key %s: %v (treating as first-seen)", dedupKey, dedupErr)
-		firstSeen = true
-	}
-
-	profileID, blockResponse, deviceID, safeSearchEnabled, profileOK := s.resolveRuntimeProfile(w.RemoteAddr())
-	if !profileOK {
-		// UI.md #41: no IP→profile binding; refuse the query (NXDOMAIN)
-		// instead of resolving on a paid default profile.
+	// ① Profile 匹配（按客户端 IP）
+	profileID, blockResponse, deviceID, safeSearchEnabled, ok := s.resolveRuntimeProfile(w.RemoteAddr())
+	if !ok {
+		reply := new(dns.Msg)
+		reply.SetReply(req)
 		reply.Rcode = dns.RcodeNameError
 		_ = w.WriteMsg(reply)
 		s.metrics.IncErrors()
-		if firstSeen {
-			s.appendLog("", "", domain, "BLOCK", "ip_not_bound", "", clientIP, queryType, proto, reply.Rcode, startedAt)
-		}
 		return
 	}
 
-	// P0: 检查配额状态 — quota_status=exceeded 时拒绝解析
+	// ② 配额检查 — quota_status=exceeded 时拒绝
 	if s.isQuotaExceeded(profileID) {
+		reply := new(dns.Msg)
+		reply.SetReply(req)
 		reply.Rcode = dns.RcodeRefused
 		_ = w.WriteMsg(reply)
 		s.metrics.IncErrors()
-		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "BLOCK", "quota_exceeded", "", clientIP, queryType, proto, reply.Rcode, startedAt)
-		}
-		return
-	}
-	decision := s.resolutionLayer.Resolve(&resolver.ResolutionContext{
-		ProfileUID:        profileID,
-		DeviceUID:         deviceID,
-		SafeSearchEnabled: safeSearchEnabled,
-		ClientIP:          remoteIP(w.RemoteAddr()),
-		Domain:            domain,
-		QueryType:         queryType,
-		Protocol:          w.LocalAddr().Network(),
-	})
-
-	if decision.Action == "BLOCK" {
-		s.metrics.IncBlocked()
-		s.applyBlockResponse(reply, question, blockResponse)
-		_ = w.WriteMsg(reply)
-		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "BLOCK", decision.Reason, decision.Category, clientIP, queryType, proto, reply.Rcode, startedAt)
-		}
 		return
 	}
 
-	if decision.Action == "REWRITE" {
-		reply.Answer = []dns.RR{
-			&dns.CNAME{
-				Hdr: dns.RR_Header{
-					Name:   question.Name,
-					Rrtype: dns.TypeCNAME,
-					Class:  dns.ClassINET,
-					Ttl:    60,
-				},
-				Target: dns.Fqdn(decision.Category),
-			},
-		}
-		s.metrics.IncAllowed()
-		_ = w.WriteMsg(reply)
-		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "REWRITE", decision.Reason, decision.Category, clientIP, queryType, proto, reply.Rcode, startedAt)
-		}
-		return
-	}
+	// ③ 共享 pipeline：去重 → 规则判定 → DNS 缓存 → 上游转发 → 日志
+	result := s.handler.Handle(req, w.RemoteAddr().String(), proto, profileID, deviceID, blockResponse, safeSearchEnabled)
 
-	// Check DNS cache first
-	cacheKey := dnscache.MakeKey(domain, question.Qtype, profileID)
-	if cached, ok := s.dnsCache.Get(context.Background(), cacheKey); ok {
-		// Cache hit! Return cached response
-		s.metrics.IncAllowed()
-		_ = w.WriteMsg(cached)
-		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "ALLOW", "cache_hit", "", clientIP, queryType, proto, cached.Rcode, startedAt)
-		}
-		return
-	}
-
-	// Cache miss - query upstream
-	upstreamReply, _, err := s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[0]))
-	if err != nil && len(s.cfg.Upstream) > 1 {
-		upstreamReply, _, err = s.client.Exchange(req, upstreamAddr(s.cfg.Upstream[1]))
-	}
-	if err != nil {
-		reply.Rcode = dns.RcodeServerFailure
-		_ = w.WriteMsg(reply)
-		s.metrics.IncErrors()
-		if firstSeen {
-			s.appendLog(profileID, deviceID, domain, "ERROR", "upstream_timeout", "", clientIP, queryType, proto, reply.Rcode, startedAt)
-		}
-		return
-	}
-
-	// Store in cache
-	s.dnsCache.Set(context.Background(), cacheKey, upstreamReply)
-
-	s.metrics.IncAllowed()
-	_ = w.WriteMsg(upstreamReply)
-	if firstSeen {
-		s.appendLog(profileID, deviceID, domain, "ALLOW", "default", "", clientIP, queryType, proto, upstreamReply.Rcode, startedAt)
-	}
+	// ④ 写出响应
+	_ = w.WriteMsg(result.Reply)
 }
 
 func (s *Server) isQuotaExceeded(profileID string) bool {
@@ -308,9 +177,6 @@ func (s *Server) isQuotaExceeded(profileID string) bool {
 func (s *Server) resolveRuntimeProfile(addr net.Addr) (profileID string, blockResponse string, deviceID string, safeSearch bool, ok bool) {
 	cfg, err := s.loadActiveConfig()
 	if err != nil || len(cfg.Profiles) == 0 {
-		// UI.md #41: failure must NOT silently fall back to a paid
-		// "default" profile.  Return ok=false so the caller can degrade
-		// to public DNS or refuse the query.
 		return "", "nxdomain", "", false, false
 	}
 
@@ -335,8 +201,6 @@ func (s *Server) resolveRuntimeProfile(addr net.Addr) (profileID string, blockRe
 	resolver := profile.New(sourceMap)
 	pid, err := resolver.ResolveSourceIP(addr.String())
 	if err != nil || pid == "" {
-		// UI.md #41: no IP→device binding found.  Do not silently fall
-		// back to the first profile (which is usually a paid plan).
 		return "", "nxdomain", "", false, false
 	}
 
@@ -367,42 +231,6 @@ func (s *Server) loadActiveConfig() (*activeConfig, error) {
 	return &cfg, nil
 }
 
-func (s *Server) appendLog(profileID, deviceID, domain, action, reason, category, clientIP, queryType, protocol string, rcode int, startedAt time.Time) {
-	if s.logBuffer == nil {
-		return
-	}
-
-	s.logBuffer.Append(logging.LogEntry{
-		ProfileUID:     profileID,
-		DeviceUID:      deviceID,
-		Domain:         domain,
-		Action:         strings.ToUpper(action),
-		Reason:         reason,
-		Category:       category,
-		ClientIP:       clientIP,
-		QueryType:      queryType,
-		ResponseCode:   rcode,
-		ResponseTimeMs: time.Since(startedAt).Milliseconds(),
-		QueriedAt:      time.Now().Unix(),
-		Protocol:       protocol,
-	})
-}
-
-func (s *Server) applyBlockResponse(reply *dns.Msg, question dns.Question, blockResponse string) {
-	blockresponse.ApplyTo(reply, question, blockResponse)
-}
-
-func upstreamAddr(addr string) string {
-	if strings.Contains(addr, ":") {
-		return addr
-	}
-	return addr + ":53"
-}
-
-func remoteIP(addr net.Addr) net.IP {
-	return net.ParseIP(remoteHost(addr.String()))
-}
-
 func remoteHost(addr string) string {
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -430,17 +258,4 @@ func boolFromMap(values map[string]any, key string) bool {
 	}
 	boolean, ok := raw.(bool)
 	return ok && boolean
-}
-
-// dedupFingerprint returns a stable per-(client,qname,qtype) fingerprint used
-// as the cache key. SHA-1 is sufficient here — this is a 5-second dedup
-// signal, not a security identifier, and SHA-1 keeps the key short.
-func dedupFingerprint(clientIP, domain, qtype string) string {
-	h := sha1.New()
-	h.Write([]byte(clientIP))
-	h.Write([]byte{0})
-	h.Write([]byte(domain))
-	h.Write([]byte{0})
-	h.Write([]byte(qtype))
-	return hex.EncodeToString(h.Sum(nil))
 }
