@@ -64,29 +64,65 @@ main() {
     write_version "${new_version}"
     log_ok "版本号已更新"
     
-    # 编译 dns-resolver
+    # 创建输出目录（portal-web 静态文件目录，供安装脚本下载）
+    local outdir="${SCRIPT_DIR}/portal-web/public/build"
+    mkdir -p "${outdir}"
+
+    # 定义目标平台
+    declare -a PLATFORMS=(
+        "linux/amd64"
+        "linux/arm64"
+        "darwin/amd64"
+        "darwin/arm64"
+    )
+
+    local ldflags="-X main.version=${new_version} -X main.buildTime=${build_time}"
+
+    # 编译 dns-resolver（多平台交叉编译）
     log_title "编译 dns-resolver"
     cd "${SCRIPT_DIR}/dns-resolver"
-    go build -ldflags "-X main.version=${new_version} -X main.buildTime=${build_time}" \
-        -o "../bin/dns-resolver" \
-        ./cmd/dns-resolver/
-    log_ok "dns-resolver 编译完成"
-    
-    # 编译 geodns
+    for platform in "${PLATFORMS[@]}"; do
+        IFS='/' read -r goos goarch <<< "$platform"
+        local outfile="${outdir}/dns-resolver-${goos}-${goarch}"
+        printf "  ${C_YELLOW}%-20s${C_RESET} → %s\n" "${goos}/${goarch}" "${outfile##*/}"
+        GOOS="${goos}" GOARCH="${goarch}" CGO_ENABLED=0 go build \
+            -ldflags "${ldflags}" -o "${outfile}" ./cmd/dns-resolver/
+    done
+    log_ok "dns-resolver 全部平台编译完成"
+
+    # 编译 geodns（多平台交叉编译）
     log_title "编译 geodns"
     cd "${SCRIPT_DIR}/geodns"
-    go build -ldflags "-X main.version=${new_version} -X main.buildTime=${build_time}" \
-        -o "../bin/geodns" \
-        ./cmd/geodns/
-    log_ok "geodns 编译完成"
-    
+    for platform in "${PLATFORMS[@]}"; do
+        IFS='/' read -r goos goarch <<< "$platform"
+        local outfile="${outdir}/geodns-${goos}-${goarch}"
+        printf "  ${C_YELLOW}%-20s${C_RESET} → %s\n" "${goos}/${goarch}" "${outfile##*/}"
+        GOOS="${goos}" GOARCH="${goarch}" CGO_ENABLED=0 go build \
+            -ldflags "${ldflags}" -o "${outfile}" ./cmd/geodns/
+    done
+    log_ok "geodns 全部平台编译完成"
+
     log_title "构建完成"
     printf "\n${C_BOLD}版本信息${C_RESET}\n"
     printf "┌─────────────────────────────────────\n"
     printf "│ 版本号:    %s\n" "${new_version}"
     printf "│ 构建时间:  %s\n" "${build_time}"
-    printf "│ dns-resolver: bin/dns-resolver\n"
-    printf "│ geodns:      bin/geodns\n"
+    printf "│\n"
+    printf "│ dns-resolver:\n"
+    for platform in "${PLATFORMS[@]}"; do
+        IFS='/' read -r goos goarch <<< "$platform"
+        printf "│   %-19s portal-web/public/build/%s\n" "${goos}/${goarch}" "dns-resolver-${goos}-${goarch}"
+    done
+    printf "│\n"
+    printf "│ geodns:\n"
+    for platform in "${PLATFORMS[@]}"; do
+        IFS='/' read -r goos goarch <<< "$platform"
+        printf "│   %-19s portal-web/public/build/%s\n" "${goos}/${goarch}" "geodns-${goos}-${goarch}"
+    done
+    printf "│\n"
+    printf "│ 安装脚本:\n"
+    printf "│   portal-web/public/build/dns-resolver-install.sh\n"
+    printf "│   portal-web/public/build/geodns-install.sh\n"
     printf "└─────────────────────────────────────\n"
 }
 

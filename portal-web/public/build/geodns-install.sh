@@ -7,18 +7,20 @@
 #         --token=xxxxx \
 #         --node-id=xxxxx
 #
-#  Behavior (2026-06-22 改造):
+#  Behavior (2026-06-23 改造):
 #    1) Detect OS / Architecture
-#    2) Download geodns-linux-<arch> from ${server}/build/
+#    2) Download geodns-<os>-<arch> from ${server}/build/
 #    3) Install binary to ${INSTALL_DIR:-/usr/local/bin}/geodns
 #    4) Run `geodns install --server=... --token=... --node-id=... --start`
 #       - configs/config.yaml → ${GEODNS_HOME:-/usr/local/etc/geodns}/configs/config.yaml
 #       - api_key             → ${GEODNS_HOME:-/usr/local/etc/geodns}/configs/api_key
 #       - 绝对路径写入 config，避免 CWD 漂移
 #    5) --start 默认开启：geodns install 完成后自动拉起服务
-#       - 优先 systemd (写 /etc/systemd/system/geodns.service + enable --now)
+#       - Linux 优先 systemd (写 /etc/systemd/system/geodns.service + enable --now)
+#       - macOS 使用 launchd (写 /Library/LaunchDaemons/com.ocerdns.geodns.plist)
 #       - 降级 nohup 后台进程(写 configs/geodns.pid + configs/geodns.log)
 #       - 不要自动启动可用 --no-start
+#  Supported platforms: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
 # =============================================================================
 
 set -euo pipefail
@@ -122,8 +124,9 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
 case "$OS" in
-  linux)   SUFFIX_OS="linux" ;;
-  *)       log "ERROR: unsupported OS: $OS (Linux only)"; exit 1 ;;
+  linux)  SUFFIX_OS="linux" ;;
+  darwin) SUFFIX_OS="darwin" ;;
+  *)      log "ERROR: unsupported OS: $OS (supported: linux, darwin)"; exit 1 ;;
 esac
 
 case "$ARCH" in
@@ -151,9 +154,9 @@ fi
 
 chmod +x "$TMP_BIN"
 
-# Verify downloaded file is a valid ELF executable
-if ! head -c 4 "$TMP_BIN" | grep -q "ELF"; then
-  log "ERROR: downloaded content is not a valid ELF executable"
+# Verify downloaded file is a valid executable (ELF for Linux, Mach-O for macOS)
+if ! file "$TMP_BIN" | grep -qE "ELF|Mach-O"; then
+  log "ERROR: downloaded content is not a valid executable (not ELF/Mach-O)"
   exit 1
 fi
 
@@ -199,25 +202,48 @@ log "running: $INSTALL_PATH install --install-dir=$GEODNS_HOME --config=$GEODNS_
 # 2026-06-22: --start/--no-start 走 geodns install 内部,这里只打收尾提示。
 # 启动成功/失败的具体信息(走 systemd 还是 nohup、PID 文件、日志路径)
 # 已经在 geodns install 自己的输出里给出,这里不再重复。
-echo ""
-echo "================================================================"
-echo "  Installation complete"
-echo "================================================================"
-echo "  Binary:    $INSTALL_PATH"
-echo "  Config:    $GEODNS_HOME/configs/config.yaml"
-echo "  API key:   $GEODNS_HOME/configs/api_key"
-echo ""
-echo "  Manage (systemd):"
-echo "    systemctl status geodns   # status"
-echo "    journalctl -u geodns -f   # tail logs"
-echo "    systemctl restart geodns  # restart"
-echo "    systemctl stop geodns     # stop"
-echo ""
-echo "  Manage (nohup fallback):"
-echo "    $GEODNS_HOME/configs/geodns.pid  # pid file"
-echo "    $GEODNS_HOME/configs/geodns.log  # log file"
-echo "    kill \$(cat $GEODNS_HOME/configs/geodns.pid)  # stop"
-echo ""
-echo "  Manual start (if you passed --no-start):"
-echo "    $INSTALL_PATH --config=$GEODNS_HOME/configs/config.yaml"
-echo "================================================================"
+if [[ "$OS" == "darwin" ]]; then
+  echo ""
+  echo "================================================================"
+  echo "  Installation complete (macOS)"
+  echo "================================================================"
+  echo "  Binary:    $INSTALL_PATH"
+  echo "  Config:    $GEODNS_HOME/configs/config.yaml"
+  echo "  API key:   $GEODNS_HOME/configs/api_key"
+  echo ""
+  echo "  Manage (launchd):"
+  echo "    sudo launchctl load /Library/LaunchDaemons/com.ocerdns.geodns.plist"
+  echo "    sudo launchctl unload /Library/LaunchDaemons/com.ocerdns.geodns.plist"
+  echo "    sudo launchctl list com.ocerdns.geodns"
+  echo ""
+  echo "  Manage (nohup fallback):"
+  echo "    $GEODNS_HOME/configs/geodns.pid  # pid file"
+  echo "    $GEODNS_HOME/configs/geodns.log  # log file"
+  echo ""
+  echo "  Manual start:"
+  echo "    $INSTALL_PATH --config=$GEODNS_HOME/configs/config.yaml"
+  echo "================================================================"
+else
+  echo ""
+  echo "================================================================"
+  echo "  Installation complete"
+  echo "================================================================"
+  echo "  Binary:    $INSTALL_PATH"
+  echo "  Config:    $GEODNS_HOME/configs/config.yaml"
+  echo "  API key:   $GEODNS_HOME/configs/api_key"
+  echo ""
+  echo "  Manage (systemd):"
+  echo "    systemctl status geodns   # status"
+  echo "    journalctl -u geodns -f   # tail logs"
+  echo "    systemctl restart geodns  # restart"
+  echo "    systemctl stop geodns     # stop"
+  echo ""
+  echo "  Manage (nohup fallback):"
+  echo "    $GEODNS_HOME/configs/geodns.pid  # pid file"
+  echo "    $GEODNS_HOME/configs/geodns.log  # log file"
+  echo "    kill \$(cat $GEODNS_HOME/configs/geodns.pid)  # stop"
+  echo ""
+  echo "  Manual start (if you passed --no-start):"
+  echo "    $INSTALL_PATH --config=$GEODNS_HOME/configs/config.yaml"
+  echo "================================================================"
+fi

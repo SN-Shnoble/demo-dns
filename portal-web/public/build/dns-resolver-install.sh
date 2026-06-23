@@ -7,15 +7,17 @@
 #         --token=xxxxx \
 #         --node-id=xxxxx
 #
-#  Behavior (2026-06-22 改造):
+#  Behavior (2026-06-23 改造):
 #    1) Detect OS / Architecture
-#    2) Download dns-resolver-linux-<arch> from ${server}/build/
+#    2) Download dns-resolver-<os>-<arch> from ${server}/build/
 #    3) Install to /usr/local/bin/dns-resolver
 #    4) Run `dns-resolver install --server=... --token=... --node-id=... --start`
 #    5) --start 默认开启:安装完成后自动拉起服务
-#       - 优先 systemd (写 /etc/systemd/system/dns-resolver.service + enable --now)
+#       - Linux 优先 systemd (写 /etc/systemd/system/dns-resolver.service + enable --now)
+#       - macOS 使用 launchd (写 /Library/LaunchDaemons/com.ocerdns.dns-resolver.plist)
 #       - 降级 nohup 后台进程(写 configs/dns-resolver.pid + configs/dns-resolver.log)
 #       - 不要自动启动可用 --no-start
+#  Supported platforms: linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
 # =============================================================================
 
 set -euo pipefail
@@ -86,8 +88,9 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
 case "$OS" in
-  linux)   SUFFIX_OS="linux" ;;
-  *)       echo "Unsupported OS: $OS (Linux only)" >&2; exit 1 ;;
+  linux)  SUFFIX_OS="linux" ;;
+  darwin) SUFFIX_OS="darwin" ;;
+  *)      echo "Unsupported OS: $OS (supported: linux, darwin)" >&2; exit 1 ;;
 esac
 
 case "$ARCH" in
@@ -116,9 +119,9 @@ fi
 
 chmod +x "$TMP_BIN"
 
-# Verify downloaded file is a valid ELF executable
-if ! head -c 4 "$TMP_BIN" | grep -q "ELF"; then
-  echo "Downloaded content is not a valid ELF executable" >&2
+# Verify downloaded file is a valid executable (ELF for Linux, Mach-O for macOS)
+if ! file "$TMP_BIN" | grep -qE "ELF|Mach-O"; then
+  echo "Downloaded content is not a valid executable (not ELF/Mach-O)" >&2
   exit 1
 fi
 
@@ -152,22 +155,43 @@ echo "Registering node: ${NODE_ID}"
 # 2026-06-22: --start/--no-start 走 dns-resolver install 内部,这里只打收尾提示。
 # 启动成功/失败的具体信息(走 systemd 还是 nohup、PID 文件、日志路径)
 # 已经在 dns-resolver install 自己的输出里给出,这里不再重复。
-echo ""
-echo "================================================================"
-echo "  Installation complete"
-echo "================================================================"
-echo "  Binary:    ${INSTALL_PATH}"
-echo ""
-echo "  Manage (systemd):"
-echo "    systemctl status dns-resolver   # status"
-echo "    journalctl -u dns-resolver -f   # tail logs"
-echo "    systemctl restart dns-resolver  # restart"
-echo "    systemctl stop dns-resolver     # stop"
-echo ""
-echo "  Manage (nohup fallback):"
-echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.pid  # pid file"
-echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.log  # log file"
-echo ""
-echo "  Manual start (if you passed --no-start):"
-echo "    ${INSTALL_PATH} --config=configs/server.yaml"
-echo "================================================================"
+if [[ "$OS" == "darwin" ]]; then
+  echo ""
+  echo "================================================================"
+  echo "  Installation complete (macOS)"
+  echo "================================================================"
+  echo "  Binary:    ${INSTALL_PATH}"
+  echo ""
+  echo "  Manage (launchd):"
+  echo "    sudo launchctl load /Library/LaunchDaemons/com.ocerdns.dns-resolver.plist"
+  echo "    sudo launchctl unload /Library/LaunchDaemons/com.ocerdns.dns-resolver.plist"
+  echo "    sudo launchctl list com.ocerdns.dns-resolver"
+  echo ""
+  echo "  Manage (nohup fallback):"
+  echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.pid  # pid file"
+  echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.log  # log file"
+  echo ""
+  echo "  Manual start (if you passed --no-start):"
+  echo "    ${INSTALL_PATH} --config=configs/server.yaml"
+  echo "================================================================"
+else
+  echo ""
+  echo "================================================================"
+  echo "  Installation complete"
+  echo "================================================================"
+  echo "  Binary:    ${INSTALL_PATH}"
+  echo ""
+  echo "  Manage (systemd):"
+  echo "    systemctl status dns-resolver   # status"
+  echo "    journalctl -u dns-resolver -f   # tail logs"
+  echo "    systemctl restart dns-resolver  # restart"
+  echo "    systemctl stop dns-resolver     # stop"
+  echo ""
+  echo "  Manage (nohup fallback):"
+  echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.pid  # pid file"
+  echo "    \$(dirname \$(realpath ${INSTALL_PATH}))/configs/dns-resolver.log  # log file"
+  echo ""
+  echo "  Manual start (if you passed --no-start):"
+  echo "    ${INSTALL_PATH} --config=configs/server.yaml"
+  echo "================================================================"
+fi
