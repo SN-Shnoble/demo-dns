@@ -6,6 +6,8 @@ use App\Domain\ConfigVersion\ConfigBuildService;
 use App\Domain\ConfigVersion\ChecksumService;
 use App\Models\ConfigVersion;
 use App\Models\Node;
+use App\Models\Profile;
+use App\Models\ProfileVersion;
 use App\Models\PublishTask;
 use App\Models\TaskExecution;
 use Illuminate\Http\JsonResponse;
@@ -64,27 +66,63 @@ final class ConfigPullController
         // nested `quota: {}` object is preserved as stdClass instead of
         // collapsing to []. The resolver expects quota as map[string]any.
         $rawConfigJson = $configVersion->getRawOriginal('config_json');
-        $configJson = is_string($rawConfigJson)
+        $singleConfig = is_string($rawConfigJson)
             ? json_decode($rawConfigJson, true)
             : (array) $rawConfigJson;
-        if (is_array($configJson) && array_key_exists('quota', $configJson)) {
-            $configJson['quota'] = (object) $configJson['quota'];
+        if (is_array($singleConfig) && array_key_exists('quota', $singleConfig)) {
+            $singleConfig['quota'] = (object) $singleConfig['quota'];
         } else {
-            $configJson['quota'] = (object) [];
+            $singleConfig['quota'] = (object) [];
         }
         // Backfill rule_id to string for legacy bundles (resolver expects string type).
-        if (is_array($configJson) && isset($configJson['rules']) && is_array($configJson['rules'])) {
-            foreach ($configJson['rules'] as $i => $r) {
+        if (is_array($singleConfig) && isset($singleConfig['rules']) && is_array($singleConfig['rules'])) {
+            foreach ($singleConfig['rules'] as $i => $r) {
                 if (is_array($r) && array_key_exists('rule_id', $r)) {
-                    $configJson['rules'][$i]['rule_id'] = (string) $r['rule_id'];
+                    $singleConfig['rules'][$i]['rule_id'] = (string) $r['rule_id'];
                 }
             }
         }
 
+        // 聚合所有活跃 Profile 的最新配置，确保 resolver 收到完整的多租户配置
+        $allProfiles = [];
+        $latestVersions = ProfileVersion::whereIn('profile_id', Profile::where('status', 'active')->pluck('id'))
+            ->where('status', 'published')
+            ->orderByDesc('version')
+            ->get()
+            ->groupBy('profile_id');
+
+        foreach ($latestVersions as $profileId => $versions) {
+            $pvConfig = $versions->first()->config_json;
+            if (is_array($pvConfig)) {
+                // 规范化 quota 对象
+                if (array_key_exists('quota', $pvConfig)) {
+                    $pvConfig['quota'] = (object) $pvConfig['quota'];
+                } else {
+                    $pvConfig['quota'] = (object) [];
+                }
+                $allProfiles[] = $pvConfig;
+            }
+        }
+
+        // 如果已发布的配置不在 latestVersions 中，也追加进去
+        $singleProfileId = $singleConfig['profile_id'] ?? null;
+        $alreadyIncluded = false;
+        foreach ($allProfiles as $p) {
+            if (($p['profile_id'] ?? null) === $singleProfileId) {
+                $alreadyIncluded = true;
+                break;
+            }
+        }
+        if (!$alreadyIncluded) {
+            $allProfiles[] = $singleConfig;
+        }
+
+        $profileVersion = (int) ($singleConfig['version'] ?? $configVersion->version);
         $bundle = $service->buildBundle(
             [
-                'profile_version' => $configVersion->version,
-                'config_json' => $configJson,
+                'profile_version' => $profileVersion,
+                'config_json' => $singleConfig,
+                'all_profiles' => $allProfiles,
             ],
             [$this->defaultUpstream()],
         );

@@ -20,9 +20,8 @@ final class ConfigBuildService
             'version' => (int) ($profilePublishPayload['profile_version'] ?? 0),
             'generated_at' => gmdate(DATE_ATOM),
             'expires_at' => gmdate(DATE_ATOM, time() + 600),
-            'profiles' => [
-                $profilePublishPayload['config_json'],
-            ],
+            'profiles' => $profilePublishPayload['all_profiles']
+                ?? [$profilePublishPayload['config_json']],
             'rulesets' => [],
             'upstreams' => $upstreams,
             'runtime' => [
