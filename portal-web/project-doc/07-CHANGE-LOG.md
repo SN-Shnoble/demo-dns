@@ -14,6 +14,7 @@
 
 | 日期 | 类型 | 描述 | 涉及文件 | 状态 |
 |---|---|---|---|---|
+| 2026-06-24 | code | **ProfileService::update() 添加自动发布**：配置变更（安全/隐私/家长监护/规则等）后自动调用 publish()，确保 resolver 立即获取最新配置 | app/Domain/Profile/ProfileService.php | ok |
 | 2026-06-24 | code | **Profile 同名冲突检查**：ProfileService::create() 添加同名检查，防止同一用户创建同名 Profile 触发唯一索引冲突；ProfileController::store() 捕获 InvalidArgumentException 返回 422 | app/Domain/Profile/ProfileService.php, app/Http/Controllers/Api/V1/User/ProfileController.php | ok |
 | 2026-06-24 | code | **后台配置文件发布管理**：新增 AdminPublishController::profilePublishList() 和 publishProfile() 方法；新增 /admin/profile-publish 路由；新增 ProfilePublish.vue 页面（列表+手动发布）；创建迁移文件添加后台导航菜单项 | app/Http/Controllers/Api/V1/Admin/AdminPublishController.php, routes/v1/admin.php, web/src/views/admin/ProfilePublish.vue, web/src/router/index.js, database/migrations/2026_06_24_000001_add_profile_publish_menu.php | ok |
 | 2026-06-23 | code | **admin/query-logs 修复**：修复 SELECT 查询中不存在的 `_id` 字段；添加 `event_id` UUID 列支持行级删除；实现 batchDestroy（ALTER TABLE DELETE）和 clearAll（TRUNCATE TABLE）；前端使用 `event_id` 进行删除操作 | app/Http/Controllers/Api/V1/Admin/AdminQueryLogController.php, app/Http/Controllers/Api/V1/Node/QueryLogController.php, web/src/views/admin/QueryLogs.vue | ok |

@@ -109,6 +109,18 @@ final class ProfileService
 
         $profile->update($updatable);
 
+        // 2026-06-24: 配置变更后自动发布，确保 resolver 立即获取最新配置
+        $profile->refresh();
+        $profileData = $profile->toArray();
+        $profileData['profile_uid'] = $profile->profile_uid;
+        $profileData['devices'] = $profile->devices()->get()->toArray();
+        $profileData['rules'] = $profile->rules()->get()->toArray();
+        $this->publishService->publish(
+            $profileData,
+            $profileData['rules'],
+            ['security_enabled' => $profile->security_enabled],
+        );
+
         return $profile->fresh()->toArray();
     }
 
