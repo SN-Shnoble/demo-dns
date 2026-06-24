@@ -131,14 +131,12 @@ func Load(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Validate 校验启动所必需的控制面凭据：api_key/secret/node_id 必须由
-// `resolver install` 写入，不允许空值，禁止任何自助注册兜底。
+// Validate 校验启动所必需的控制面凭据：api_key_path 指向的文件必须由
+// `resolver install` 写入，endpoint / node_id 不允许空值，禁止任何自助注册兜底。
+// 2026-06-24: api_key 字段已 deprecated，校验移交给 LoadBearer() 在运行时检查。
 func (c *Config) Validate() error {
 	if strings.TrimSpace(c.ControlPlane.Endpoint) == "" {
 		return fmt.Errorf("control_plane.endpoint is required")
-	}
-	if strings.TrimSpace(c.ControlPlane.APIKey) == "" {
-		return fmt.Errorf("control_plane.api_key is required (run `resolver install` to provision)")
 	}
 	if strings.TrimSpace(c.ControlPlane.NodeID) == "" {
 		return fmt.Errorf("control_plane.node_id is required (run `resolver install` to provision)")

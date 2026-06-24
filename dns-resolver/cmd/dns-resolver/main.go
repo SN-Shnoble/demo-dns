@@ -137,6 +137,13 @@ func main() {
 	// Initialize agent with console-issued credentials (no registration flow)
 	agt := agent.New(cfg, engine, metricsCollector)
 
+	// 2026-06-24: 启动前强校验 — 凭据文件必须可读且非空。
+	// api_key 已移出 yaml,改读 api_key_path 文件;文件缺失/空直接拒绝启动,
+	// 不让节点以空 token 跑起来再被 server 端 401 拒掉。
+	if bearer := agt.LoadBearer(); strings.TrimSpace(bearer) == "" {
+		log.Fatalf("Invalid config: api_key file %q is missing or empty (run `resolver install` to provision)", cfg.ControlPlane.APIKeyPath)
+	}
+
 	// Initialize reliable log buffer (reads credentials via agt.LoadBearer() —
 	// the same path the agent uses for heartbeat / config poll, so yaml and
 	// the api_key file can never disagree about which token to send).
