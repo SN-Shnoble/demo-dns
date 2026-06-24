@@ -331,7 +331,7 @@ final class AdminPublishController
                 'profile_name' => $profile->name,
                 'config_version' => $result['config_version'],
                 'publish_id' => $result['publish_id'],
-                'status' => $result['status'],
+                'status' => $result['publish_status'],
                 'message' => 'Profile published successfully',
             ],
         ]);

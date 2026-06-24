@@ -1,125 +1,414 @@
-/admin/profile-publish  多语言没有实现：admin.profilePublish.profileUid
-admin.profilePublish.profileName
-admin.profilePublish.owner
-admin.profilePublish.status
-admin.profilePublish.version
-admin.profilePublish.published
-admin.profilePublish.publishedAt
-admin.profilePublish.createdAt
-admin.profilePublish.action
-暂无数据  {
-    "message": "Call to undefined method App\\Models\\Profile::configVersions()",
-    "exception": "BadMethodCallException",
-    "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php",
-    "line": 67,
-    "trace": [
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php",
-            "line": 36,
-            "function": "throwBadMethodCallException",
-            "class": "Illuminate\\Database\\Eloquent\\Model",
-            "type": "::"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php",
-            "line": 2544,
-            "function": "forwardCallTo",
-            "class": "Illuminate\\Database\\Eloquent\\Model",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.php",
-            "line": 1124,
-            "function": "__call",
-            "class": "Illuminate\\Database\\Eloquent\\Model",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Relations/Relation.php",
-            "line": 119,
-            "function": "Illuminate\\Database\\Eloquent\\Concerns\\{closure}",
-            "class": "Illuminate\\Database\\Eloquent\\Builder",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.php",
-            "line": 1123,
-            "function": "noConstraints",
-            "class": "Illuminate\\Database\\Eloquent\\Relations\\Relation",
-            "type": "::"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.php",
-            "line": 874,
-            "function": "getRelationWithoutConstraints",
-            "class": "Illuminate\\Database\\Eloquent\\Builder",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Concerns/QueriesRelationships.php",
-            "line": 967,
-            "function": "withAggregate",
-            "class": "Illuminate\\Database\\Eloquent\\Builder",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Controllers/Api/V1/Admin/AdminPublishController.php",
-            "line": 255,
-            "function": "withCount",
-            "class": "Illuminate\\Database\\Eloquent\\Builder",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php",
-            "line": 46,
-            "function": "profilePublishList",
-            "class": "App\\Http\\Controllers\\Api\\V1\\Admin\\AdminPublishController",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
-            "line": 265,
-            "function": "dispatch",
-            "class": "Illuminate\\Routing\\ControllerDispatcher",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Route.php",
-            "line": 211,
-            "function": "runController",
-            "class": "Illuminate\\Routing\\Route",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php",
-            "line": 822,
-            "function": "run",
-            "class": "Illuminate\\Routing\\Route",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
-            "line": 180,
-            "function": "Illuminate\\Routing\\{closure}",
-            "class": "Illuminate\\Routing\\Router",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/CheckPermission.php",
-            "line": 28,
-            "function": "Illuminate\\Pipeline\\{closure}",
-            "class": "Illuminate\\Pipeline\\Pipeline",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php",
-            "line": 219,
-            "function": "handle",
-            "class": "App\\Http\\Middleware\\CheckPermission",
-            "type": "->"
-        },
-        {
-            "file": "/www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/CheckPermission.php",
-            "line": 28,
-            "function": "Illuminate\\Pipeline\\{closure}",
-            "class": "Illuminate\\Pipeline\\Pipeline",
+[2026-06-24 07:08:53] local.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = e17f2ad982df3187a924f1071d37d0b1830e35785d9efe0dbb3102f85262e008 and `revoked_at` is null limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = e17f2ad982df3187a924f1071d37d0b1830e35785d9efe0dbb3102f85262e008 and `revoked_at` is null limit 1) at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#51 {main}
+
+[previous exception] [object] (PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:420)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(420): PDO->prepare()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#51 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#52 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#53 {main}
+"} 
+[2026-06-24 07:08:54] local.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = e17f2ad982df3187a924f1071d37d0b1830e35785d9efe0dbb3102f85262e008 and `revoked_at` is null limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = e17f2ad982df3187a924f1071d37d0b1830e35785d9efe0dbb3102f85262e008 and `revoked_at` is null limit 1) at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#51 {main}
+
+[previous exception] [object] (PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:420)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(420): PDO->prepare()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#51 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#52 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#53 {main}
+"} 
+[2026-06-24 07:08:55] local.ERROR: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'dns_policy_snapshots' already exists (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: create table `dns_policy_snapshots` (`id` bigint unsigned not null auto_increment primary key, `user_id` bigint unsigned not null, `profile_id` bigint unsigned not null, `version` int not null, `snapshot_json` json not null, `checksum` varchar(64) not null, `published_at` timestamp null, `created_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_unicode_ci') {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S01): SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'dns_policy_snapshots' already exists (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: create table `dns_policy_snapshots` (`id` bigint unsigned not null auto_increment primary key, `user_id` bigint unsigned not null, `profile_id` bigint unsigned not null, `version` int not null, `snapshot_json` json not null, `checksum` varchar(64) not null, `published_at` timestamp null, `created_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_unicode_ci') at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(573): Illuminate\\Database\\Connection->run()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Blueprint.php(121): Illuminate\\Database\\Connection->statement()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php(686): Illuminate\\Database\\Schema\\Blueprint->build()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php(506): Illuminate\\Database\\Schema\\Builder->build()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\\Database\\Schema\\Builder->create()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/database/migrations/2026_06_20_000040_create_dns_policy_snapshots_table.php(10): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(517): Illuminate\\Database\\Migrations\\Migration@anonymous->up()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(442): Illuminate\\Database\\Migrations\\Migrator->runMethod()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(451): Illuminate\\Database\\Migrations\\Migrator->Illuminate\\Database\\Migrations\\{closure}()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(253): Illuminate\\Database\\Migrations\\Migrator->runMigration()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/View/Components/Task.php(41): Illuminate\\Database\\Migrations\\Migrator->Illuminate\\Database\\Migrations\\{closure}()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(814): Illuminate\\Console\\View\\Components\\Task->render()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(253): Illuminate\\Database\\Migrations\\Migrator->write()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(211): Illuminate\\Database\\Migrations\\Migrator->runUp()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(138): Illuminate\\Database\\Migrations\\Migrator->runPending()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(116): Illuminate\\Database\\Migrations\\Migrator->run()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(671): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(109): Illuminate\\Database\\Migrations\\Migrator->usingConnection()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(88): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->runMigrations()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/Command.php(211): Illuminate\\Container\\Container->call()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Command/Command.php(341): Illuminate\\Console\\Command->execute()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony\\Component\\Console\\Command\\Command->run()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(1117): Illuminate\\Console\\Command->run()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/artisan(16): Illuminate\\Foundation\\Application->handleCommand()
+#34 {main}
+
+[previous exception] [object] (PDOException(code: 42S01): SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'dns_policy_snapshots' already exists at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:584)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(584): PDOStatement->execute()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(573): Illuminate\\Database\\Connection->run()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Blueprint.php(121): Illuminate\\Database\\Connection->statement()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php(686): Illuminate\\Database\\Schema\\Blueprint->build()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php(506): Illuminate\\Database\\Schema\\Builder->build()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\\Database\\Schema\\Builder->create()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/database/migrations/2026_06_20_000040_create_dns_policy_snapshots_table.php(10): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(517): Illuminate\\Database\\Migrations\\Migration@anonymous->up()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(442): Illuminate\\Database\\Migrations\\Migrator->runMethod()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(451): Illuminate\\Database\\Migrations\\Migrator->Illuminate\\Database\\Migrations\\{closure}()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(253): Illuminate\\Database\\Migrations\\Migrator->runMigration()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/View/Components/Task.php(41): Illuminate\\Database\\Migrations\\Migrator->Illuminate\\Database\\Migrations\\{closure}()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(814): Illuminate\\Console\\View\\Components\\Task->render()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(253): Illuminate\\Database\\Migrations\\Migrator->write()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(211): Illuminate\\Database\\Migrations\\Migrator->runUp()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(138): Illuminate\\Database\\Migrations\\Migrator->runPending()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(116): Illuminate\\Database\\Migrations\\Migrator->run()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php(671): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->Illuminate\\Database\\Console\\Migrations\\{closure}()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(109): Illuminate\\Database\\Migrations\\Migrator->usingConnection()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/MigrateCommand.php(88): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->runMigrations()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\\Container\\Util::unwrapIfClosure()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\\Container\\BoundMethod::call()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/Command.php(211): Illuminate\\Container\\Container->call()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Command/Command.php(341): Illuminate\\Console\\Command->execute()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony\\Component\\Console\\Command\\Command->run()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(1117): Illuminate\\Console\\Command->run()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/artisan(16): Illuminate\\Foundation\\Application->handleCommand()
+#36 {main}
+"} 
+[2026-06-24 07:08:56] local.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = da33b8c2ec9c27b4d0308ce117595f992ed52edfb0a339c531dfc0a8bab11c43 and `revoked_at` is null limit 1) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: ocer_dns, SQL: select * from `dns_resolver_node_tokens` where `token_hash` = da33b8c2ec9c27b4d0308ce117595f992ed52edfb0a339c531dfc0a8bab11c43 and `revoked_at` is null limit 1) at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#51 {main}
+
+[previous exception] [object] (PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ocer_dns.dns_resolver_node_tokens' doesn't exist at /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php:420)
+[stacktrace]
+#0 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(420): PDO->prepare()
+#1 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#2 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate\\Database\\Connection->runQueryCallback()
+#3 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Connection.php(411): Illuminate\\Database\\Connection->run()
+#4 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3505): Illuminate\\Database\\Connection->select()
+#5 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3490): Illuminate\\Database\\Query\\Builder->runSelect()
+#6 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4080): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#7 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3489): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#8 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(902): Illuminate\\Database\\Query\\Builder->get()
+#9 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(884): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#10 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Database/Concerns/BuildsQueries.php(366): Illuminate\\Database\\Eloquent\\Builder->get()
+#11 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Domain/Auth/NodeTokenService.php(86): Illuminate\\Database\\Eloquent\\Builder->first()
+#12 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/AuthenticateNodeToken.php(20): App\\Domain\\Auth\\NodeTokenService->resolveByToken()
+#13 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\AuthenticateNodeToken->handle()
+#14 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/app/Http/Middleware/ApiRequestLog.php(36): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#15 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): App\\Http\\Middleware\\ApiRequestLog->handle()
+#16 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#17 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Routing\\Middleware\\SubstituteBindings->handle()
+#18 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#19 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->Laravel\\Sanctum\\Http\\Middleware\\{closure}()
+#20 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#21 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/sanctum/src/Http/Middleware/EnsureFrontendRequestsAreStateful.php(25): Illuminate\\Pipeline\\Pipeline->then()
+#22 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Laravel\\Sanctum\\Http\\Middleware\\EnsureFrontendRequestsAreStateful->handle()
+#23 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#24 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(821): Illuminate\\Pipeline\\Pipeline->then()
+#25 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(800): Illuminate\\Routing\\Router->runRouteWithinStack()
+#26 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(764): Illuminate\\Routing\\Router->runRoute()
+#27 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Routing/Router.php(753): Illuminate\\Routing\\Router->dispatchToRoute()
+#28 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(200): Illuminate\\Routing\\Router->dispatch()
+#29 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(180): Illuminate\\Foundation\\Http\\Kernel->Illuminate\\Foundation\\Http\\{closure}()
+#30 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#31 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#32 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\ConvertEmptyStringsToNull->handle()
+#33 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#34 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate\\Foundation\\Http\\Middleware\\TransformsRequest->handle()
+#35 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\TrimStrings->handle()
+#36 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#37 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePostSize->handle()
+#38 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(109): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#39 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\PreventRequestsDuringMaintenance->handle()
+#40 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(74): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#41 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\HandleCors->handle()
+#42 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#43 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\TrustProxies->handle()
+#44 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#45 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Foundation\\Http\\Middleware\\InvokeDeferredCallbacks->handle()
+#46 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePathEncoding.php(26): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#47 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(219): Illuminate\\Http\\Middleware\\ValidatePathEncoding->handle()
+#48 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(137): Illuminate\\Pipeline\\Pipeline->Illuminate\\Pipeline\\{closure}()
+#49 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(175): Illuminate\\Pipeline\\Pipeline->then()
+#50 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(144): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter()
+#51 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1220): Illuminate\\Foundation\\Http\\Kernel->handle()
+#52 /www/wwwroot/test-dns.ocerlinkdata.com/demo-dns/portal-web/public/index.php(20): Illuminate\\Foundation\\Application->handleRequest()
+#53 {main}
+"} 
