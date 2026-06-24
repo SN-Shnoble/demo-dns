@@ -78,6 +78,9 @@
                         </div>
                     </div>
                     <div class="admin-topbar__actions">
+                        <span class="admin-toolbar-button" style="cursor:pointer" @click="clearCache">
+                            <el-icon><Refresh /></el-icon>
+                        </span>
                         <el-dropdown @command="switchLocale">
                             <span class="admin-toolbar-button">
                                 <el-icon><Iphone /></el-icon>
@@ -122,7 +125,8 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, CaretRight, Iphone, User, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, CaretRight, Iphone, Refresh, User, SwitchButton } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import i18n from '@/locales'
 import enLocale from 'element-plus/dist/locale/en.mjs'
 import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
@@ -344,6 +348,15 @@ const handleCommand = (cmd) => {
         sessionStorage.removeItem('admin_token')
         sessionStorage.removeItem('admin_role')
         window.location.href = '/'
+    }
+}
+
+const clearCache = async () => {
+    try {
+        await client.post('/admin/clear-cache')
+        ElMessage.success('Cache cleared')
+    } catch {
+        ElMessage.error('Failed to clear cache')
     }
 }
 </script>

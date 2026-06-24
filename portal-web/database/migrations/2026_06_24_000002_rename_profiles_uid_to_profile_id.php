@@ -28,10 +28,8 @@ return new class extends Migration
             return;
         }
 
-        // Step 1: 删除旧的 CHECK 约束（MySQL 8.0 用 DROP CHECK）
-        if (DB::getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE dns_profiles DROP CHECK chk_profiles_uid');
-        }
+        // Step 1: 删除旧的 CHECK 约束（如果存在）
+        $this->dropCheckIfExists('dns_profiles', 'chk_profiles_uid');
 
         // Step 2: 重命名列
         Schema::table('profiles', function (Blueprint $table) {
@@ -39,10 +37,7 @@ return new class extends Migration
         });
 
         // Step 3: 重建 CHECK 约束（引用新列名）
-        if (DB::getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE dns_profiles ADD CONSTRAINT chk_profiles_id
-                CHECK (profile_id REGEXP '^[0-9a-f]{6}$')");
-        }
+        $this->addCheckIfMissing('dns_profiles', 'chk_profiles_id', 'profile_id');
     }
 
     public function down(): void
@@ -51,22 +46,53 @@ return new class extends Migration
             return;
         }
 
-        if (DB::getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE dns_profiles DROP CHECK chk_profiles_id');
-        }
+        $this->dropCheckIfExists('dns_profiles', 'chk_profiles_id');
 
         Schema::table('profiles', function (Blueprint $table) {
             $table->renameColumn('profile_id', 'profile_uid');
         });
 
-        if (DB::getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE dns_profiles ADD CONSTRAINT chk_profiles_uid
-                CHECK (profile_uid REGEXP '^[0-9a-f]{6}$')");
-        }
+        $this->addCheckIfMissing('dns_profiles', 'chk_profiles_uid', 'profile_uid');
     }
 
     private function columnExists(string $table, string $column): bool
     {
         return Schema::hasColumn($table, $column);
+    }
+
+    private function checkExists(string $constraintName): bool
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return false;
+        }
+        $row = DB::selectOne(
+            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+             WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ?',
+            ['dns_profiles', $constraintName]
+        );
+        return $row !== null;
+    }
+
+    private function dropCheckIfExists(string $table, string $constraintName): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+        if (! $this->checkExists($constraintName)) {
+            return;
+        }
+        DB::statement("ALTER TABLE {$table} DROP CHECK {$constraintName}");
+    }
+
+    private function addCheckIfMissing(string $table, string $constraintName, string $column): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+        if ($this->checkExists($constraintName)) {
+            return;
+        }
+        DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$constraintName}
+            CHECK ({$column} REGEXP '^[0-9a-f]{6}$')");
     }
 };

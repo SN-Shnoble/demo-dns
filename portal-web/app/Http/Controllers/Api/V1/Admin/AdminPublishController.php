@@ -8,6 +8,7 @@ use App\Models\AdminAuditLog;
 use App\Models\PublishTask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 final class AdminPublishController
 {
@@ -326,6 +327,9 @@ final class AdminPublishController
             ['security_enabled' => $profile->security_enabled],
         );
 
+        // 更新 profiles.published_at
+        $profile->updateQuietly(['published_at' => now()]);
+
         AdminAuditLog::record('publish.profile', 'profile', $profile->id, [
             'profile_id' => $profile->profile_id,
             'profile_name' => $profile->name,
@@ -369,6 +373,9 @@ final class AdminPublishController
                     ['security_enabled' => $profile->security_enabled],
                 );
 
+                // 更新 profiles.published_at，确保前端显示发布时间
+                $profile->updateQuietly(['published_at' => now()]);
+
                 AdminAuditLog::record('publish.profile', 'profile', $profile->id, [
                     'profile_id' => $profile->profile_id,
                     'profile_name' => $profile->name,
@@ -402,5 +409,29 @@ final class AdminPublishController
                 ? 'Published with ' . count($errors) . ' error(s)'
                 : 'All profiles published successfully',
         ]);
+    }
+
+    /**
+     * 清空 PHP 缓存（optimize:clear），用于后台运维
+     */
+    public function clearCache(): JsonResponse
+    {
+        try {
+            Artisan::call('optimize:clear');
+            $output = Artisan::output();
+
+            AdminAuditLog::record('system.cache_clear', 'system', '0', [
+                'output' => $output,
+            ], null, null, request()->ip(), request()->userAgent());
+
+            return response()->json([
+                'message' => 'Cache cleared successfully',
+                'output' => $output,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to clear cache: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

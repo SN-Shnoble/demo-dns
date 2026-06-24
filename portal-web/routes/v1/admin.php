@@ -193,6 +193,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
         Route::post('publishes/batch-retry', [AdminPublishController::class, 'batchRetry']);
         Route::post('publishes/batch-cancel', [AdminPublishController::class, 'batchCancel']);
         Route::post('publishes/cleanup-completed', [AdminPublishController::class, 'cleanupCompleted']);
+        Route::post('clear-cache', [AdminPublishController::class, 'clearCache']);
     });
 
     // Profile Publish (配置文件发布管理)
