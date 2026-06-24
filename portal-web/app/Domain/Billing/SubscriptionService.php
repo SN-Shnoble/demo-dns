@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Billing;
 
+use App\Application\Member\ProfilePublishApplicationService;
+use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -115,6 +117,10 @@ final class SubscriptionService
 
         $oldCode = DB::table('subscriptions')->where('user_id', $userId)->value('plan_code');
         $planId = $this->resolvePlanId($planCode);
+
+        // 2026-06-24 fix: 升级套餐时重置 quota_status，确保超额 Free 用户升级后立即可用
+        $currentQuotaStatus = DB::table('subscriptions')->where('user_id', $userId)->value('quota_status');
+
         DB::table('subscriptions')->updateOrInsert(
             ['user_id' => $userId],
             [
@@ -124,14 +130,35 @@ final class SubscriptionService
                 'order_id' => $orderId,
                 'status' => self::STATUS_ACTIVE,
                 'monthly_query_limit' => $monthlyLimit,
+                'quota_status' => 'normal',   // 重置超额状态，使 resolver 不再返回 REFUSED/403
                 'started_at' => $now,
                 'grace_until' => null,
                 'updated_at' => $now,
                 'created_at' => $now,
             ]
         );
+
         // Write-through cache (column retained for compatibility).
         User::whereKey($userId)->update(['plan_code' => $planCode]);
+
+        // 2026-06-24 fix: 升级后触发 re-publish，确保 resolver 立即获取最新 quota_status
+        if ($currentQuotaStatus === 'exceeded') {
+            $profiles = Profile::where('user_id', $userId)->get(['profile_id']);
+            if ($profiles->isNotEmpty()) {
+                $publishService = app(ProfilePublishApplicationService::class);
+                foreach ($profiles as $profile) {
+                    try {
+                        $publishService->publishForUser($userId, $profile->profile_id);
+                    } catch (\Throwable $e) {
+                        logger()->error('setPlan: republish failed', [
+                            'user_id' => $userId,
+                            'profile_id' => $profile->profile_id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+        }
     }
 
     /**

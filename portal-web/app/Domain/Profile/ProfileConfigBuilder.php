@@ -17,7 +17,7 @@ final class ProfileConfigBuilder
         // Convert empty array to stdClass so json_encode emits {} instead of [].
         $quotaObject = (object) $quota;
         return [
-            'profile_id' => (string) ($profile['profile_uid'] ?? $profile['id']),
+            'profile_id' => (string) ($profile['profile_id'] ?? $profile['id']),
             'user_id' => (string) ($profile['user_id']),
             'team_id' => $profile['team_id'] ?? null,
             'version' => (int) ($profile['version'] ?? $profile['draft_version'] ?? 0) + 1,

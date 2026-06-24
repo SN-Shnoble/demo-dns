@@ -65,7 +65,7 @@
                 clearable
                 @change="fetchLogs"
             >
-                <el-option v-for="p in profiles" :key="p.id" :label="`${p.profile_uid || p.id} · ${p.name}`" :value="String(p.id)" />
+                <el-option v-for="p in profiles" :key="p.id" :label="`${p.profile_id || p.id} · ${p.name}`" :value="String(p.id)" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchLogs">
                 <el-icon class="el-icon--left"><Search /></el-icon>

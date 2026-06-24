@@ -38,14 +38,14 @@ final class ProfilePublishService
         $checksum = hash('sha256', $configJson);
 
         $result = $this->publishService->recordPublish(
-            (string) ($profile['profile_uid'] ?? $profile['id']),
+            (string) ($profile['profile_id'] ?? $profile['id']),
             (int) $config['version'],
             $checksum,
             $config,
         );
 
         return [
-            'profile_id' => (string) ($profile['profile_uid'] ?? $profile['id']),
+            'profile_id' => (string) ($profile['profile_id'] ?? $profile['id']),
             'profile_version' => (int) $config['version'],
             'publish_id' => $result['publish_id'],
             'publish_status' => $result['status'],

@@ -55,15 +55,15 @@ final class QueryLogController
 
         $profiles = Profile::query()
             ->whereIn(
-                'profile_uid',
+                'profile_id',
                 collect($validated['items'])
                     ->pluck('profile_id')
                     ->filter()
                     ->unique()
                     ->values()
             )
-            ->get(['id', 'profile_uid', 'user_id'])
-            ->keyBy('profile_uid');
+            ->get(['id', 'profile_id', 'user_id'])
+            ->keyBy('profile_id');
 
         foreach ($validated['items'] as $item) {
             $profileUid = $item['profile_id'] ?? null;
@@ -96,7 +96,7 @@ final class QueryLogController
             $devicePk = null;
             $deviceUid = trim((string) ($item['device_id'] ?? ''));
 
-            // Fallback: profile not found via profile_uid -> try resolving via device_id.
+            // Fallback: profile not found via profile_id -> try resolving via device_id.
             // 这里只解析 profile/user，不在这里累加 query_count，避免后续主流程再次累加导致重复计数。
             if ($profilePk === null && $deviceUid !== '') {
                 $dev = Device::query()

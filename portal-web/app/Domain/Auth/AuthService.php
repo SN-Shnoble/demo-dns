@@ -2,6 +2,7 @@
 
 namespace App\Domain\Auth;
 
+use App\Domain\Billing\PlanCatalogService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -150,9 +151,12 @@ final class AuthService
     private function createFreeSubscription(int $userId): void
     {
         try {
+            (new PlanCatalogService())->ensureDefaults();
+            $planId = DB::table('plans')->where('code', 'free')->value('id') ?? 1;
+
             DB::table('subscriptions')->insert([
                 'user_id' => $userId,
-                'plan_id' => 1,
+                'plan_id' => $planId,
                 'plan_code' => 'free',
                 'status' => 'active',
                 'quota_status' => 'normal',

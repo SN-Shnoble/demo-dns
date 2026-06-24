@@ -196,7 +196,7 @@ const userInitial = computed(() => (userName.value?.trim()?.charAt(0) || 'U').to
 const profiles = ref([])
 const currentProfileId = ref(null)
 const currentProfileName = computed(() => {
-    const profile = profiles.value.find(p => (p.profile_uid || p.id) === currentProfileId.value)
+    const profile = profiles.value.find(p => (p.profile_id || p.id) === currentProfileId.value)
     return profile?.name || t('common.defaultProfile') || 'Default'
 })
 
@@ -205,7 +205,7 @@ const createProfileVisible = ref(false)
 const creatingProfile = ref(false)
 const newProfile = ref({ name: '' })
 
-const profileKey = (p) => (p?.profile_uid ?? p?.id)
+const profileKey = (p) => (p?.profile_id ?? p?.id)
 
 // 在当前路径上替换 profile_id，保留子路径（/security、/privacy 等）
 const buildProfileUrl = (newId) => {
@@ -241,7 +241,7 @@ const loadProfiles = async () => {
         const firstKey = profiles.value.length > 0 ? profileKey(profiles.value[0]) : null
         const resolvedId = urlProfileId || savedId || firstKey
 
-        // 匹配规则：优先匹配 profile_uid，回退匹配数字 id（兼容旧 URL / 旧 localStorage）
+        // 匹配规则：优先匹配 profile_id，回退匹配数字 id（兼容旧 URL / 旧 localStorage）
         const matchProfile = (id) => profiles.value.find(p =>
             profileKey(p) === id || String(p.id) === String(id)
         )
@@ -263,7 +263,7 @@ const loadProfiles = async () => {
             const matchedKey = profileKey(matched)
             currentProfileId.value = matchedKey
             localStorage.setItem('current_profile_id', matchedKey)
-            // URL 中的 id 不是 profile_uid 时，重定向到 6 位 hex 形式，保留子路径
+            // URL 中的 id 不是 profile_id 时，重定向到 6 位 hex 形式，保留子路径
             if (urlProfileId && urlProfileId !== matchedKey) {
                 router.replace(buildProfileUrl(matchedKey))
             }

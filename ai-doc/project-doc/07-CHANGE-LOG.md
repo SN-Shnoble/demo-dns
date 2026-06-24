@@ -294,10 +294,10 @@ delivery_level
 
 | 日期 | 类型 | 描述 | 涉及文件 | 状态 |
 |---|---|---|---|---|
-| 2026-06-20 | code | 后端 `/user/dns-endpoints` 接口扩展返回字段：`profile_uid`（端点 ID）、`ipv4` 列表（来自 `dns_nodes` status=online 的 public_ipv4，最多 4 个）；`ipv6` 统一为数组格式 | ocer-dns/portal-web/app/Domain/Profile/UserWorkspaceService.php | 已通过 |
+| 2026-06-20 | code | 后端 `/user/dns-endpoints` 接口扩展返回字段：`profile_id`（端点 ID）、`ipv4` 列表（来自 `dns_nodes` status=online 的 public_ipv4，最多 4 个）；`ipv6` 统一为数组格式 | ocer-dns/portal-web/app/Domain/Profile/UserWorkspaceService.php | 已通过 |
 | 2026-06-20 | code | Dashboard 右侧 Quick Access 卡片改造为 端点展示：ID / DoT/QUIC / DoH / IPv6 / IPv4 (Bound IP) 五个分组，每行可复制 | ocer-dns/portal-web/web/src/views/Dashboard.vue | 已通过 |
 | 2026-06-20 | i18n | 新增 6 个端点标签 i18n key：endpointsTitle / endpointsTag / endpointId / endpointDot / endpointDoh / endpointIpv6 / endpointIpv4 / endpointIpv4Hint（zh-CN / en / ko） | ocer-dns/portal-web/web/src/locales/zh-CN.js, ocer-dns/portal-web/web/src/locales/en.js, ocer-dns/portal-web/web/src/locales/ko.js | 已通过 |
-| 2026-06-20 | test | `php artisan serve` + `npm run build` 通过；接口 `GET /user/dns-endpoints?profile_id=b2d137` 返回 `{"profile_uid":"b2d137","doh":"https://dns.ocerlink.com/b2d137/dns-query","dot":"b2d137.dns.ocerlink.com","ipv6":["2606:b2:d137::53"],"ipv4":[]}` | ocer-dns/portal-web (curl smoke) | 已通过 |
+| 2026-06-20 | test | `php artisan serve` + `npm run build` 通过；接口 `GET /user/dns-endpoints?profile_id=b2d137` 返回 `{"profile_id":"b2d137","doh":"https://dns.ocerlink.com/b2d137/dns-query","dot":"b2d137.dns.ocerlink.com","ipv6":["2606:b2:d137::53"],"ipv4":[]}` | ocer-dns/portal-web (curl smoke) | 已通过 |
 
 ## 2026-06-20 — System Config 重构：dns_domain 归位 + 运行时配置
 

@@ -118,9 +118,9 @@ async function redirectToConsole() {
     try {
         const { data } = await client.get('/user/profiles')
         const list = data.data || []
-        const target = list.find(p => (p.profile_uid || p.id) === savedId) || list[0]
+        const target = list.find(p => (p.profile_id || p.id) === savedId) || list[0]
         if (target) {
-            const key = target.profile_uid || target.id
+            const key = target.profile_id || target.id
             localStorage.setItem('current_profile_id', key)
             await router.push(`/user/${key}`)
             return

@@ -21,7 +21,7 @@ final class ProfileService
         return Profile::query()
             ->where('user_id', $userId)
             ->where(function ($query) use ($profileId): void {
-                $query->where('profile_uid', $profileId);
+                $query->where('profile_id', $profileId);
                 if (ctype_digit($profileId)) {
                     $query->orWhere('id', (int) $profileId);
                 }
@@ -61,7 +61,7 @@ final class ProfileService
         $isDefault = $hasAny ? (bool) ($payload['is_default'] ?? false) : true;
 
         $profile = Profile::create([
-            'profile_uid' => Profile::generateProfileUid(),
+            'profile_id' => Profile::generateProfileUid(),
             'user_id' => $userId,
             'name' => $profileName,
             'description' => $payload['description'] ?? null,
@@ -77,7 +77,7 @@ final class ProfileService
 
         // 2026-06-24: 创建 Profile 后自动触发首次发布，确保立即可用
         $profileData = $profile->toArray();
-        $profileData['profile_uid'] = $profile->profile_uid;
+        $profileData['profile_id'] = $profile->profile_id;
         $this->publishService->publish($profileData, [], ['security_enabled' => $profile->security_enabled]);
 
         return $profileData;
@@ -112,7 +112,7 @@ final class ProfileService
         // 2026-06-24: 配置变更后自动发布，确保 resolver 立即获取最新配置
         $profile->refresh();
         $profileData = $profile->toArray();
-        $profileData['profile_uid'] = $profile->profile_uid;
+        $profileData['profile_id'] = $profile->profile_id;
         $profileData['devices'] = $profile->devices()->get()->toArray();
         $profileData['rules'] = $profile->rules()->get()->toArray();
         $this->publishService->publish(
@@ -130,7 +130,7 @@ final class ProfileService
     public function delete(string $userId, string $profileId): array
     {
         $profile = $this->resolveProfile($userId, $profileId);
-        $profileUid = $profile->profile_uid;
+        $profileUid = $profile->profile_id;
 
         // V2.4: 在事务内级联删除该 Profile 的所有关联数据，避免遗留白/黑名单、版本、设备
         DB::transaction(function () use ($profile, $profileUid): void {
@@ -153,7 +153,7 @@ final class ProfileService
 
         return [
             'id' => $profileId,
-            'profile_uid' => $profileUid,
+            'profile_id' => $profileUid,
             'deleted' => true,
         ];
     }
@@ -166,7 +166,7 @@ final class ProfileService
         $profile = $this->resolveProfile($userId, $profileId);
 
         $clone = $profile->replicate();
-        $clone->profile_uid = \App\Models\Profile::generateProfileUid();
+        $clone->profile_id = \App\Models\Profile::generateProfileUid();
         $clone->name = $profile->name . ' (Copy)';
         $clone->save();
 
@@ -180,10 +180,10 @@ final class ProfileService
     public function batchDelete(string $userId, array $profileIds): array
     {
         $existing = Profile::where('user_id', $userId)
-            ->whereIn('profile_uid', $profileIds)
+            ->whereIn('profile_id', $profileIds)
             ->get();
 
-        $existingUids = $existing->pluck('profile_uid')->all();
+        $existingUids = $existing->pluck('profile_id')->all();
 
         if ($existingUids === []) {
             return [

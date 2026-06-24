@@ -25,7 +25,7 @@
                         <div class="hero-meta">
                             <span class="meta-item">
                                 <el-icon><Key /></el-icon>
-                                <code class="profile-uid">{{ profile.profile_uid }}</code>
+                                <code class="profile-uid">{{ profile.profile_id }}</code>
                             </span>
                             <span v-if="profile.is_default" class="meta-item">
                                 <el-icon><Star /></el-icon>

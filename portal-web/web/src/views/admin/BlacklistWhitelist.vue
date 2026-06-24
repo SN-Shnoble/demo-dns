@@ -47,7 +47,7 @@
                 <template #default="{ row }">
                     <div class="user-cell">
                         <span class="cell-primary">{{ row.username || row.user_email || '—' }}</span>
-                        <span v-if="row.profile_uid" class="cell-sub">profile: {{ row.profile_uid }}</span>
+                        <span v-if="row.profile_id" class="cell-sub">profile: {{ row.profile_id }}</span>
                     </div>
                 </template>
             </el-table-column>

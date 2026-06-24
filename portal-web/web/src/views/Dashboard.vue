@@ -19,8 +19,8 @@
                     <div class="endpoint-block">
                         <div class="endpoint-label">{{ $t('dashboard.endpointId') }}</div>
                         <div class="code-row">
-                            <div class="code">{{ endpoints.profile_uid || '—' }}</div>
-                            <button class="copy-btn" @click="copyText(endpoints.profile_uid)">{{ $t('dashboard.copy') }}</button>
+                            <div class="code">{{ endpoints.profile_id || '—' }}</div>
+                            <button class="copy-btn" @click="copyText(endpoints.profile_id)">{{ $t('dashboard.copy') }}</button>
                         </div>
                     </div>
 
@@ -227,7 +227,7 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 const { t } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 
-const endpoints = ref({ profile_uid: '', doh: '', dot: '', doq: '', doq_url: '', ipv4: [], ipv6: [] })
+const endpoints = ref({ profile_id: '', doh: '', dot: '', doq: '', doq_url: '', ipv4: [], ipv6: [] })
 const topVisited = ref([])
 const topBlocked = ref([])
 const recentDevices = ref([])
@@ -279,7 +279,7 @@ const fetchData = async () => {
         const { data } = await client.get('/user/dns-endpoints', { params })
         const ep = data.data || {}
         endpoints.value = {
-            profile_uid: ep.profile_uid || '',
+            profile_id: ep.profile_id || '',
             doh: ep.doh || '',
             dot: ep.dot || '',
             doq: ep.doq || '',

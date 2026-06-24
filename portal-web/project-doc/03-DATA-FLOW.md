@@ -193,7 +193,7 @@ listen:
 │    "node_id": "16",                                              │
 │    "logs": [                                                    │
 │      {                                                          │
-│        "profile_uid": "b543d4",                                  │
+│        "profile_id": "b543d4",                                  │
 │        "device_uid": "dev_001",                                   │
 │        "domain": "www.example.com",                              │
 │        "action": "ALLOW",                                        │
@@ -323,7 +323,7 @@ listen:
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
-| profile_uid | string | Profile 唯一标识 | b543d4 |
+| profile_id | string | Profile 唯一标识 | b543d4 |
 | device_uid | string | 设备唯一标识 | dev_001 |
 | domain | string | 查询域名 | www.example.com |
 | action | enum | 处理动作 | ALLOW / BLOCK / REWRITE |
@@ -533,7 +533,7 @@ dns_query_logs 表
 
 ```json
 {
-  "profile_uid": "b2d137",
+  "profile_id": "b2d137",
   "device_uid": "dev_001",
   "domain": "www.example.com",
   "action": "ALLOW",

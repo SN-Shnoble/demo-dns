@@ -20,7 +20,7 @@ final class AdminBlacklistWhitelistController extends Controller
         $keyword = trim((string) $request->query('keyword', ''));
 
         $query = ProfileRule::query()
-            ->with(['profile:id,profile_uid,name,user_id', 'profile.user:id,uid_code,email,username']);
+            ->with(['profile:id,profile_id,name,user_id', 'profile.user:id,uid_code,email,username']);
 
         if ($type === 'allow' || $type === 'deny') {
             $query->where('action', $type);
@@ -47,7 +47,7 @@ final class AdminBlacklistWhitelistController extends Controller
                 'domain' => $r->domain,
                 'match_type' => $r->match_type ?? 'exact',
                 'enabled' => (bool) ($r->enabled ?? true),
-                'profile_uid' => $r->profile?->profile_uid,
+                'profile_id' => $r->profile?->profile_id,
                 'user_email' => $user?->email,
                 'username' => $user?->username,
                 'created_at' => $r->created_at,

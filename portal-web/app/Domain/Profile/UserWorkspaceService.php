@@ -115,7 +115,7 @@ final class UserWorkspaceService
         if ($profileId !== null && $profileId !== '') {
             $profile = Profile::where('user_id', $userId)
                 ->where(function ($query) use ($profileId): void {
-                    $query->where('profile_uid', $profileId);
+                    $query->where('profile_id', $profileId);
                     if (ctype_digit($profileId)) {
                         $query->orWhere('id', (int) $profileId);
                     }
@@ -355,7 +355,7 @@ final class UserWorkspaceService
             try {
                 // 校验 ownership：用户拥有该 profile
                 $this->resolveProfile($userId, $profileUid);
-                // CH 存的是 profile_uid 字符串，直接传原文
+                // CH 存的是 profile_id 字符串，直接传原文
                 $filters['profile_id'] = $profileUid;
             } catch (\Throwable) {
                 // 越权访问 / profile 不存在 → 强制 0 行
@@ -390,8 +390,8 @@ final class UserWorkspaceService
     {
         $profile = $this->resolveProfile($userId, $profileId);
         $domain = $this->getDnsDomain();
-        // V2.2: 使用 profile_uid（6位 hex 字符串）作为 DNS 路由 key
-        $shortId = $profile->profile_uid;
+        // V2.2: 使用 profile_id（6位 hex 字符串）作为 DNS 路由 key
+        $shortId = $profile->profile_id;
 
         // 收集在线 resolver 节点的 public IPv4（用作家庭网络兜底）
         // 2026-06-22: 单一事实源 — nodes.status 列已 drop，用 install_status + last_heartbeat_at 阈值即时算"在线"。
@@ -414,7 +414,7 @@ final class UserWorkspaceService
         $host = sprintf('%s.%s', $shortId, $domain);
 
         return [
-            'profile_uid' => $shortId,
+            'profile_id' => $shortId,
             'doh' => sprintf('https://%s/%s', $domain, $shortId),
             'dot' => $host,
             'doq' => $host,

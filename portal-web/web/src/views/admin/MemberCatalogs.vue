@@ -42,7 +42,7 @@
                         <el-table-column :label="$t('admin.memberCatalogs.profileId')" width="160" show-overflow-tooltip>
                             <template #default="{ row }">
                                 <div class="profile-cell">
-                                    <span class="cell-primary">{{ row.profile_uid || row.profile_id || '-' }}</span>
+                                    <span class="cell-primary">{{ row.profile_id || row.profile_id || '-' }}</span>
                                     <span v-if="row.profile_name" class="cell-sub">{{ row.profile_name }}</span>
                                 </div>
                             </template>

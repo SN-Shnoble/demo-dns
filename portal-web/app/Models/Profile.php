@@ -13,7 +13,7 @@ class Profile extends Model
     protected $keyType = 'int';
 
     /**
-     * profile_uid is a stable 6-char hex used as the DNS routing key.
+     * profile_id is a stable 6-char hex used as the DNS routing key.
      * It is generated when the profile is created and never changes.
      */
     public static function generateProfileUid(): string
@@ -23,7 +23,7 @@ class Profile extends Model
             if (! ctype_xdigit($uid)) {
                 continue;
             }
-            $exists = self::where('profile_uid', $uid)->exists();
+            $exists = self::where('profile_id', $uid)->exists();
         } while ($exists);
         return $uid;
     }
@@ -31,14 +31,14 @@ class Profile extends Model
     protected static function booted(): void
     {
         static::creating(function (self $profile): void {
-            if (blank($profile->profile_uid)) {
-                $profile->profile_uid = self::generateProfileUid();
+            if (blank($profile->profile_id)) {
+                $profile->profile_id = self::generateProfileUid();
             }
         });
     }
 
     protected $fillable = [
-        'profile_uid',
+        'profile_id',
         'user_id',
         'name',
         'description',
@@ -87,12 +87,12 @@ class Profile extends Model
     }
 
     /**
-     * Use profile_uid (stable 6-char hex) for route model binding.
+     * Use profile_id (stable 6-char hex) for route model binding.
      * This is the key shown in URLs like /user/abc123/log.
      */
     public function getRouteKeyName(): string
     {
-        return 'profile_uid';
+        return 'profile_id';
     }
 
     public function user(): BelongsTo

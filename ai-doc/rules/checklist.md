@@ -25,7 +25,7 @@
 - [ ] `personal_access_tokens` / `sessions` — API 认证令牌
 
 **核心业务模块**：
-- [ ] `profiles` — Profile 配置单元（user_id, team_id, profile_uid, name, status, current_version）
+- [ ] `profiles` — Profile 配置单元（user_id, team_id, profile_id, name, status, current_version）
 - [ ] `profile_versions` — 版本快照（profile_id, version, config_json, checksum, status）
 
 **规则模块**：

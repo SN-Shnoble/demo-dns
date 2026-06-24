@@ -222,7 +222,7 @@ final class MemberWorkspaceTest extends TestCase
     private function buildFakeRows(User $user, \App\Models\Profile $profile, Device $device, Node $node): array
     {
         $userId = (string) $user->getKey();
-        $profileUid = (string) $profile->profile_uid;
+        $profileUid = (string) $profile->profile_id;
         $deviceUid = (string) $device->device_uid;
         $now = now()->format('Y-m-d H:i:s');
         return [

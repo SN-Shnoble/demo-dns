@@ -188,7 +188,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/dns-query", s.handleDNSQuery)
 
-	// Profile-specific DoH endpoints: /{profile_uid}/dns-query
+	// Profile-specific DoH endpoints: /{profile_id}/dns-query
 	mux.HandleFunc("/", s.handleProfileDNSQuery)
 
 	return mux
@@ -206,21 +206,21 @@ func (s *Server) handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleProfileDNSQuery handles profile-specific DoH requests.
-// URL format: /{profile_uid} or /{profile_uid}/dns-query
+// URL format: /{profile_id} or /{profile_id}/dns-query
 // Also supports X-Profile-UID header (when running behind Nginx).
-// Only stable 6-char hex profile_uid values are accepted.
+// Only stable 6-char hex profile_id values are accepted.
 func (s *Server) handleProfileDNSQuery(w http.ResponseWriter, r *http.Request) {
-	// Nginx 转发模式: 通过 X-Profile-UID header 传递 profile_uid
+	// Nginx 转发模式: 通过 X-Profile-UID header 传递 profile_id
 	profileUID := r.Header.Get("X-Profile-UID")
 	if profileUID != "" && isValidProfileUID(profileUID) {
 		s.resolveDNS(w, r, profileUID)
 		return
 	}
 
-	// 路径提取: /{profile_uid} 或 /{profile_uid}/dns-query
+	// 路径提取: /{profile_id} 或 /{profile_id}/dns-query
 	path := strings.TrimPrefix(r.URL.Path, "/")
 
-	// Support both /{profile_uid} and /{profile_uid}/dns-query
+	// Support both /{profile_id} and /{profile_id}/dns-query
 	profileUID = strings.TrimSuffix(path, "/dns-query")
 	if profileUID == "" {
 		s.resolveDNS(w, r, "")

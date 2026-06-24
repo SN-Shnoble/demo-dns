@@ -127,11 +127,11 @@ final class AdminQueryLogController
             ->whereIn('uid', array_keys($userIds))
             ->get(['uid', 'username', 'email'])
             ->keyBy('uid');
-        // profile_id 在 CH 中是字符串，user 端是字符串 profile_uid；尝试两种匹配
+        // profile_id 在 CH 中是字符串，user 端是字符串 profile_id；尝试两种匹配
         $profileMap = \App\Models\Profile::query()
-            ->whereIn('profile_uid', array_keys($profileIds))
-            ->get(['id', 'profile_uid', 'name'])
-            ->keyBy('profile_uid');
+            ->whereIn('profile_id', array_keys($profileIds))
+            ->get(['id', 'profile_id', 'name'])
+            ->keyBy('profile_id');
 
         $out = [];
         foreach ($entries as $entry) {
@@ -142,7 +142,7 @@ final class AdminQueryLogController
 
             $entry['user_name'] = $user?->username;
             $entry['user_email'] = $user?->email;
-            $entry['profile_uid'] = $profile?->profile_uid;
+            $entry['profile_id'] = $profile?->profile_id;
             $entry['profile_name'] = $profile?->name;
             $entry['timestamp'] = $entry['event_time'] ?? null;
             $entry['query_name'] = $entry['domain'] ?? null;
@@ -203,10 +203,10 @@ final class AdminQueryLogController
     {
         $rows = \App\Models\Profile::query()
             ->orderBy('id')
-            ->get(['id', 'profile_uid', 'name', 'user_id'])
+            ->get(['id', 'profile_id', 'name', 'user_id'])
             ->map(fn ($p): array => [
                 'id' => $p->id,
-                'profile_uid' => $p->profile_uid,
+                'profile_id' => $p->profile_id,
                 'name' => $p->name,
                 'user_id' => $p->user_id,
             ])

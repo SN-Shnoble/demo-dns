@@ -81,7 +81,7 @@ func SafeSearchRedirect(domain string) (string, bool) {
 }
 
 // ExtractProfileFromPath extracts the profile UID from a DoH URL path.
-// Format: /{profile_uid}/dns-query
+// Format: /{profile_id}/dns-query
 func ExtractProfileFromPath(path string) string {
 	path = strings.TrimPrefix(path, "/")
 	path = strings.TrimSuffix(path, "/dns-query")
@@ -101,7 +101,7 @@ func ExtractDeviceFromHeaders(headers map[string]string) (deviceUID string, devi
 }
 
 // ExtractProfileFromSNI extracts the profile UID from a TLS SNI.
-// Format: {profile_uid}.dns.example.com
+// Format: {profile_id}.dns.example.com
 func ExtractProfileFromSNI(sni string) string {
 	parts := strings.SplitN(sni, ".", 2)
 	if len(parts) < 2 {

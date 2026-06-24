@@ -59,9 +59,9 @@ const passwordForm = reactive({
     confirm: '',
 })
 
-// DNS 接入端点由后端 /user/dns-endpoints 根据 profile_uid 和 system_config.dns_domain 生成
+// DNS 接入端点由后端 /user/dns-endpoints 根据 profile_id 和 system_config.dns_domain 生成
 const endpoints = ref({
-    profile_uid: '',
+    profile_id: '',
     doh: '',
     dot: '',
     doq: '',

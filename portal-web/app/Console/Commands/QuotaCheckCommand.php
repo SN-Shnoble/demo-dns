@@ -84,19 +84,19 @@ class QuotaCheckCommand extends Command
             $this->info("    status changed: {$sub->quota_status} → {$targetStatus}");
 
             // 触发该用户所有 Profile 重新发布
-            $profiles = Profile::where('user_id', $sub->user_id)->get(['profile_uid']);
+            $profiles = Profile::where('user_id', $sub->user_id)->get(['profile_id']);
             if ($profiles->isNotEmpty()) {
                 $service = app(ProfilePublishApplicationService::class);
                 foreach ($profiles as $profile) {
                     try {
-                        $service->publishForUser((string) $sub->user_id, $profile->profile_uid);
+                        $service->publishForUser((string) $sub->user_id, $profile->profile_id);
                         $republished++;
-                        $this->line("    republished profile={$profile->profile_uid}");
+                        $this->line("    republished profile={$profile->profile_id}");
                     } catch (\Throwable $e) {
-                        $this->error("    republish failed for profile={$profile->profile_uid}: {$e->getMessage()}");
+                        $this->error("    republish failed for profile={$profile->profile_id}: {$e->getMessage()}");
                         logger()->error("quota:check republish failed", [
                             'user_id' => $sub->user_id,
-                            'profile_uid' => $profile->profile_uid,
+                            'profile_id' => $profile->profile_id,
                             'error' => $e->getMessage(),
                         ]);
                     }

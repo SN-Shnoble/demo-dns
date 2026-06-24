@@ -90,9 +90,16 @@ final class AdminPublishController
             default => 0,
         };
 
+        // 解析 profile_id：兼容传入 profile_id 字符串或整数 pk
+        $profileId = $validated['profile_id'] ?? null;
+        if ($profileId !== null && $profileId !== '' && !ctype_digit((string) $profileId)) {
+            $resolvedId = \App\Models\Profile::where('profile_id', $profileId)->value('id');
+            $profileId = $resolvedId !== null ? (int) $resolvedId : throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Profile not found');
+        }
+
         $task = PublishTask::create([
             'config_version_id' => $validated['config_version_id'] ?? null,
-            'profile_id' => $validated['profile_id'] ?? null,
+            'profile_id' => $profileId !== null ? (int) $profileId : null,
             'status' => 'queued',
             'target_scope' => $targetScope,
             'target_filter' => $targetFilter,
@@ -260,7 +267,7 @@ final class AdminPublishController
         if ($search !== '') {
             $query->where(function ($q) use ($search): void {
                 $q->where('profiles.name', 'like', "%{$search}%")
-                    ->orWhere('profiles.profile_uid', 'like', "%{$search}%");
+                    ->orWhere('profiles.profile_id', 'like', "%{$search}%");
             });
         }
 
@@ -269,7 +276,7 @@ final class AdminPublishController
 
         $data = collect($profilesArray['data'])->map(fn ($profile): array => [
             'id' => $profile['id'],
-            'profile_uid' => $profile['profile_uid'],
+            'profile_id' => $profile['profile_id'],
             'name' => $profile['name'],
             'user_id' => $profile['user_id'],
             'username' => $profile['user']['username'] ?? null,
@@ -300,7 +307,7 @@ final class AdminPublishController
     {
         $actorId = $request->user()?->admin_id;
 
-        $profile = \App\Models\Profile::where('profile_uid', $profileId)
+        $profile = \App\Models\Profile::where('profile_id', $profileId)
             ->orWhere('id', $profileId)
             ->firstOrFail();
 
@@ -312,7 +319,7 @@ final class AdminPublishController
 
         $result = $profilePublishService->publish(
             array_merge($profile->toArray(), [
-                'profile_uid' => $profile->profile_uid,
+                'profile_id' => $profile->profile_id,
                 'devices' => $profile->devices()->get()->toArray(),
             ]),
             $profile->rules()->get()->toArray(),
@@ -320,14 +327,14 @@ final class AdminPublishController
         );
 
         AdminAuditLog::record('publish.profile', 'profile', $profile->id, [
-            'profile_uid' => $profile->profile_uid,
+            'profile_id' => $profile->profile_id,
             'profile_name' => $profile->name,
             'config_version' => $result['config_version'],
         ], $actorId, null, $request->ip(), $request->userAgent());
 
         return response()->json([
             'data' => [
-                'profile_uid' => $profile->profile_uid,
+                'profile_id' => $profile->profile_id,
                 'profile_name' => $profile->name,
                 'config_version' => $result['config_version'],
                 'publish_id' => $result['publish_id'],
@@ -355,7 +362,7 @@ final class AdminPublishController
             try {
                 $result = $profilePublishService->publish(
                     array_merge($profile->toArray(), [
-                        'profile_uid' => $profile->profile_uid,
+                        'profile_id' => $profile->profile_id,
                         'devices' => $profile->devices()->get()->toArray(),
                     ]),
                     $profile->rules()->get()->toArray(),
@@ -363,20 +370,20 @@ final class AdminPublishController
                 );
 
                 AdminAuditLog::record('publish.profile', 'profile', $profile->id, [
-                    'profile_uid' => $profile->profile_uid,
+                    'profile_id' => $profile->profile_id,
                     'profile_name' => $profile->name,
                     'config_version' => $result['config_version'],
                 ], $actorId, null, $request->ip(), $request->userAgent());
 
                 $results[] = [
-                    'profile_uid' => $profile->profile_uid,
+                    'profile_id' => $profile->profile_id,
                     'profile_name' => $profile->name,
                     'config_version' => $result['config_version'],
                     'status' => 'ok',
                 ];
             } catch (\Throwable $e) {
                 $errors[] = [
-                    'profile_uid' => $profile->profile_uid,
+                    'profile_id' => $profile->profile_id,
                     'profile_name' => $profile->name,
                     'error' => $e->getMessage(),
                 ];

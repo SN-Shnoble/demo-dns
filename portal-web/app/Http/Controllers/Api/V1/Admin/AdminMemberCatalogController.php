@@ -74,7 +74,7 @@ final class AdminMemberCatalogController
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
-        $query = ProfileRule::query()->with('profile:id,profile_uid,name,user_id');
+        $query = ProfileRule::query()->with('profile:id,profile_id,name,user_id');
 
         if (! empty($validated['list_type'])) {
             $query->where('list_type', $validated['list_type']);
@@ -109,7 +109,7 @@ final class AdminMemberCatalogController
             return [
                 'id' => $rule->id,
                 'profile_id' => $profile?->id,
-                'profile_uid' => $profile?->profile_uid,
+                'profile_id' => $profile?->profile_id,
                 'profile_name' => $profile?->name,
                 'user_id' => $profile?->user_id,
                 'username' => $user?->username,

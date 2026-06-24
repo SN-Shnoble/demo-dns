@@ -35,11 +35,11 @@
                 :data="profiles"
                 stripe
                 style="width: 100%"
-                row-key="profile_uid"
+                row-key="profile_id"
             >
-                <el-table-column prop="profile_uid" :label="$t('admin.profilePublish.profileUid')" width="100">
+                <el-table-column prop="profile_id" :label="$t('admin.profilePublish.profileUid')" width="100">
                     <template #default="{ row }">
-                        <code class="uid-code">{{ row.profile_uid }}</code>
+                        <code class="uid-code">{{ row.profile_id }}</code>
                     </template>
                 </el-table-column>
                 <el-table-column prop="name" :label="$t('admin.profilePublish.profileName')" min-width="150" />
@@ -150,7 +150,7 @@ const loadProfiles = async () => {
 const handlePublish = async (row) => {
     row.publishing = true
     try {
-        await client.post(`/admin/profile-publish/${row.profile_uid}`)
+        await client.post(`/admin/profile-publish/${row.profile_id}`)
         ElMessage.success(t('admin.profilePublish.publishSuccess'))
         loadProfiles()
     } catch (err) {

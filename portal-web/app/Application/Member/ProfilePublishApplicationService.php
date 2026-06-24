@@ -27,7 +27,7 @@ final class ProfilePublishApplicationService
     {
         $profile = Profile::where('user_id', $userId)
             ->where(function ($query) use ($profileUid): void {
-                $query->where('profile_uid', $profileUid);
+                $query->where('profile_id', $profileUid);
                 if (ctype_digit($profileUid)) {
                     $query->orWhere('id', (int) $profileUid);
                 }

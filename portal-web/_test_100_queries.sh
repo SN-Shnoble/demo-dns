@@ -1,10 +1,10 @@
 #!/bin/bash
 # 跑 100 个域名查询到 test-loop profile 的 DoH 端点
-# test-loop profile_uid=e27972
+# test-loop profile_id=e27972
 # 期望：域名解析成功 + resolver 写入日志 + ClickHouse 收到
 
 DOH_BASE="http://127.0.0.1:8081"
-PROFILE_UID="e27972"
+profile_id="e27972"
 
 # 100 个测试域名：包含正常/广告/成人/赌博/可解析/不可解析
 DOMAINS=(

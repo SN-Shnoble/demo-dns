@@ -22,7 +22,7 @@ const (
 const baiduQueryB64 = "EjQBAAABAAAAAAAABWJhaWR1A2NvbQAAAQAB"
 
 func TestDoH_ProfileViaPath(t *testing.T) {
-	// 测试: GET /b669c1/dns-query?dns=...  → 应解析出 profile_uid=b669c1
+	// 测试: GET /b669c1/dns-query?dns=...  → 应解析出 profile_id=b669c1
 	url := fmt.Sprintf("%s/b669c1/dns-query?dns=%s", dohURL, baiduQueryB64)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -50,7 +50,7 @@ func TestDoH_ProfileViaPath(t *testing.T) {
 }
 
 func TestDoH_ProfileViaHeader(t *testing.T) {
-	// 测试: GET /dns-query?dns=... 带 X-Profile-UID header  → 使用 profile_uid=b669c1
+	// 测试: GET /dns-query?dns=... 带 X-Profile-UID header  → 使用 profile_id=b669c1
 	url := fmt.Sprintf("%s/dns-query?dns=%s", dohURL, baiduQueryB64)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("X-Profile-UID", "b669c1")
@@ -80,7 +80,7 @@ func TestDoH_ProfileViaHeader(t *testing.T) {
 }
 
 func TestDoT_ProfileViaSNI(t *testing.T) {
-	// 测试: TLS SNI=b669c1.dns.test.com → 提取 profile_uid=b669c1
+	// 测试: TLS SNI=b669c1.dns.test.com → 提取 profile_id=b669c1
 	tlsCfg := &tls.Config{
 		ServerName:         "b669c1.dns.test.com",
 		InsecureSkipVerify: true,

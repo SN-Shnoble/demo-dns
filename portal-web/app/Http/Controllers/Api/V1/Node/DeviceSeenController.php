@@ -16,7 +16,7 @@ final class DeviceSeenController
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'profile_uid' => 'required|string|size:6',
+            'profile_id' => 'required|string|size:6',
             'device_name' => 'nullable|string|max:120',
             'protocol' => 'required|string|in:doh,dot,doq,udp,tcp',
             'client_ip' => 'nullable|string|max:45',
@@ -26,7 +26,7 @@ final class DeviceSeenController
 
         /** @var Node $node */
         $node = $request->attributes->get('node');
-        $profile = Profile::query()->where('profile_uid', $validated['profile_uid'])->firstOrFail();
+        $profile = Profile::query()->where('profile_id', $validated['profile_id'])->firstOrFail();
         $now = now();
         $clientIp = (string) ($validated['client_ip'] ?? $request->ip() ?? '');
         $userAgent = trim((string) ($validated['user_agent'] ?? ''));

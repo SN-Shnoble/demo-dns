@@ -55,7 +55,7 @@ final class PublishService
 
         $publishTask = PublishTask::create([
             'config_version_id' => $configVersion->id,
-            'profile_id' => $profileId,
+            'profile_id' => $this->resolveProfilePk($profileId),
             'status' => 'queued',
             'target_scope' => 'all_nodes',
             'target_filter' => [],
@@ -102,7 +102,7 @@ final class PublishService
         if (ctype_digit($profileRef)) {
             return (int) $profileRef;
         }
-        $row = \App\Models\Profile::where('profile_uid', $profileRef)->first(['id']);
+        $row = \App\Models\Profile::where('profile_id', $profileRef)->first(['id']);
         return $row?->id !== null ? (int) $row->id : null;
     }
 }
