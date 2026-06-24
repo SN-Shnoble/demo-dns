@@ -520,10 +520,17 @@ final class UserWorkspaceService
         ], fn ($value, $key) => $key !== null && $key !== '', ARRAY_FILTER_USE_BOTH));
 
         return array_map(function (array $item) use ($profiles, $deviceMap): array {
+            $action = match (strtolower((string) ($item['action'] ?? ''))) {
+                'block' => 'blocked',
+                'blocked' => 'blocked',
+                'allow' => 'allowed',
+                default => 'allowed',
+            };
+
             return [
                 'timestamp' => $item['timestamp'] ?? null,
                 'domain' => $item['domain'] ?? '',
-                'action' => $item['action'] ?? 'allowed',
+                'action' => $action,
                 'device' => $deviceMap->get($item['device_id'] ?? '', $item['device_id'] ?? 'Unknown Device'),
                 'profile_name' => $profiles->get($item['profile_id'] ?? '', $item['profile_id'] ?? 'Unknown Profile'),
                 'reason' => $item['reason'] ?? null,
