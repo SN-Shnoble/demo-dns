@@ -147,7 +147,7 @@ final class UserWorkspaceController
             'time_limits.weekend_end' => 'sometimes|string',
             'time_limits.per_day_minutes' => 'sometimes|integer|min:0',
             'blocked_items' => 'sometimes|array',
-            'blocked_items.*.name' => 'sometimes|string',
+            'blocked_items.*.name' => 'sometimes',
             'blocked_items.*.category' => 'sometimes|string',
             'blocked_categories' => 'sometimes|array',
             'blocked_categories.*.key' => 'sometimes|string',
@@ -271,7 +271,7 @@ final class UserWorkspaceController
         ]);
 
         return response()->json([
-            'data' => $this->workspaceRuleService->updateRule($request->user()->uid, $listType, $ruleId, $validated),
+            'data' => $this->workspaceRuleService->updateRule($request->user()->uid, $listType, $ruleId, $validated, $this->profileId($request)),
         ]);
     }
 

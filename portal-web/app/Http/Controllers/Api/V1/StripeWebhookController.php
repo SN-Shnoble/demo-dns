@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Billing\PaymentService;
 use App\Models\Alert;
 use App\Models\StripeWebhookLog;
+use App\Support\SystemConfigValue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +37,7 @@ final class StripeWebhookController
         $payload = [];
 
         // 1) 优先尝试签名校验（生产环境）
-        $webhookSecret = (string) config('services.stripe.webhook_secret', '');
+        $webhookSecret = $this->webhookSecret();
         $sigHeader = (string) $request->header('Stripe-Signature', '');
 
         if (app()->environment('production') && ($webhookSecret === '' || ! class_exists(Webhook::class) || $sigHeader === '')) {
@@ -125,5 +126,15 @@ final class StripeWebhookController
             ]);
             return response()->json(['message' => 'webhook handler failed'], 500);
         }
+    }
+
+    private function webhookSecret(): string
+    {
+        $configured = (string) SystemConfigValue::field('payment', 'webhook_secret', '');
+        if ($configured !== '' && $configured !== '********') {
+            return $configured;
+        }
+
+        return (string) config('services.stripe.webhook_secret', '');
     }
 }

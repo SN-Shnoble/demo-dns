@@ -223,10 +223,10 @@
             </template>
         </el-dialog>
 
-        <!-- 在线支付弹窗 (Stripe / Wallet) -->
+        <!-- 在线支付弹窗 (Stripe) -->
         <el-dialog v-model="showPayDialog" :title="$t('account.pay.title') || '在线支付'" width="520px" top="8vh" :close-on-click-modal="false">
             <div v-if="pendingOrder" class="pay-summary">
-                <p class="pay-tip">{{ $t('account.pay.tip') || '请选择支付方式完成订阅，支付成功后将自动激活套餐。' }}</p>
+                <p class="pay-tip">{{ $t('account.pay.tip') || '请使用 Stripe 完成订阅支付，支付成功后将自动激活套餐。' }}</p>
                 <div class="pay-row">
                     <span class="pay-label">{{ $t('account.pay.orderNo') || '订单号' }}</span>
                     <span class="pay-value">{{ pendingOrder.order_no }}</span>
@@ -235,30 +235,15 @@
                     <span class="pay-label">{{ $t('account.pay.amount') || '应付金额' }}</span>
                     <span class="pay-value pay-amount">{{ pendingOrder.amount_label }}</span>
                 </div>
-                <div class="pay-row">
-                    <span class="pay-label">{{ $t('account.pay.walletBalance') || '钱包余额' }}</span>
-                    <span class="pay-value" :class="{ 'balance-insufficient': !canPayWithWallet }">
-                        US${{ walletBalance.balance }}
-                        <span v-if="!canPayWithWallet" class="balance-tip">{{ $t('account.pay.insufficient') || '(余额不足)' }}</span>
-                    </span>
-                </div>
-                <div class="pay-methods">
-                    <el-radio-group v-model="selectedPayMethod" class="pay-method-group">
-                        <el-radio value="stripe" border class="pay-method-option">
-                            <span class="pay-method-label">Stripe</span>
-                            <span class="pay-method-desc">{{ $t('account.pay.stripeDesc') || '信用卡 / Apple Pay / Google Pay' }}</span>
-                        </el-radio>
-                        <el-radio value="wallet" border class="pay-method-option" :disabled="!canPayWithWallet">
-                            <span class="pay-method-label">{{ $t('account.pay.wallet') || '钱包余额' }}</span>
-                            <span class="pay-method-desc">{{ $t('account.pay.walletDesc') || '使用账户余额支付' }}</span>
-                        </el-radio>
-                    </el-radio-group>
+                <div class="stripe-only-method">
+                    <span class="pay-method-label">Stripe</span>
+                    <span class="pay-method-desc">{{ $t('account.pay.stripeDesc') || '信用卡 / Apple Pay / Google Pay' }}</span>
                 </div>
             </div>
             <template #footer>
                 <el-button @click="cancelPay">{{ $t('common.cancel') }}</el-button>
                 <el-button type="primary" :loading="paying" @click="confirmPay">
-                    {{ selectedPayMethod === 'wallet' ? ($t('account.pay.useWallet') || '使用余额支付') : ($t('account.pay.goPay') || '前往支付') }}
+                    {{ $t('account.pay.goPay') || '前往支付' }}
                 </el-button>
             </template>
         </el-dialog>
@@ -357,15 +342,6 @@ const paying = ref(false)
 
 // 支付相关
 const pendingOrder = ref(null)
-const selectedPayMethod = ref('stripe')
-
-// 是否可以使用余额支付
-const canPayWithWallet = computed(() => {
-    if (!pendingOrder.value) return false
-    const orderAmountMinor = pendingOrder.value.payable_amount_minor || 0
-    const walletBalanceMinor = parseFloat(walletBalance.value.balance || '0') * 100
-    return walletBalanceMinor >= orderAmountMinor
-})
 
 // 套餐相关
 const currentPlanCode = ref('free')
@@ -569,36 +545,9 @@ const handleSubscribe = async () => {
     }
 }
 
-// 确认支付：Stripe Checkout 或钱包余额
+// 确认支付：订单和订阅续费统一使用 Stripe Checkout
 const confirmPay = async () => {
     if (!pendingOrder.value) return
-
-    // 余额支付
-    if (selectedPayMethod.value === 'wallet') {
-        paying.value = true
-        try {
-            const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/pay-with-wallet`)
-            if (data.data) {
-                ElMessage.success(t('account.pay.walletSuccess') || '支付成功，套餐已激活')
-                showPayDialog.value = false
-                pendingOrder.value = null
-                // 刷新订阅信息
-                loadAccountData()
-            }
-        } catch (err) {
-            const msg = err?.response?.data?.message || err?.response?.data?.errors?.balance?.[0] || err.message || t('account.pay.failed') || '支付失败'
-            ElMessage.error(msg)
-        } finally {
-            paying.value = false
-        }
-        return
-    }
-
-    // Stripe 支付
-    if (selectedPayMethod.value !== 'stripe') {
-        ElMessage.warning(t('account.pay.unsupported') || '暂不支持该支付方式')
-        return
-    }
 
     paying.value = true
     try {
@@ -675,8 +624,9 @@ const handleRecharge = async () => {
             amount: rechargeForm.value.amount
         })
         const payload = data?.data || data
-        if (payload.pay_url) {
-            window.open(payload.pay_url, '_blank')
+        const redirectUrl = payload.redirect_url || payload.pay_url
+        if (redirectUrl) {
+            window.open(redirectUrl, '_blank')
             ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
         } else {
             await loadAccountData()
@@ -1146,6 +1096,16 @@ onMounted(() => {
     color: #2563eb;
     font-size: 18px;
     font-weight: 700;
+}
+.stripe-only-method {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    background: #eff6ff;
 }
 .pay-methods {
     margin-top: 8px;

@@ -69,23 +69,6 @@ return new class extends Migration {
             });
         }
 
-        if (Schema::hasTable('profile_versions')) {
-            Schema::table('profile_versions', function (Blueprint $t) {
-                if (! Schema::hasColumn('profile_versions', 'status')) {
-                    $t->string('status', 20)->default('published')->after('version');
-                }
-                if (! Schema::hasColumn('profile_versions', 'rule_count')) {
-                    $t->unsignedInteger('rule_count')->default(0)->after('status');
-                }
-                if (! Schema::hasColumn('profile_versions', 'message')) {
-                    $t->string('message', 255)->nullable()->after('rule_count');
-                }
-                if (! Schema::hasColumn('profile_versions', 'external_publish_id')) {
-                    $t->string('external_publish_id', 120)->nullable()->after('published_by');
-                }
-            });
-        }
-
         // 6) policy snapshots: status
         if (Schema::hasTable('policy_snapshots') && ! Schema::hasColumn('policy_snapshots', 'status')) {
             Schema::table('policy_snapshots', function (Blueprint $t) {

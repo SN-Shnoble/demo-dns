@@ -20,7 +20,7 @@ use App\Support\SystemConfigValue;
  * intentionally narrow (ping + jsonSelect) so the implementation can
  * be audited in 60 seconds.
  */
-final class ClickHouseClient
+class ClickHouseClient
 {
     /**
      * @var string
@@ -129,10 +129,7 @@ final class ClickHouseClient
             throw new \RuntimeException('clickhouse host is not configured');
         }
 
-        $body = $query;
-        if (! empty($params)) {
-            $body .= ' -- ' . http_build_query($params, '', ';');
-        }
+        $body = $this->interpolateParams($query, $params);
 
         return $this->sendRaw('', $body);
     }
@@ -199,5 +196,49 @@ final class ClickHouseClient
             }
         }
         return $envValue;
+    }
+
+    /**
+     * ClickHouse HTTP query parameters require `param_*` URL fields. This
+     * small client sends the SQL in the request body, so replace the typed
+     * placeholders we use locally (`{uid:String}`, `{lim:UInt32}`, ...).
+     *
+     * @param array<string, scalar> $params
+     */
+    private function interpolateParams(string $query, array $params): string
+    {
+        if ($params === []) {
+            return $query;
+        }
+
+        return (string) preg_replace_callback(
+            '/\{([A-Za-z_][A-Za-z0-9_]*):([A-Za-z0-9_()]+)\}/',
+            function (array $match) use ($params): string {
+                $name = $match[1];
+                $type = strtoupper($match[2]);
+                if (! array_key_exists($name, $params)) {
+                    throw new \RuntimeException("clickhouse query parameter [{$name}] is missing");
+                }
+
+                return $this->quoteParam($params[$name], $type);
+            },
+            $query,
+        );
+    }
+
+    private function quoteParam(mixed $value, string $type): string
+    {
+        if (str_contains($type, 'INT') || str_contains($type, 'FLOAT')) {
+            if (! is_numeric($value)) {
+                throw new \RuntimeException("clickhouse numeric parameter expected, got {$type}");
+            }
+            return (string) $value;
+        }
+
+        if ($type === 'BOOL' || $type === 'BOOLEAN') {
+            return $value ? '1' : '0';
+        }
+
+        return "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], (string) $value) . "'";
     }
 }

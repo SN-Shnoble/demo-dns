@@ -9,6 +9,17 @@
 
         <el-card shadow="never" class="settings-card">
             <div class="section">
+                <div class="setting-row">
+                    <div>
+                        <h3 class="section-title">{{ $t('parental.title') }}</h3>
+                        <p class="section-desc">{{ $t('parental.desc') }}</p>
+                    </div>
+                    <el-switch v-model="form.enabled" />
+                </div>
+            </div>
+
+            <el-divider />
+            <div class="section">
                 <h3 class="section-title">{{ $t('parental.websites.title') }}</h3>
                 <p class="section-desc">{{ $t('parental.websites.desc') }}</p>
                 
@@ -115,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
@@ -126,6 +137,7 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 const { t, locale } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 const saving = ref(false)
+const hydrating = ref(false)
 const showPicker = ref(false)
 const showCategoryPicker = ref(false)
 const searchQuery = ref('')
@@ -175,6 +187,7 @@ const removeCategory = (row) => {
 }
 
 const form = reactive({
+    enabled: false,
     block_adult_content: false,
     block_gambling: false,
     safe_search: false,
@@ -265,6 +278,7 @@ const safeSearchItems = [
 ]
 
 const handleSave = async (forceData = null) => {
+    if (!currentProfileId.value) return
     saving.value = true
     try {
         const data = forceData || {
@@ -283,6 +297,7 @@ const handleSave = async (forceData = null) => {
 
 let saveTimer = null
 const autoSave = () => {
+    if (hydrating.value || !currentProfileId.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => handleSave(), 600)
 }
@@ -294,6 +309,8 @@ watch(
 )
 
 const fetchData = async () => {
+    if (!currentProfileId.value) return
+    hydrating.value = true
     try {
         const { data } = await client.get('/user/parental', { params: { profile_id: currentProfileId.value } })
         const apiData = data.data || {}
@@ -304,7 +321,11 @@ const fetchData = async () => {
         if (apiData.blocked_categories) {
             blockedCategories.value = apiData.blocked_categories
         }
-    } catch {}
+        await nextTick()
+    } catch {
+    } finally {
+        hydrating.value = false
+    }
 }
 
 // 切换 profile 时重新加载数据
@@ -336,8 +357,10 @@ onMounted(async () => {
 .page-header-text p { margin: 0; color: var(--color-text-muted); font-size: 14px; }
 .settings-card { border-radius: var(--radius-lg); }
 .section { padding: 8px 0; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .section-title { font-size: 16px; font-weight: 600; color: var(--color-text); margin: 0 0 4px; }
 .section-desc { font-size: 13px; color: var(--color-text-muted); margin: 0 0 16px; }
+.setting-row .section-desc { margin-bottom: 0; }
 .blocklist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 .blocklist-card { background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: 16px; border: 1px solid var(--color-border); transition: background-color 0.2s, border-color 0.2s; }
 .blocklist-card:hover { background: var(--color-bg-secondary); border-color: var(--color-border); }

@@ -6,6 +6,7 @@ use App\Models\AdminAuditLog;
 use App\Infrastructure\ClickHouse\ClickHouseClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 final class AdminQueryLogController
 {
@@ -22,7 +23,7 @@ final class AdminQueryLogController
         }
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|Response
     {
         $validated = $request->validate([
             'domain' => 'nullable|string|max:255',
@@ -42,7 +43,7 @@ final class AdminQueryLogController
             $where[] = 'domain LIKE ' . $this->q('%' . strtolower((string) $validated['domain']) . '%');
         }
         if (! empty($validated['action'])) {
-            $where[] = 'action = ' . $this->q(strtoupper((string) $validated['action']));
+            $where[] = $this->actionPredicate((string) $validated['action']);
         }
         if (! empty($validated['profile_id'])) {
             $where[] = 'profile_id = ' . $this->q((string) $validated['profile_id']);
@@ -79,7 +80,10 @@ final class AdminQueryLogController
             $rows = $this->clickhouse->jsonSelect($sql);
             $rows = $this->enrich($rows);
 
-            return response()->json(['data' => $rows]);
+            return response($this->csv($rows), 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="query-logs-' . now()->format('Y-m-d') . '.csv"',
+            ]);
         }
 
         $perPage = (int) ($validated['per_page'] ?? 20);
@@ -142,7 +146,7 @@ final class AdminQueryLogController
 
             $entry['user_name'] = $user?->username;
             $entry['user_email'] = $user?->email;
-            $entry['profile_id'] = $profile?->profile_id;
+            $entry['profile_id'] = $profile?->profile_id ?? ($pid !== '' ? $pid : null);
             $entry['profile_name'] = $profile?->name;
             $entry['timestamp'] = $entry['event_time'] ?? null;
             $entry['query_name'] = $entry['domain'] ?? null;
@@ -167,8 +171,8 @@ final class AdminQueryLogController
         }
 
         $actorId = $request->user()?->admin_id;
-        $list = implode("','", array_map(fn ($v) => $this->q($v), $ids));
-        $sql = "ALTER TABLE dns_logs DELETE WHERE event_id IN ('{$list}')";
+        $list = implode(',', array_map(fn ($v) => $this->q((string) $v), $ids));
+        $sql = "ALTER TABLE dns_logs DELETE WHERE event_id IN ({$list})";
 
         try {
             $this->clickhouse->send($sql);
@@ -218,5 +222,47 @@ final class AdminQueryLogController
     private function q(string $value): string
     {
         return "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], $value) . "'";
+    }
+
+    private function actionPredicate(string $action): string
+    {
+        return match (strtolower($action)) {
+            'allow', 'allowed' => "lower(action) IN ('allow', 'allowed')",
+            'block', 'blocked' => "lower(action) IN ('block', 'blocked')",
+            'rewrite', 'rewritten' => "lower(action) IN ('rewrite', 'rewritten')",
+            'error' => "lower(action) = 'error'",
+            default => 'action = ' . $this->q($action),
+        };
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function csv(array $rows): string
+    {
+        $headers = [
+            'event_id', 'event_time', 'user_id', 'user_email', 'profile_id', 'profile_name',
+            'device_id', 'domain', 'query_type', 'action', 'reason', 'client_ip',
+            'rcode', 'latency_ms', 'protocol', 'node_id',
+        ];
+
+        $handle = fopen('php://temp', 'r+');
+        if ($handle === false) {
+            return '';
+        }
+
+        fputcsv($handle, $headers);
+        foreach ($rows as $row) {
+            fputcsv($handle, array_map(
+                fn (string $key): string => (string) ($row[$key] ?? ''),
+                $headers,
+            ));
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return (string) $csv;
     }
 }

@@ -35,9 +35,10 @@ final class ProfileRuleService
 
         $domain = (string) ($payload['domain'] ?? '');
         $normalizedDomain = DomainNormalizer::normalize($domain);
+        $listType = $this->normalizeListType((string) ($payload['list_type'] ?? 'deny'));
 
         $existing = ProfileRule::where('profile_id', $profile->id)
-            ->where('list_type', $payload['list_type'])
+            ->where('list_type', $listType)
             ->where('match_type', $payload['match_type'])
             ->where('normalized_domain', $normalizedDomain)
             ->first();
@@ -48,11 +49,11 @@ final class ProfileRuleService
 
         $rule = ProfileRule::create([
             'profile_id' => $profile->id,
-            'list_type' => $payload['list_type'],
+            'list_type' => $listType,
             'match_type' => $payload['match_type'],
             'domain' => $domain,
             'normalized_domain' => $normalizedDomain,
-            'action' => $payload['action'] ?? 'block',
+            'action' => $payload['action'] ?? ($listType === 'allowlist' ? 'allow' : 'block'),
             'category' => $payload['category'] ?? null,
             'enabled' => $payload['enabled'] ?? true,
             'note' => $payload['note'] ?? null,
@@ -107,7 +108,9 @@ final class ProfileRuleService
         }
 
         if (isset($payload['list_type'])) {
-            $rule->list_type = (string) $payload['list_type'];
+            $listType = $this->normalizeListType((string) $payload['list_type']);
+            $rule->list_type = $listType;
+            $rule->action = $listType === 'allowlist' ? 'allow' : 'block';
         }
 
         if (array_key_exists('enabled', $payload)) {
@@ -156,5 +159,14 @@ final class ProfileRuleService
             'deleted' => $deletedCount,
             'not_found' => $notFound,
         ];
+    }
+
+    private function normalizeListType(string $listType): string
+    {
+        return match ($listType) {
+            'allow', 'allowlist' => 'allowlist',
+            'deny', 'denylist' => 'denylist',
+            default => $listType,
+        };
     }
 }

@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Delete, Check, Plus, Search } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
@@ -201,6 +201,7 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 const { t, locale } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 const saving = ref(false)
+const hydrating = ref(false)
 const showDeviceModal = ref(false)
 const showBlocklistModal = ref(false)
 const blocklistSearch = ref('')
@@ -272,6 +273,7 @@ const displayText = (value) => {
 }
 
 const savePrivacy = async () => {
+    if (!currentProfileId.value) return
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
     saving.value = true
     try {
@@ -284,6 +286,7 @@ const savePrivacy = async () => {
 }
 
 const autoSave = () => {
+    if (hydrating.value || !currentProfileId.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(savePrivacy, 600)
 }
@@ -331,7 +334,9 @@ const removeDevice = async (deviceId) => {
 }
 
 const fetchData = async () => {
+    if (!currentProfileId.value) return
     // 2026-06-22: 切换 profile 时重置 loaded 状态，避免切换瞬间显示上一个 profile 的数据
+    hydrating.value = true
     blocklistLoaded.value = false
     try {
         const catalogResponse = await client.get('/user/catalogs')
@@ -363,9 +368,11 @@ const fetchData = async () => {
             }
         }
         Object.assign(form, incoming, { blocklists: incomingBlocklists })
+        await nextTick()
     } catch {
     } finally {
         // 2026-06-22: 不论成功失败都标记已加载，避免永久显示"加载中"
+        hydrating.value = false
         blocklistLoaded.value = true
     }
 }

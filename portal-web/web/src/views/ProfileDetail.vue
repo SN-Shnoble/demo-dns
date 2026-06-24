@@ -7,6 +7,10 @@
                     <el-icon><ArrowLeft /></el-icon>
                     <span>{{ $t('profileDetail.back') }}</span>
                 </el-button>
+                <el-button v-if="profile" type="primary" :loading="publishLoading" @click="handlePublishProfile">
+                    <el-icon><Upload /></el-icon>
+                    <span>{{ tr('profileDetail.publish', '发布配置') }}</span>
+                </el-button>
             </div>
 
             <!-- Hero 卡片 -->
@@ -117,8 +121,8 @@
                     </el-table-column>
                     <el-table-column :label="$t('profileDetail.action')" width="100">
                         <template #default="{ row }">
-                            <el-tag :type="row.list_type === 'deny' ? 'danger' : 'success'" effect="light" round size="small">
-                                {{ row.list_type === 'deny' ? $t('profileDetail.blocked') : $t('profileDetail.allowed') }}
+                            <el-tag :type="isDenyRule(row) ? 'danger' : 'success'" effect="light" round size="small">
+                                {{ isDenyRule(row) ? $t('profileDetail.blocked') : $t('profileDetail.allowed') }}
                             </el-tag>
                         </template>
                     </el-table-column>
@@ -211,7 +215,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-    ArrowLeft, Clock, Delete, Edit, Filter, InfoFilled, Key, List, Plus, Star,
+    ArrowLeft, Clock, Delete, Edit, Filter, InfoFilled, Key, List, Plus, Star, Upload,
 } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import client from '@/api/client'
@@ -226,16 +230,32 @@ const showAddRuleDialog = ref(false)
 const showEditRuleDialog = ref(false)
 const ruleSaving = ref(false)
 const editRuleSaving = ref(false)
+const publishLoading = ref(false)
 const selectedRules = ref([])
 const ruleFormRef = ref(null)
 const editRuleFormRef = ref(null)
 const ruleForm = ref({ domain: '', match_type: 'exact', list_type: 'deny' })
 const editRuleForm = ref({ id: null, profile_id: null, domain: '', match_type: 'exact', enabled: true })
 
+const tr = (key, fallback) => {
+    const value = t(key)
+    return value && value !== key ? value : fallback
+}
+
+const normalizeListType = (rule) => {
+    const value = String(rule?.list_type || rule?.action || '').toLowerCase()
+    if (['deny', 'denylist', 'block', 'blocked'].includes(value)) return 'deny'
+    if (['allow', 'allowlist', 'allowed'].includes(value)) return 'allow'
+    return value
+}
+
+const isDenyRule = (rule) => normalizeListType(rule) === 'deny'
+const isAllowRule = (rule) => normalizeListType(rule) === 'allow'
+
 const stats = computed(() => {
     const total = profileRules.value.length
-    const allow = profileRules.value.filter((r) => r.list_type === 'allow').length
-    const deny = profileRules.value.filter((r) => r.list_type === 'deny').length
+    const allow = profileRules.value.filter(isAllowRule).length
+    const deny = profileRules.value.filter(isDenyRule).length
     const enabled = profileRules.value.filter((r) => r.enabled).length
     return { total, allow, deny, enabled }
 })
@@ -335,6 +355,21 @@ const handleBatchDeleteRules = async () => {
         await fetchData()
     } catch (e) {
         if (e !== 'cancel') ElMessage.error(t('common.deleteFailed'))
+    }
+}
+
+const handlePublishProfile = async () => {
+    if (!profile.value) return
+    publishLoading.value = true
+    try {
+        const publishId = profile.value.profile_id || route.params.id
+        await client.post(`/user/profiles/${publishId}/publish`)
+        ElMessage.success(tr('profileDetail.published', '配置已发布'))
+        await fetchData()
+    } catch (e) {
+        ElMessage.error(e?.response?.data?.message || tr('profileDetail.publishFailed', '发布失败'))
+    } finally {
+        publishLoading.value = false
     }
 }
 

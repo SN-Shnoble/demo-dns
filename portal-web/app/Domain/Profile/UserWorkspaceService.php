@@ -213,7 +213,7 @@ final class UserWorkspaceService
             'block_response' => $payload['block_response'] ?? $profile->block_response,
         ]);
 
-        return $this->getSettings($userId);
+        return $this->getSettings($userId, $profileId);
     }
 
     public function changePassword(string $userId, string $currentPassword, string $newPassword): void
@@ -363,7 +363,18 @@ final class UserWorkspaceService
             }
         }
 
-        $result = $this->queryLogReader->logs($userId, $filters);
+        try {
+            $result = $this->queryLogReader->logs($userId, $filters);
+        } catch (\Throwable) {
+            $result = [
+                'data' => [],
+                'meta' => [
+                    'page' => (int) ($filters['page'] ?? 1),
+                    'per_page' => (int) ($filters['per_page'] ?? 20),
+                    'total' => 0,
+                ],
+            ];
+        }
 
         return [
             'data' => $this->decorateLogs($userId, $result['data']),
@@ -514,14 +525,20 @@ final class UserWorkspaceService
      */
     private function decorateLogs(string $userId, array $items): array
     {
-        $profiles = Profile::query()->where('user_id', $userId)->pluck('name', 'id');
+        $profileMap = [];
+        foreach (Profile::query()->where('user_id', $userId)->get(['id', 'profile_id', 'name']) as $profile) {
+            $profileMap[(string) $profile->id] = $profile->name;
+            if ($profile->profile_id !== null && $profile->profile_id !== '') {
+                $profileMap[(string) $profile->profile_id] = $profile->name;
+            }
+        }
         $devices = Device::query()->where('user_id', $userId)->get();
         $deviceMap = $devices->mapWithKeys(fn (Device $device): array => array_filter([
             $device->id => $device->name,
             $device->device_uid => $device->name,
         ], fn ($value, $key) => $key !== null && $key !== '', ARRAY_FILTER_USE_BOTH));
 
-        return array_map(function (array $item) use ($profiles, $deviceMap): array {
+        return array_map(function (array $item) use ($profileMap, $deviceMap): array {
             $action = match (strtolower((string) ($item['action'] ?? ''))) {
                 'block' => 'blocked',
                 'blocked' => 'blocked',
@@ -534,7 +551,7 @@ final class UserWorkspaceService
                 'domain' => $item['domain'] ?? '',
                 'action' => $action,
                 'device' => $deviceMap->get($item['device_id'] ?? '', $item['device_id'] ?? 'Unknown Device'),
-                'profile_name' => $profiles->get($item['profile_id'] ?? '', $item['profile_id'] ?? 'Unknown Profile'),
+                'profile_name' => $profileMap[(string) ($item['profile_id'] ?? '')] ?? ($item['profile_id'] ?? 'Unknown Profile'),
                 'reason' => $item['reason'] ?? null,
                 'category' => $item['category'] ?? null,
             ];
@@ -581,10 +598,10 @@ final class UserWorkspaceService
     {
         return [
             'today_queries' => $logs->count(),
-            'today_blocked' => $logs->where('action', 'block')->count(),
+            'today_blocked' => $logs->whereIn('action', ['block', 'blocked'])->count(),
             'period_queries' => $logs->count(),
             'top_domains' => $this->aggregateDomains($logs),
-            'top_blocked' => $this->aggregateDomains($logs->where('action', 'block')),
+            'top_blocked' => $this->aggregateDomains($logs->whereIn('action', ['block', 'blocked'])),
         ];
     }
 
@@ -629,10 +646,10 @@ final class UserWorkspaceService
         $devices = Device::where('user_id', $userId)->get();
         $deviceName = $devices->first()?->name ?? 'Default Device';
         $blockedDomain = ProfileRule::where('profile_id', $profile->id)
-            ->where('list_type', 'deny')
+            ->whereIn('list_type', ['deny', 'denylist'])
             ->value('domain') ?? 'ads.example.com';
         $allowedDomain = ProfileRule::where('profile_id', $profile->id)
-            ->where('list_type', 'allow')
+            ->whereIn('list_type', ['allow', 'allowlist'])
             ->value('domain') ?? 'openai.com';
 
         return collect([
