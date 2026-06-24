@@ -27,9 +27,19 @@
             <el-table-column :label="$t('profile.devices')" width="160">
                 <template #default="{ row }">{{ row.device_count ?? 0 }}</template>
             </el-table-column>
-            <el-table-column :label="$t('profile.actions')" width="200">
+            <el-table-column :label="$t('profile.actions')" width="280">
                 <template #default="{ row }">
                     <el-button size="small" @click="$router.push(`/user/profiles/${row.id}`)">{{ $t('profile.edit') }}</el-button>
+                    <el-button
+                        size="small"
+                        type="primary"
+                        plain
+                        :loading="publishingId === (row.profile_id || row.id)"
+                        @click="handlePublish(row)"
+                    >
+                        <el-icon><Upload /></el-icon>
+                        发布
+                    </el-button>
                     <el-button size="small" type="danger" @click="handleDelete(row.id)">{{ $t('profile.delete') }}</el-button>
                 </template>
             </el-table-column>
@@ -63,7 +73,7 @@
 import { useI18n } from 'vue-i18n'
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Star } from '@element-plus/icons-vue'
+import { Star, Upload } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
 
@@ -72,6 +82,7 @@ const { t } = useI18n()
 const profiles = ref([])
 const showDialog = ref(false)
 const saving = ref(false)
+const publishingId = ref(null)
 const formRef = ref(null)
 const form = ref({ name: '', description: '', default_action: 'allow' })
 
@@ -113,6 +124,20 @@ const handleDelete = async (id) => {
         if (e !== 'cancel') {
             ElMessage.error(t('profile.failedToDeleteProfile'))
         }
+    }
+}
+
+const handlePublish = async (row) => {
+    const id = row.profile_id || row.id
+    publishingId.value = id
+    try {
+        await client.post(`/user/profiles/${id}/publish`)
+        ElMessage.success('配置已发布')
+        await fetchProfiles()
+    } catch (e) {
+        ElMessage.error(e?.response?.data?.message || '发布失败')
+    } finally {
+        publishingId.value = null
     }
 }
 

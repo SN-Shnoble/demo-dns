@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\ProfileVersion;
+use App\Models\ConfigVersion;
 use App\Models\Device;
 use App\Models\Node;
 use App\Models\User;
@@ -144,11 +144,10 @@ final class MemberWorkspaceTest extends TestCase
             ->assertJsonPath('data.payload.config_json.rules.0.domain', 'tracker.example.com')
             ->assertJsonPath('data.payload.config_json.devices.0.device_id', 'dev-ipad-01');
 
-        $this->assertDatabaseCount('profile_versions', 1);
+        $this->assertDatabaseHas('config_versions', ['target_scope' => 'profile']);
 
-        /** @var ProfileVersion $version */
-        $version = ProfileVersion::query()->firstOrFail();
-        $this->assertSame('published', $version->status);
+        /** @var ConfigVersion $version */
+        $version = ConfigVersion::where('target_scope', 'profile')->firstOrFail();
         $this->assertSame('block', $version->config_json['default_action']);
         $this->assertSame('tracker.example.com', $version->config_json['rules'][0]['domain']);
         $this->assertNotSame('allow', $version->config_json['default_action']);

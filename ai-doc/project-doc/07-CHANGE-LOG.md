@@ -319,3 +319,14 @@ delivery_level
 | 2026-06-20 | code | `/admin/query-logs` 页面"动作"列从显示原始 `row.action`（allow/block/allowed/blocked）改为通过 `actionLabel()` 映射到 i18n 文案；tag 类型同步改用 `isAllowAction()` 判断（兼容 allow/allowed 两种值） | ocer-dns/portal-web/web/src/views/admin/QueryLogs.vue | 已通过 |
 | 2026-06-20 | i18n | 新增 ko.js `admin.queryLogsPage` i18n 块（zh-CN / en 已存在，ko 缺失，补全） | ocer-dns/portal-web/web/src/locales/ko.js | 已通过 |
 | 2026-06-20 | test | `npm run build` 通过，1767 modules，dist gzip 612.72 kB | ocer-dns/portal-web/web | 已通过 |
+
+## 2026-06-24 — 会员中心页面/API 与 Stripe 支付闭环
+
+| 日期 | 类型 | 描述 | 涉及文件 | 状态 |
+|---|---|---|---|---|
+| 2026-06-24 | code | 修复用户端安全防护/隐私保护/家长控制初始化误触发自动保存；家长控制补齐 `enabled` 总开关并兼容多语言目录项保存 | portal-web/web/src/views/Security.vue, portal-web/web/src/views/Privacy.vue, portal-web/web/src/views/ParentalControl.vue, portal-web/app/Http/Controllers/Api/V1/User/UserWorkspaceController.php | 已通过 |
+| 2026-06-24 | code | 修复 Profile 规则 allow/deny 与 allowlist/denylist 存储值不一致、允许规则默认 action 写成 block、配置发布未携带完整安全/隐私/家长设置的问题；配置方案列表和详情页补齐发布按钮 | portal-web/app/Domain/Rule/ProfileRuleService.php, portal-web/app/Application/Member/ProfilePublishApplicationService.php, portal-web/app/Domain/Profile/ProfileService.php, portal-web/web/src/views/ProfileList.vue, portal-web/web/src/views/ProfileDetail.vue | 已通过 |
+| 2026-06-24 | code | 补齐 `profile_versions` 表和模型；修复全数字 profile 短 ID 被误当作自增 id 导致 config_versions 外键失败；ClickHouse 统计服务改为可通过容器替换客户端，便于测试与运行时注入 | portal-web/database/migrations/2026_06_24_000001_create_profile_versions_table.php, portal-web/app/Models/ProfileVersion.php, portal-web/app/Domain/Publish/PublishService.php, portal-web/app/Domain/Ingest/QueryLogReadService.php, portal-web/app/Infrastructure/ClickHouse/UserAnalyticsService.php | 已通过 |
+| 2026-06-24 | code | 订单管理页补齐刷新、查看详情和 Stripe 支付动作；账户页普通订单/订阅续费统一走 Stripe Checkout，余额仅保留充值入口；Stripe secret/webhook secret 改读后台 System Config | portal-web/web/src/views/Membership.vue, portal-web/web/src/views/user/Account.vue, portal-web/app/Domain/Billing/PaymentService.php, portal-web/app/Http/Controllers/Api/V1/User/OrderController.php, portal-web/app/Http/Controllers/Api/V1/StripeWebhookController.php, portal-web/app/Http/Controllers/Api/V1/Admin/AdminSystemConfigController.php | 已通过 |
+| 2026-06-24 | code | 修复用户/管理端查询日志与统计的 ClickHouse 参数、action 值兼容、profile_id 筛选和 CSV 导出链路 | portal-web/app/Infrastructure/ClickHouse/ClickHouseClient.php, portal-web/app/Infrastructure/ClickHouse/UserAnalyticsService.php, portal-web/app/Domain/Ingest/QueryLogReadService.php, portal-web/app/Http/Controllers/Api/V1/Admin/AdminQueryLogController.php, portal-web/web/src/views/admin/QueryLogs.vue | 已通过 |
+| 2026-06-24 | test | `php -l` 覆盖本次修改的 PHP 文件通过；`npm run build` 通过（1778 modules transformed） | portal-web/app, portal-web/web | 已通过 |

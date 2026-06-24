@@ -5,7 +5,7 @@ namespace App\Domain\Profile;
 use App\Models\Device;
 use App\Models\Profile;
 use App\Models\ProfileRule;
-use App\Models\ProfileVersion;
+use App\Models\ConfigVersion;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
@@ -65,11 +65,16 @@ final class ProfileService
             'user_id' => $userId,
             'name' => $profileName,
             'description' => $payload['description'] ?? null,
+            'default_action' => $payload['default_action'] ?? 'allow',
+            'block_response' => $payload['block_response'] ?? 'nxdomain',
             'is_default' => $isDefault,
             'status' => $payload['status'] ?? 'active',
             'security_enabled' => (bool) ($payload['security_enabled'] ?? true),
+            'security_settings' => $this->defaultSecurity(),
             'privacy_enabled' => (bool) ($payload['privacy_enabled'] ?? true),
+            'privacy_settings' => $this->defaultPrivacy(),
             'parental_enabled' => (bool) ($payload['parental_enabled'] ?? false),
+            'parental_settings' => $this->defaultParental(),
             'safesearch_enabled' => (bool) ($payload['safesearch_enabled'] ?? false),
             'log_retention_days' => (int) ($payload['log_retention_days'] ?? 24),
             'version' => 1,
@@ -78,7 +83,7 @@ final class ProfileService
         // 2026-06-24: 创建 Profile 后自动触发首次发布，确保立即可用
         $profileData = $profile->toArray();
         $profileData['profile_id'] = $profile->profile_id;
-        $this->publishService->publish($profileData, [], ['security_enabled' => $profile->security_enabled]);
+        $this->publishService->publish($profileData, [], $this->featureSettings($profile));
 
         return $profileData;
     }
@@ -118,7 +123,7 @@ final class ProfileService
         $this->publishService->publish(
             $profileData,
             $profileData['rules'],
-            ['security_enabled' => $profile->security_enabled],
+            $this->featureSettings($profile),
         );
 
         return $profile->fresh()->toArray();
@@ -135,7 +140,9 @@ final class ProfileService
         // V2.4: 在事务内级联删除该 Profile 的所有关联数据，避免遗留白/黑名单、版本、设备
         DB::transaction(function () use ($profile, $profileUid): void {
             ProfileRule::where('profile_id', $profile->id)->delete();
-            ProfileVersion::where('profile_id', $profile->id)->delete();
+            ConfigVersion::where('target_profile_id', $profile->id)
+                ->where('target_scope', 'profile')
+                ->delete();
             Device::where('profile_id', $profile->id)->delete();
 
             $profile->delete();
@@ -200,7 +207,9 @@ final class ProfileService
         foreach ($existing as $profile) {
             DB::transaction(function () use ($profile, &$deletedCount): void {
                 ProfileRule::where('profile_id', $profile->id)->delete();
-                ProfileVersion::where('profile_id', $profile->id)->delete();
+                ConfigVersion::where('target_profile_id', $profile->id)
+                    ->where('target_scope', 'profile')
+                    ->delete();
                 Device::where('profile_id', $profile->id)->delete();
                 $profile->delete();
                 $deletedCount++;
@@ -224,6 +233,95 @@ final class ProfileService
             'requested' => count($profileIds),
             'deleted' => $deletedCount,
             'not_found' => $notFound,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function featureSettings(Profile $profile): array
+    {
+        $security = array_merge($this->defaultSecurity(), is_array($profile->security_settings) ? $profile->security_settings : []);
+        $privacy = array_merge($this->defaultPrivacy(), is_array($profile->privacy_settings) ? $profile->privacy_settings : []);
+        $parental = array_merge($this->defaultParental(), is_array($profile->parental_settings) ? $profile->parental_settings : []);
+
+        return [
+            'security' => array_merge($security, [
+                'enabled' => (bool) ($security['enabled'] ?? $profile->security_enabled),
+            ]),
+            'privacy' => array_merge($privacy, [
+                'enabled' => (bool) ($privacy['enabled'] ?? $profile->privacy_enabled),
+            ]),
+            'parental' => array_merge($parental, [
+                'enabled' => (bool) ($parental['enabled'] ?? $profile->parental_enabled),
+                'safe_search' => (bool) ($parental['safe_search'] ?? $profile->safe_search_enabled),
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultSecurity(): array
+    {
+        return [
+            'enabled' => true,
+            'block_malware' => true,
+            'block_phishing' => true,
+            'block_command_and_control' => true,
+            'block_cryptojacking' => true,
+            'threat_intel' => true,
+            'ai_threat_detection' => false,
+            'google_safe_browsing' => true,
+            'dns_rebind' => true,
+            'idn_homograph' => true,
+            'typo_squatting' => true,
+            'dga_protection' => true,
+            'block_new_domains' => true,
+            'block_dynamic_dns' => false,
+            'block_parked_domains' => true,
+            'block_tld' => false,
+            'child_abuse' => true,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultPrivacy(): array
+    {
+        return [
+            'enabled' => true,
+            'block_trackers' => true,
+            'block_analytics' => true,
+            'block_telemetry' => true,
+            'anonymize_client_ip' => true,
+            'allow_marketing_links' => false,
+            'block_disguised_trackers' => true,
+            'log_mode' => 'full',
+            'blocklists' => [],
+            'deep_tracking_devices' => [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultParental(): array
+    {
+        return [
+            'enabled' => false,
+            'block_adult_content' => false,
+            'block_gambling' => false,
+            'block_gambling_basic' => false,
+            'safe_search' => false,
+            'force_safe_search' => false,
+            'youtube_restricted_mode' => false,
+            'force_youtube_restricted' => false,
+            'block_bypass' => false,
+            'time_limits' => [],
+            'blocked_items' => [],
+            'blocked_categories' => [],
         ];
     }
 }

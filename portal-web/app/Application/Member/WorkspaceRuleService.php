@@ -19,9 +19,9 @@ final class WorkspaceRuleService
      * @param array<string, mixed> $attributes
      * @return array<string, mixed>
      */
-    public function updateRule(string $userId, string $listType, string $ruleId, array $attributes): array
+    public function updateRule(string $userId, string $listType, string $ruleId, array $attributes, ?string $profileId = null): array
     {
-        $profile = $this->workspaceService->primaryProfile($userId);
+        $profile = $this->workspaceService->resolveProfile($userId, $profileId);
         $normalizedListType = $listType === 'allow' ? 'allowlist' : 'denylist';
 
         $rule = ProfileRule::where('profile_id', $profile->id)

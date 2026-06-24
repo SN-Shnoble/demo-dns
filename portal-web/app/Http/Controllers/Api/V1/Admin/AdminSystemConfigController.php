@@ -90,6 +90,7 @@ final class AdminSystemConfigController
         }
 
         Cache::forget(self::CACHE_KEY);
+        SystemConfigValue::flush();
 
         AdminAuditLog::record(
             action: 'system_config.update',

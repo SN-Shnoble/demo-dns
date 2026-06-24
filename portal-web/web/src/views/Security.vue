@@ -181,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import client from '@/api/client'
@@ -191,6 +191,7 @@ import { useCurrentProfile } from '@/composables/useCurrentProfile'
 const { t } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 const saving = ref(false)
+const hydrating = ref(false)
 let saveTimer = null
 
 const form = reactive({
@@ -211,6 +212,7 @@ const form = reactive({
 })
 
 const autoSave = () => {
+    if (hydrating.value || !currentProfileId.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(async () => {
         saving.value = true
@@ -232,10 +234,16 @@ watch(
 )
 
 const fetchData = async () => {
+    if (!currentProfileId.value) return
+    hydrating.value = true
     try {
         const { data } = await client.get('/user/security', { params: { profile_id: currentProfileId.value } })
         Object.assign(form, data.data || form)
-    } catch {}
+        await nextTick()
+    } catch {
+    } finally {
+        hydrating.value = false
+    }
 }
 
 // 切换 profile 时重新加载数据

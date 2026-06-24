@@ -99,10 +99,11 @@ final class PublishService
         if ($profileRef === '') {
             return null;
         }
-        if (ctype_digit($profileRef)) {
-            return (int) $profileRef;
-        }
         $row = \App\Models\Profile::where('profile_id', $profileRef)->first(['id']);
-        return $row?->id !== null ? (int) $row->id : null;
+        if ($row?->id !== null) {
+            return (int) $row->id;
+        }
+
+        return ctype_digit($profileRef) ? (int) $profileRef : null;
     }
 }

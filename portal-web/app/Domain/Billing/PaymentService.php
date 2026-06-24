@@ -6,6 +6,7 @@ namespace App\Domain\Billing;
 
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Support\SystemConfigValue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -31,10 +32,11 @@ final class PaymentService
      */
     public function createCheckout(Order $order): PaymentTransaction
     {
-        $secret = (string) config('services.stripe.secret', '');
-        $successUrl = (string) config('app.url') . '/user/orders/' . $order->id . '?status=success&session_id={CHECKOUT_SESSION_ID}';
-        $cancelUrl  = (string) config('app.url') . '/user/orders/' . $order->id . '?status=cancel';
-        $useFake = (bool) config('services.stripe.fake', false);
+        $secret = $this->stripeSecret();
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $successUrl = $appUrl . '/user/order?status=success&order_id=' . $order->id . '&session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl  = $appUrl . '/user/order?status=cancel&order_id=' . $order->id;
+        $useFake = $this->useFakeCheckout();
 
         if (app()->environment('production') && $useFake) {
             throw new RuntimeException('Fake Stripe checkout is forbidden in production.');
@@ -100,6 +102,26 @@ final class PaymentService
                 'redirect_url' => $redirectUrl,
             ],
         ]);
+    }
+
+    private function stripeSecret(): string
+    {
+        $configured = (string) SystemConfigValue::field('payment', 'secret_key', '');
+        if ($configured !== '' && $configured !== '********') {
+            return $configured;
+        }
+
+        return (string) config('services.stripe.secret', '');
+    }
+
+    private function useFakeCheckout(): bool
+    {
+        $configured = SystemConfigValue::field('payment', 'fake', null);
+        if ($configured !== null && $configured !== '') {
+            return filter_var($configured, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return (bool) config('services.stripe.fake', false);
     }
 
     /**

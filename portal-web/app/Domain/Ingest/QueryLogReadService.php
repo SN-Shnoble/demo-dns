@@ -6,8 +6,11 @@ use App\Infrastructure\ClickHouse\ClickHouseClient;
 
 final class QueryLogReadService
 {
-    public function __construct(private readonly ClickHouseClient $clickhouse = new ClickHouseClient())
+    private readonly ClickHouseClient $clickhouse;
+
+    public function __construct(?ClickHouseClient $clickhouse = null)
     {
+        $this->clickhouse = $clickhouse ?? app(ClickHouseClient::class);
     }
 
     /**
@@ -19,7 +22,7 @@ final class QueryLogReadService
         // 2026-06-22: 用户查询日志只存 ClickHouse，读取走 dns_logs
         $where = ['user_id = ' . $this->q((string) $userId)];
         if (! empty($filters['action'])) {
-            $where[] = 'action = ' . $this->q(strtoupper((string) $filters['action']));
+            $where[] = $this->actionPredicate((string) $filters['action']);
         }
         if (! empty($filters['domain'])) {
             $like = strtolower((string) $filters['domain']);
@@ -92,14 +95,14 @@ final class QueryLogReadService
         $todayRows = $this->clickhouse->jsonSelect("SELECT count() AS c FROM dns_logs {$whereSql} AND event_time >= toDate(now())");
         $todayQueries = (int) ($todayRows[0]['c'] ?? 0);
 
-        $blockedRows = $this->clickhouse->jsonSelect("SELECT count() AS c FROM dns_logs {$whereSql} AND lower(action) = 'block'");
+        $blockedRows = $this->clickhouse->jsonSelect("SELECT count() AS c FROM dns_logs {$whereSql} AND lower(action) IN ('block', 'blocked')");
         $todayBlocked = (int) ($blockedRows[0]['c'] ?? 0);
 
         // 周期内 top domain
         $topRows = $this->clickhouse->jsonSelect("SELECT domain, count() AS c FROM dns_logs {$whereSql} GROUP BY domain ORDER BY c DESC LIMIT 10");
         $topDomains = array_map(static fn (array $r): array => ['domain' => (string) ($r['domain'] ?? ''), 'count' => (int) ($r['c'] ?? 0)], $topRows);
 
-        $topBlockedRows = $this->clickhouse->jsonSelect("SELECT domain, count() AS c FROM dns_logs {$whereSql} AND lower(action) = 'block' GROUP BY domain ORDER BY c DESC LIMIT 10");
+        $topBlockedRows = $this->clickhouse->jsonSelect("SELECT domain, count() AS c FROM dns_logs {$whereSql} AND lower(action) IN ('block', 'blocked') GROUP BY domain ORDER BY c DESC LIMIT 10");
         $topBlocked = array_map(static fn (array $r): array => ['domain' => (string) ($r['domain'] ?? ''), 'count' => (int) ($r['c'] ?? 0)], $topBlockedRows);
 
         return [
@@ -125,7 +128,7 @@ final class QueryLogReadService
         $whereSql = 'WHERE ' . implode(' AND ', $where);
 
         // 用 toDate(event_time) 聚合最近 7 天（含今天）。ClickHouse 不会自动补 0 长度日期 → PHP 端补齐。
-        $sql = "SELECT toDate(event_time) AS d, count() AS c, countIf(lower(action) = 'block') AS b
+        $sql = "SELECT toDate(event_time) AS d, count() AS c, countIf(lower(action) IN ('block', 'blocked')) AS b
                 FROM dns_logs {$whereSql} AND event_time >= toDate(now()) - 6
                 GROUP BY d ORDER BY d ASC";
         $rows = $this->clickhouse->jsonSelect($sql);
@@ -168,5 +171,16 @@ final class QueryLogReadService
     {
         // ClickHouse single-quote escape
         return "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], $value) . "'";
+    }
+
+    private function actionPredicate(string $action): string
+    {
+        return match (strtolower($action)) {
+            'allow', 'allowed' => "lower(action) IN ('allow', 'allowed')",
+            'block', 'blocked' => "lower(action) IN ('block', 'blocked')",
+            'rewrite', 'rewritten' => "lower(action) IN ('rewrite', 'rewritten')",
+            'error' => "lower(action) = 'error'",
+            default => 'action = ' . $this->q($action),
+        };
     }
 }

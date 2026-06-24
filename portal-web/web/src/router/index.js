@@ -61,6 +61,14 @@ const routes = [
 
     // User / Member Center routes (require auth) - 新 URL 格式 /user/:profile_id/xxx
     // 注意: 不依赖 profile_id 的静态路径必须先声明, 否则会被 /user/:profile_id 抢占
+    {
+        path: '/user',
+        redirect: () => {
+            const savedId = localStorage.getItem('current_profile_id')
+            return savedId ? `/user/${savedId}` : '/user/profiles'
+        },
+        meta: { auth: true },
+    },
     { path: '/user/profiles', name: 'Profiles', component: ProfileList, meta: { auth: true } },
     { path: '/user/profiles/:id', name: 'ProfileDetail', component: ProfileDetail, meta: { auth: true }, props: true },
     { path: '/user/order', name: 'Order', component: Membership, meta: { auth: true } },
