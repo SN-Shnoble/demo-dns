@@ -146,7 +146,6 @@ final class QueryLogController
                 'user_id' => $userPk !== null ? (string) $userPk : '',
                 'profile_id' => $profileUid ?? '',
                 'device_id' => $deviceUid,
-                'query_name' => $queryName,
                 'domain' => $domain,
                 'query_type' => strtoupper((string) ($item['query_type'] ?? 'A')),
                 'action' => strtoupper((string) $item['action']),

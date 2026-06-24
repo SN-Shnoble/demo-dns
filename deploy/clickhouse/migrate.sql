@@ -10,7 +10,7 @@ ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS event_time DateTime64(3);
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS timestamp  DateTime64(3);
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS user_id    String;
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS device_id  String;
-ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS query_name String;
+ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS domain String;
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS action     LowCardinality(String);
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS reason     LowCardinality(String);
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS protocol   LowCardinality(String);
@@ -18,5 +18,5 @@ ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS rcode      UInt16;
 ALTER TABLE ocer_dns.dns_logs ADD COLUMN IF NOT EXISTS latency_ms Float32;
 
 -- 索引
-ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_query_name query_name TYPE bloom_filter(0.01) GRANULARITY 2;
+ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_domain domain TYPE bloom_filter(0.01) GRANULARITY 2;
 ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_client_ip  client_ip  TYPE bloom_filter(0.01) GRANULARITY 2;

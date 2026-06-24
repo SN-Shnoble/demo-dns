@@ -10,7 +10,7 @@ CREATE DATABASE IF NOT EXISTS ocer_dns;
 --   event_id (UUID,行级删除)
 --   event_time / timestamp (DateTime)
 --   user_id / profile_id / device_id (查询主体)
---   query_name (被查询的域名)
+--   domain (被查询的域名)
 --   query_type (A/AAAA 等)
 --   action (ALLOW / BLOCK)
 --   reason (block / default / allowlist)
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS ocer_dns.dns_logs (
     profile_id String,
     device_id  String,
     node_id    String,
-    query_name String,
+    domain String,
     query_type LowCardinality(String),
     action     LowCardinality(String),
     reason     LowCardinality(String),
@@ -50,5 +50,5 @@ TTL (timestamp + INTERVAL 365 DAY)
 SETTINGS index_granularity = 8192;
 
 -- Indexes (用于按域名/IP 查找)
-ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_query_name query_name TYPE bloom_filter(0.01) GRANULARITY 2;
+ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_domain domain TYPE bloom_filter(0.01) GRANULARITY 2;
 ALTER TABLE ocer_dns.dns_logs ADD INDEX IF NOT EXISTS idx_client_ip  client_ip TYPE bloom_filter(0.01) GRANULARITY 2;
