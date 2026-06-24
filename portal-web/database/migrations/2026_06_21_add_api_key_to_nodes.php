@@ -17,8 +17,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('nodes', function (Blueprint $table): void {
-            $table->string('api_key', 80)->nullable()->after('install_status');
-            $table->timestamp('api_key_issued_at')->nullable()->after('api_key');
+            $table->string('api_key', 80)->nullable();
+            $table->timestamp('api_key_issued_at')->nullable();
         });
     }
 

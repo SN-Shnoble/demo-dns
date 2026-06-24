@@ -11,7 +11,7 @@ return new class extends Migration {
     {
         Schema::table('nodes', function (Blueprint $table) {
             if (! Schema::hasColumn('nodes', 'capacity_qps')) {
-                $table->unsignedInteger('capacity_qps')->default(5000)->after('weight');
+                $table->unsignedInteger('capacity_qps')->default(5000);
             }
         });
     }

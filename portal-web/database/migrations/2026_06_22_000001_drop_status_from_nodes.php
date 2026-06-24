@@ -37,8 +37,7 @@ return new class extends Migration
         // 回滚：恢复列与索引。install_status / last_installed_at / last_listen_addr 不动。
         Schema::table('nodes', function (Blueprint $table): void {
             $table->enum('status', ['pending', 'online', 'offline', 'degraded', 'maintenance', 'disabled', 'retired'])
-                ->default('pending')
-                ->after('capacity_qps');
+                ->default('pending');
             $table->index('status', 'idx_nodes_status');
         });
     }

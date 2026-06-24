@@ -11,7 +11,7 @@ return new class extends Migration {
     {
         Schema::table('nodes', function (Blueprint $table) {
             if (!Schema::hasColumn('nodes', 'node_alias')) {
-                $table->string('node_alias', 100)->nullable()->after('node_name');
+                $table->string('node_alias', 100)->nullable();
             }
         });
     }
