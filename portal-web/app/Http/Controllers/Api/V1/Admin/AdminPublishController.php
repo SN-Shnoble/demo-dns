@@ -336,4 +336,64 @@ final class AdminPublishController
             ],
         ]);
     }
+
+    /**
+     * 一键全量发布所有 Profile
+     */
+    public function syncAll(Request $request): JsonResponse
+    {
+        $actorId = $request->user()?->admin_id;
+        $profiles = \App\Models\Profile::all();
+
+        $configBuilder = app(\App\Domain\Profile\ProfileConfigBuilder::class);
+        $publishService = app(\App\Domain\Publish\PublishService::class);
+        $profilePublishService = new \App\Domain\Profile\ProfilePublishService($configBuilder, $publishService);
+
+        $results = [];
+        $errors = [];
+        foreach ($profiles as $profile) {
+            try {
+                $result = $profilePublishService->publish(
+                    array_merge($profile->toArray(), [
+                        'profile_uid' => $profile->profile_uid,
+                        'devices' => $profile->devices()->get()->toArray(),
+                    ]),
+                    $profile->rules()->get()->toArray(),
+                    ['security_enabled' => $profile->security_enabled],
+                );
+
+                AdminAuditLog::record('publish.profile', 'profile', $profile->id, [
+                    'profile_uid' => $profile->profile_uid,
+                    'profile_name' => $profile->name,
+                    'config_version' => $result['config_version'],
+                ], $actorId, null, $request->ip(), $request->userAgent());
+
+                $results[] = [
+                    'profile_uid' => $profile->profile_uid,
+                    'profile_name' => $profile->name,
+                    'config_version' => $result['config_version'],
+                    'status' => 'ok',
+                ];
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'profile_uid' => $profile->profile_uid,
+                    'profile_name' => $profile->name,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'total' => count($profiles),
+                'succeeded' => count($results),
+                'failed' => count($errors),
+                'results' => $results,
+                'errors' => $errors,
+            ],
+            'message' => count($errors) > 0
+                ? 'Published with ' . count($errors) . ' error(s)'
+                : 'All profiles published successfully',
+        ]);
+    }
 }

@@ -903,6 +903,7 @@
       "publish": "发布",
       "publishSuccess": "发布成功",
       "publishFailed": "发布失败",
+      "publishAll": "一键全量发布",
       "loadFailed": "加载失败",
       "emptyText": "暂无数据"
     },

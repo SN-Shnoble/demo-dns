@@ -903,6 +903,7 @@
       "publish": "Publish",
       "publishSuccess": "Published successfully",
       "publishFailed": "Publish failed",
+      "publishAll": "Publish All",
       "loadFailed": "Load failed",
       "emptyText": "No data"
     },

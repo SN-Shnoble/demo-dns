@@ -201,6 +201,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
     });
     Route::middleware('permission:admin.publishes.write')->group(function (): void {
         Route::post('profile-publish/{profileId}', [AdminPublishController::class, 'publishProfile']);
+        Route::post('profile-publish-all', [AdminPublishController::class, 'syncAll']);
     });
 
     // GeoDNS

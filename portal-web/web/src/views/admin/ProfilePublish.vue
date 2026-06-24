@@ -18,9 +18,13 @@
                         <el-icon><Search /></el-icon>
                     </template>
                 </el-input>
-                <el-button type="primary" @click="loadProfiles">
+                <el-button type="primary" @click="loadProfiles" style="margin-right: 8px;">
                     <el-icon style="margin-right:4px"><Refresh /></el-icon>
                     {{ $t('common.refresh') }}
+                </el-button>
+                <el-button type="success" :loading="publishingAll" @click="handlePublishAll">
+                    <el-icon style="margin-right:4px"><Upload /></el-icon>
+                    {{ $t('admin.profilePublish.publishAll') }}
                 </el-button>
             </div>
         </div>
@@ -101,13 +105,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Refresh } from '@element-plus/icons-vue'
+import { Search, Refresh, Upload } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
 const loading = ref(false)
+const publishingAll = ref(false)
 const profiles = ref([])
 const searchQuery = ref('')
 const currentPage = ref(1)
@@ -152,6 +157,20 @@ const handlePublish = async (row) => {
         ElMessage.error(err.response?.data?.message || t('admin.profilePublish.publishFailed'))
     } finally {
         row.publishing = false
+    }
+}
+
+const handlePublishAll = async () => {
+    publishingAll.value = true
+    try {
+        const { data } = await client.post('/admin/profile-publish-all')
+        const msg = data?.data
+        ElMessage.success(`${msg.succeeded}/${msg.total} ${t('admin.profilePublish.publishSuccess')}`)
+        loadProfiles()
+    } catch (err) {
+        ElMessage.error(err.response?.data?.message || t('admin.profilePublish.publishFailed'))
+    } finally {
+        publishingAll.value = false
     }
 }
 
