@@ -887,6 +887,25 @@
         "batchDeleteFailed": "Batch delete failed"
       }
     },
+    "profilePublish": {
+      "title": "Profile Publish Management",
+      "desc": "View all Profile configurations and their publish status",
+      "searchPlaceholder": "Search by Profile name or UID",
+      "profileUid": "Profile UID",
+      "profileName": "Name",
+      "owner": "Owner",
+      "status": "Status",
+      "version": "Version",
+      "published": "Published",
+      "publishedAt": "Published At",
+      "createdAt": "Created At",
+      "action": "Action",
+      "publish": "Publish",
+      "publishSuccess": "Published successfully",
+      "publishFailed": "Publish failed",
+      "loadFailed": "Load failed",
+      "emptyText": "No data"
+    },
     "loginTitle": "OcerDNS",
     "login": "Admin Login",
     "loginDesc": "For administrators only",

@@ -2,13 +2,13 @@
     <div class="profile-publish-page">
         <div class="page-header">
             <div class="page-header-text">
-                <h2>{{ $t('admin.profilePublish.title') || '配置文件发布管理' }}</h2>
-                <p>{{ $t('admin.profilePublish.desc') || '查看所有 Profile 配置及其发布状态' }}</p>
+                <h2>{{ $t('admin.profilePublish.title') }}</h2>
+                <p>{{ $t('admin.profilePublish.desc') }}</p>
             </div>
             <div class="header-actions">
                 <el-input
                     v-model="searchQuery"
-                    :placeholder="$t('admin.profilePublish.searchPlaceholder') || '搜索 Profile 名称或 UID'"
+                    :placeholder="$t('admin.profilePublish.searchPlaceholder')"
                     style="width: 260px; margin-right: 12px;"
                     clearable
                     @clear="loadProfiles"
@@ -20,7 +20,7 @@
                 </el-input>
                 <el-button type="primary" @click="loadProfiles">
                     <el-icon style="margin-right:4px"><Refresh /></el-icon>
-                    {{ $t('common.refresh') || '刷新' }}
+                    {{ $t('common.refresh') }}
                 </el-button>
             </div>
         </div>
@@ -33,43 +33,43 @@
                 style="width: 100%"
                 row-key="profile_uid"
             >
-                <el-table-column prop="profile_uid" :label="$t('admin.profilePublish.profileUid') || 'Profile UID'" width="100">
+                <el-table-column prop="profile_uid" :label="$t('admin.profilePublish.profileUid')" width="100">
                     <template #default="{ row }">
                         <code class="uid-code">{{ row.profile_uid }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column prop="name" :label="$t('admin.profilePublish.profileName') || '配置名称'" min-width="150" />
-                <el-table-column prop="username" :label="$t('admin.profilePublish.owner') || '所有者'" min-width="120">
+                <el-table-column prop="name" :label="$t('admin.profilePublish.profileName')" min-width="150" />
+                <el-table-column prop="username" :label="$t('admin.profilePublish.owner')" min-width="120">
                     <template #default="{ row }">
                         <span>{{ row.username || '-' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="status" :label="$t('admin.profilePublish.status') || '状态'" width="100" align="center">
+                <el-table-column prop="status" :label="$t('admin.profilePublish.status')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
                             {{ row.status }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="version" :label="$t('admin.profilePublish.version') || '版本'" width="80" align="center" />
-                <el-table-column prop="has_published_config" :label="$t('admin.profilePublish.published') || '已发布'" width="100" align="center">
+                <el-table-column prop="version" :label="$t('admin.profilePublish.version')" width="80" align="center" />
+                <el-table-column prop="has_published_config" :label="$t('admin.profilePublish.published')" width="100" align="center">
                     <template #default="{ row }">
                         <el-tag :type="row.has_published_config ? 'success' : 'warning'" size="small">
-                            {{ row.has_published_config ? ($t('common.yes') || '是') : ($t('common.no') || '否') }}
+                            {{ row.has_published_config ? $t('common.yes') : $t('common.no') }}
                         </el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="published_at" :label="$t('admin.profilePublish.publishedAt') || '发布时间'" width="160">
+                <el-table-column prop="published_at" :label="$t('admin.profilePublish.publishedAt')" width="160">
                     <template #default="{ row }">
                         {{ row.published_at ? formatDate(row.published_at) : '-' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="created_at" :label="$t('admin.profilePublish.createdAt') || '创建时间'" width="160">
+                <el-table-column prop="created_at" :label="$t('admin.profilePublish.createdAt')" width="160">
                     <template #default="{ row }">
                         {{ formatDate(row.created_at) }}
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('admin.profilePublish.action') || '操作'" width="120" align="center" fixed="right">
+                <el-table-column :label="$t('admin.profilePublish.action')" width="120" align="center" fixed="right">
                     <template #default="{ row }">
                         <el-button
                             type="primary"
@@ -77,7 +77,7 @@
                             :loading="row.publishing"
                             @click="handlePublish(row)"
                         >
-                            {{ $t('admin.profilePublish.publish') || '发布' }}
+                            {{ $t('admin.profilePublish.publish') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -136,7 +136,7 @@ const loadProfiles = async () => {
             total.value = data.meta.total || 0
         }
     } catch (err) {
-        ElMessage.error(t('admin.profilePublish.loadFailed') || '加载失败')
+        ElMessage.error(t('admin.profilePublish.loadFailed'))
     } finally {
         loading.value = false
     }
@@ -146,10 +146,10 @@ const handlePublish = async (row) => {
     row.publishing = true
     try {
         await client.post(`/admin/profile-publish/${row.profile_uid}`)
-        ElMessage.success(t('admin.profilePublish.publishSuccess') || `配置文件 ${row.name} 发布成功`)
+        ElMessage.success(t('admin.profilePublish.publishSuccess'))
         loadProfiles()
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || t('admin.profilePublish.publishFailed') || '发布失败')
+        ElMessage.error(err.response?.data?.message || t('admin.profilePublish.publishFailed'))
     } finally {
         row.publishing = false
     }
