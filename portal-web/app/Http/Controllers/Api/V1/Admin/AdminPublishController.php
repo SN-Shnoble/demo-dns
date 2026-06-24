@@ -251,7 +251,7 @@ final class AdminPublishController
         $page = (int) $request->input('page', 1);
         $search = $request->input('search', '');
 
-        $query = \App\Models\Profile::with(['user:id,username,email'])
+        $query = \App\Models\Profile::with(['user:uid,username,email'])
             ->leftJoin('config_versions', 'config_versions.target_profile_id', '=', 'profiles.id')
             ->select('profiles.*', \Illuminate\Support\Facades\DB::raw('COUNT(dns_config_versions.id) as config_versions_count'))
             ->groupBy('profiles.id')

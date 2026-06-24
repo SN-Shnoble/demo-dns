@@ -48,7 +48,7 @@ final class AdminDeviceController
 
     public function show(string $deviceId): JsonResponse
     {
-        $device = Device::with('user:id,username,email')->find($deviceId);
+        $device = Device::with('user:uid,username,email')->find($deviceId);
         if (! $device) {
             return response()->json(['message' => 'Device not found'], 404);
         }
