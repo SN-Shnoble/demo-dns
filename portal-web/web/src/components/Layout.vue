@@ -22,9 +22,12 @@
                         <el-icon><Monitor /></el-icon>
                         <span>{{ $t('nav.dashboard') }}</span>
                     </el-menu-item>
-                    <el-sub-menu index="user-features">
+                    <el-sub-menu index="user-features" @click="securityMenuExpanded = !securityMenuExpanded">
                         <template #title>
                             <span>{{ $t('nav.security') }}</span>
+                            <el-icon :class="{ 'sub-menu-arrow': true, 'is-expanded': securityMenuExpanded }">
+                                <ArrowRight />
+                            </el-icon>
                         </template>
                         <el-menu-item index="/user/security" @click="navigateTo('/user/security')">
                             <span>{{ $t('nav.securitySettings') || '安全设置' }}</span>
@@ -139,7 +142,7 @@ import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, Plus, Select, Monitor } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowRight, Plus, Select, Monitor } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import enLocale from 'element-plus/dist/locale/en.mjs'
 import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
@@ -172,6 +175,8 @@ const navigateTo = (path) => {
         router.push(path)
     }
 }
+
+const securityMenuExpanded = ref(false)
 
 const userName = ref(t('common.defaultUser'))
 const userInitial = computed(() => (userName.value?.trim()?.charAt(0) || 'U').toUpperCase())
@@ -505,7 +510,7 @@ onMounted(async () => {
     transition: transform 0.2s;
 }
 
-:deep(.el-sub-menu .el-sub-menu__title:hover .sub-menu-arrow) {
+.sub-menu-arrow.is-expanded {
     transform: rotate(90deg);
 }
 
