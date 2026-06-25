@@ -514,6 +514,11 @@ onMounted(async () => {
     transform: rotate(90deg);
 }
 
+/* 隐藏 Element Plus 默认的下拉箭头，使用自定义的 */
+.top-nav .el-sub-menu .el-sub-menu__icon-arrow {
+    display: none !important;
+}
+
 .nav-right {
     display: flex;
     align-items: center;
