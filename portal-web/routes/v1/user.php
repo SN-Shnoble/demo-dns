@@ -122,6 +122,7 @@ Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function ():
     });
 
     Route::get('payment-transactions/{id}/status', [OrderController::class, 'paymentTransactionStatus']);
+    Route::post('payment-transactions/{id}/mock-success', [OrderController::class, 'mockPaymentSuccess']);
     Route::get('stripe-config', [OrderController::class, 'stripeConfig']);
 
     // 套餐购买入口

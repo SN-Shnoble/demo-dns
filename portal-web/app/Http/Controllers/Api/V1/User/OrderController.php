@@ -257,8 +257,40 @@ final class OrderController
             'data' => [
                 'publishable_key' => $this->payments->stripePublishableKey(),
                 'payment_methods' => $this->payments->paymentMethodOptions(),
+                'is_fake' => $this->payments->isFakeMode(),
             ],
         ]);
+    }
+
+    /** POST /api/v1/user/payment-transactions/{id}/mock-success — 模拟支付成功（仅测试模式） */
+    public function mockPaymentSuccess(Request $request, string $id): JsonResponse
+    {
+        if (! $this->payments->isFakeMode()) {
+            return response()->json(['message' => 'Mock payment is only available in test mode.'], 422);
+        }
+
+        $tx = $this->payments->getTransactionStatus($id);
+        if (! $tx) {
+            return response()->json(['message' => 'Payment transaction not found.'], 404);
+        }
+        if ($tx->user_id !== (string) $request->user()->uid) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+        if ($tx->status === PaymentTransaction::STATUS_SUCCESS) {
+            return response()->json(['data' => ['status' => 'success']]);
+        }
+
+        $tx->update(['status' => PaymentTransaction::STATUS_SUCCESS]);
+        if ($tx->order_id) {
+            (new OrderService())->markPaid((string) $tx->order_id, 'mock_success');
+        }
+
+        return response()->json([
+            'data' => [
+                'status' => 'success',
+                'transaction_id' => (string) $tx->id,
+            ],
+        ], 200);
     }
 
     /** POST /api/v1/user/orders/{id}/pay-with-wallet — 使用余额支付订单 */
@@ -271,9 +303,19 @@ final class OrderController
             return response()->json(['message' => 'Order is not payable.'], 422);
         }
 
-        return response()->json([
-            'message' => 'Orders must be paid through Stripe Checkout.',
-        ], 422);
+        try {
+            $result = $this->payments->payWithWallet($order);
+            return response()->json([
+                'data' => [
+                    'order_id' => (string) $order->id,
+                    'status' => $result['status'],
+                    'balance_after_minor' => $result['balance_after_minor'],
+                    'message' => 'Payment successful.',
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     private function format(Order $order): array

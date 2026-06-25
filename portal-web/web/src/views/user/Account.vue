@@ -262,6 +262,31 @@
                         <el-icon><Refresh /></el-icon>
                         <span>等待支付中... 请在手机上完成支付</span>
                     </p>
+                    <p v-if="isStripeFake" class="qr-test-hint">
+                        <el-icon><InfoFilled /></el-icon>
+                        <span>测试模式</span>
+                    </p>
+                    <el-button
+                        v-if="isStripeFake"
+                        type="primary"
+                        size="default"
+                        class="mock-pay-btn"
+                        @click="mockQrPaySuccess"
+                    >
+                        模拟支付成功（测试）
+                    </el-button>
+                </div>
+
+                <!-- 余额支付 -->
+                <div v-if="selectedPaymentMethod === 'wallet' && payStep === 'select'" class="wallet-section">
+                    <div class="wallet-info">
+                        <div class="wallet-label">当前余额</div>
+                        <div class="wallet-amount">{{ walletBalanceLabel }}</div>
+                    </div>
+                    <div v-if="walletInsufficient" class="wallet-insufficient">
+                        <el-icon><Warning /></el-icon>
+                        <span>余额不足，请先充值或选择其他支付方式</span>
+                    </div>
                 </div>
 
                 <!-- 支付成功 -->
@@ -276,7 +301,16 @@
                     {{ payStep === 'form' || payStep === 'qrcode' ? '返回' : $t('common.cancel') }}
                 </el-button>
                 <el-button
-                    v-if="payStep === 'select'"
+                    v-if="payStep === 'select' && selectedPaymentMethod === 'wallet'"
+                    type="primary"
+                    :loading="paying"
+                    :disabled="walletInsufficient"
+                    @click="confirmWalletPay"
+                >
+                    {{ paying ? '支付中...' : '确认支付' }}
+                </el-button>
+                <el-button
+                    v-if="payStep === 'select' && selectedPaymentMethod !== 'wallet'"
                     type="primary"
                     :loading="paying"
                     @click="confirmPay"
@@ -341,7 +375,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Coin, Wallet, Tickets, Message, Lock, Loading, Refresh, CircleCheck } from '@element-plus/icons-vue'
+import { Coin, Wallet, Tickets, Message, Lock, Loading, Refresh, CircleCheck, Warning, InfoFilled } from '@element-plus/icons-vue'
 import { loadStripe } from '@stripe/stripe-js'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
@@ -389,17 +423,30 @@ const paying = ref(false)
 
 // 支付相关
 const pendingOrder = ref(null)
-const paymentMethods = ref([{ value: 'card', label: '信用卡' }])
-const selectedPaymentMethod = ref('card')
+const paymentMethods = ref([{ value: 'wallet', label: '余额支付' }, { value: 'card', label: '信用卡' }])
+const selectedPaymentMethod = ref('wallet')
 const payStep = ref('select')
 const cardElementRef = ref(null)
 const stripeReady = ref(false)
 const cardError = ref('')
 const qrCodeUrl = ref('')
 const paymentTransactionId = ref('')
+const isStripeFake = ref(false)
 let stripeInstance = null
 let cardElement = null
+let currentClientSecret = ''
 let paymentPollTimer = null
+
+const walletInsufficient = computed(() => {
+    if (!pendingOrder.value) return false
+    if (!billingData.value?.balance_minor) return true
+    return Number(billingData.value.balance_minor) < Number(pendingOrder.value.payable_amount_minor)
+})
+
+const walletBalanceLabel = computed(() => {
+    if (!billingData.value?.balance_minor) return '$0.00'
+    return money(billingData.value.balance_minor, billingData.value.currency || 'USD')
+})
 
 // 套餐相关
 const currentPlanCode = ref('free')
@@ -446,15 +493,24 @@ const ensureSelectedPaymentMethod = () => {
 const loadPaymentMethods = async () => {
     try {
         const { data } = await client.get('/user/payment-methods')
-        const methods = data?.data?.methods || []
-        if (Array.isArray(methods) && methods.length > 0) {
-            paymentMethods.value = methods
-            selectedPaymentMethod.value = data?.data?.default || methods[0].value
+        const stripeMethods = data?.data?.methods || []
+        if (Array.isArray(stripeMethods) && stripeMethods.length > 0) {
+            const walletMethod = { value: 'wallet', label: '余额支付' }
+            paymentMethods.value = [walletMethod, ...stripeMethods]
+            selectedPaymentMethod.value = data?.data?.default || stripeMethods[0].value
             ensureSelectedPaymentMethod()
+        } else {
+            paymentMethods.value = [{ value: 'wallet', label: '余额支付' }]
+            selectedPaymentMethod.value = 'wallet'
         }
+
+        try {
+            const stripeConfig = await client.get('/user/stripe-config')
+            isStripeFake.value = stripeConfig?.data?.data?.is_fake || false
+        } catch {}
     } catch {
-        paymentMethods.value = [{ value: 'card', label: '信用卡' }]
-        selectedPaymentMethod.value = 'card'
+        paymentMethods.value = [{ value: 'wallet', label: '余额支付' }, { value: 'card', label: '信用卡' }]
+        selectedPaymentMethod.value = 'wallet'
     }
 }
 
@@ -640,11 +696,51 @@ const confirmPay = async () => {
             await initCardPayment()
         } else if (selectedPaymentMethod.value === 'wechat_pay' || selectedPaymentMethod.value === 'alipay') {
             await initQrPayment()
+        } else if (selectedPaymentMethod.value === 'wallet') {
+            await confirmWalletPay()
         }
     } catch (err) {
         ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed') || '支付失败')
     } finally {
         paying.value = false
+    }
+}
+
+// 余额支付
+const confirmWalletPay = async () => {
+    if (!pendingOrder.value) return
+
+    if (walletInsufficient.value) {
+        ElMessage.warning('余额不足，请先充值或选择其他支付方式')
+        return
+    }
+
+    paying.value = true
+    try {
+        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/pay-with-wallet`)
+        if (data?.data?.status === 'paid') {
+            handlePaymentSuccess()
+        } else {
+            ElMessage.error(data?.message || '支付失败')
+        }
+    } catch (err) {
+        ElMessage.error(err?.response?.data?.message || err.message || '支付失败')
+    } finally {
+        paying.value = false
+    }
+}
+
+// 模拟二维码支付成功（测试模式）
+const mockQrPaySuccess = async () => {
+    if (!paymentTransactionId.value) return
+
+    try {
+        const { data } = await client.post(`/user/payment-transactions/${paymentTransactionId.value}/mock-success`)
+        if (data?.data?.status === 'success') {
+            handlePaymentSuccess()
+        }
+    } catch (err) {
+        ElMessage.error(err?.response?.data?.message || err.message || '模拟支付失败')
     }
 }
 
@@ -660,6 +756,7 @@ const initCardPayment = async () => {
     }
 
     paymentTransactionId.value = result.payment_transaction_id
+    currentClientSecret = result.client_secret
 
     stripeInstance = await loadStripe(result.publishable_key)
     if (!stripeInstance) {
@@ -698,17 +795,14 @@ const initCardPayment = async () => {
 
 // 确认信用卡支付
 const confirmCardPay = async () => {
-    if (!stripeInstance || !cardElement || !pendingOrder.value) return
+    if (!stripeInstance || !cardElement || !currentClientSecret) return
 
     paying.value = true
     cardError.value = ''
 
     try {
-        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/payment-intent`)
-        const result = data?.data || data
-
         const { error, paymentIntent } = await stripeInstance.confirmCardPayment(
-            result.client_secret,
+            currentClientSecret,
             {
                 payment_method: {
                     card: cardElement,
@@ -796,6 +890,7 @@ const handlePaymentSuccess = () => {
             cardElement = null
         }
         stripeInstance = null
+        currentClientSecret = ''
         stripeReady.value = false
         cardError.value = ''
         refreshSubscriptionData()
@@ -814,6 +909,7 @@ const handleBackOrCancel = () => {
             cardElement = null
         }
         stripeInstance = null
+        currentClientSecret = ''
         stripeReady.value = false
         cardError.value = ''
         qrCodeUrl.value = ''
@@ -832,6 +928,7 @@ const handlePaymentMethodChange = () => {
             cardElement = null
         }
         stripeInstance = null
+        currentClientSecret = ''
         stripeReady.value = false
         cardError.value = ''
         qrCodeUrl.value = ''
@@ -853,6 +950,7 @@ const cancelPay = () => {
         cardElement = null
     }
     stripeInstance = null
+    currentClientSecret = ''
     stripeReady.value = false
     cardError.value = ''
     payStep.value = 'select'
@@ -1396,6 +1494,38 @@ onMounted(() => {
     font-size: 13px;
 }
 
+/* 余额支付 */
+.wallet-section {
+    margin-top: 24px;
+}
+.wallet-info {
+    padding: 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    color: #fff;
+}
+.wallet-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 8px;
+}
+.wallet-amount {
+    font-size: 28px;
+    font-weight: 700;
+}
+.wallet-insufficient {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 13px;
+}
+
 /* 信用卡表单 */
 .card-form-section {
     margin-top: 24px;
@@ -1471,6 +1601,19 @@ onMounted(() => {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+.qr-test-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #f59e0b;
+    margin: 12px 0 0;
+}
+.mock-pay-btn {
+    margin-top: 16px;
+    width: 100%;
 }
 
 /* 支付成功 */
