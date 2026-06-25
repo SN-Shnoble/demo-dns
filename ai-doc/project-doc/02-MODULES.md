@@ -229,7 +229,7 @@ internal/security
 
 负责：
 
-- 权威 DNS 响应 `dns.example.com` / `doh.example.com` 等服务域名。
+- HTTP API 返回最优 resolver 节点地址（/pick、/health-view）。
 - 根据来源 IP、GeoIP、节点健康、权重、优先级返回 resolver 地址。
 - 离线节点摘除。
 - 灰度调度和故障回退。
@@ -258,7 +258,7 @@ internal/router        # 区域/权重/健康路由决策
 
 | 组件 | 责任 |
 |---|---|
-| `DNSServer` | 权威 DNS 响应 `dns.example.com` / `doh.example.com` 等服务域名 |
+| `Server` | HTTP API 提供 /health /health-view /pick 等端点 |
 | `GeoIPRouter` | 根据来源 IP 国家/区域选择节点区域 |
 | `HealthViewClient` | 从 `portal-web(原 console 域)` `GET /api/v1/internal/geodns/health-view` 拉取健康节点视图(Go 代码零修改,只改 Endpoint) |
 | `WeightRouter` | 根据节点权重分配流量，故障时回退 |

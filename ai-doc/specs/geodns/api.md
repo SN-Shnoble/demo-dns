@@ -2,7 +2,17 @@
 
 > `geodns` 负责服务入口调度，将 `dns.example.com`、`doh.example.com` 等服务域名解析到健康 resolver 节点。它不参与每一次用户 DNS 过滤查询。
 
-## 1. 权威 DNS 行为
+## 1. 节点选择 HTTP API
+
+- **端口**：5354（HTTP API）
+- **协议**：HTTP（非 DNS 协议）
+- **功能**：
+  - 实时接入调度 —— 为 DoQ 和 DoT 客户端选择最优 Resolver
+  - 根据客户端 IP、节点地域分布，就近返回 Resolver 地址
+  - 故障自动摘除
+- **设计说明**：
+  - 通过 HTTP API 提供节点选择服务
+  - 定时从 `portal-web` 拉取健康视图并本地缓存
 
 ## 当前实现映射（2026-06-12）
 
@@ -15,29 +25,30 @@
 - 已有自动化验证：
   - `tests/router_test.go`
 - 当前仍缺：
-  - 真正的权威 DNS server
   - GeoIP
   - ECS 和多答案返回
 
 注意：ops 监控只关心节点在线/离线，geodns 路由不再基于 `qps_1m` / `capacity_qps` 做"健康度降权"。`routing.overload_threshold` 配置项已弃用但保留兼容。
 
-### 1.1 输入
+### 1.1 输入 (HTTP API)
 
-- 查询域名：如 `dns.example.com`、`doh.example.com`、`dot.example.com`。
-- 查询类型：`A` / `AAAA`。
-- 来源 IP：递归 DNS 的来源 IP，必要时使用 ECS。
-- 本地健康节点视图。
+- `GET /pick?client_ip=...&region=...&protocol=...`
+- `Authorization: Bearer <token>`（可选，内网可省略）
+- 服务端本地缓存的健康节点视图。
 
 ### 1.2 输出
 
-- 一个或多个 resolver 节点 IP。
-- TTL，建议 MVP 30-120 秒。
+- 返回 JSON 格式的最优 resolver 节点信息。
 
-示例：
+示例响应：
 
-```text
-doh.example.com. 60 IN A 203.0.113.10
-doh.example.com. 60 IN AAAA 2001:db8::10
+```json
+{
+  "resolver_ip": "203.0.113.10",
+  "resolver_ipv6": "2001:db8::10",
+  "region": "cn-east",
+  "weight": 100
+}
 ```
 
 ## 2. 健康视图同步
@@ -45,7 +56,7 @@ doh.example.com. 60 IN AAAA 2001:db8::10
 geodns 周期调用：
 
 ```http
-GET {DNS_CONSOLE_URL}/api/v1/internal/geodns/health-view
+GET {PORTAL_WEB_URL}/api/v1/internal/geodns/health-view
 ```
 
 响应必须符合 `contracts/geodns-health-view.schema.json`。
@@ -90,21 +101,15 @@ POST /debug/reload
 
 ```yaml
 server:
-  listen: ":53"
-  zones:
-    - "example.com."
+  listen_addr: ":5354"
 
 console:
-  health_view_url: "https://dns-console.example.com/api/v1/internal/geodns/health-view"
-  hmac_key_id: "geodns"
-  hmac_secret: "secret"
+  health_view_url: "http://portal-web:8081/api/v1/internal/geodns/health-view"
   pull_interval: 10s
 
 routing:
-  default_ttl: 60
   max_answers: 2
   # overload_threshold 已弃用：ops 监控只关心 online/offline，不再基于 QPS/CPU/MEM 做降权
-  overload_threshold: 0.8
   fallback_ipv4:
     - "203.0.113.100"
   fallback_ipv6: []

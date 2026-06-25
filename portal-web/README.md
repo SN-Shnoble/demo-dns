@@ -54,15 +54,15 @@ Laravel + Vue 3 package for:
 - `app/Domain/Billing`
 - `app/Domain/Usage`
 - `app/Domain/Audit`
-- `app/Infrastructure/DnsConsole`
+- `app/Infrastructure/ClickHouse`
 
 ## First APIs to implement
 
 - `POST /api/v1/public/auth/register`
 - `POST /api/v1/public/auth/login`
-- `GET /api/v1/member/me`
-- `GET|POST /api/v1/member/profiles`
-- `PUT|DELETE /api/v1/member/profiles/{profile_id}`
-- `GET|POST /api/v1/member/profiles/{profile_id}/rules`
-- `POST /api/v1/member/profiles/{profile_id}/publish`
-- `GET /api/v1/member/profiles/{profile_id}/logs`
+- `GET /api/v1/user/me`
+- `GET|POST /api/v1/user/profiles`
+- `PUT|DELETE /api/v1/user/profiles/{profile_id}`
+- `GET|POST /api/v1/user/profiles/{profile_id}/rules`
+- `POST /api/v1/user/profiles/{profile_id}/publish`
+- `GET /api/v1/user/profiles/{profile_id}/logs`

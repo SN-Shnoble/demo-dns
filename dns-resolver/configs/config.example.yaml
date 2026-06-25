@@ -1,12 +1,38 @@
-server:
-  node_id: ""
-  # 2026-06-15: dns-console-web was merged into portal-web. Resolver
-  # now talks to the same image that serves the admin UI.
-  api_base_url: "http://127.0.0.1:8081"
-  heartbeat_interval: "30s"
-  log_flush_interval: "15s"
-  udp_listen_addr: ":5353"
-  doh_listen_addr: ":8053"
-storage:
-  active_config_path: "./data/active-config.json"
-  buffer_dir: "./data/buffer"
+# dns-resolver 配置示例
+# 复制为 server.yaml 并根据实际环境修改
+node:
+    node_uid: ""                     # 自动生成或由 install 写入
+    name: "resolver-node"
+    version: "1.0.0"
+    region: "local"
+    country: "CN"
+    provider: "local"
+    public_ipv4: "127.0.0.1"
+listen:
+    doh: 8443                        # DoH 端口
+    dot: 853                         # DoT 端口
+    doq: 853                         # DoQ 端口
+    udp: 53                          # DNS UDP 端口
+    tcp: 53                          # DNS TCP 端口
+control_plane:
+    endpoint: "http://127.0.0.1:8081" # portal-web API 地址
+    api_key: ""                      # 已废弃，凭据统一走 api_key_path 文件
+    api_key_path: "configs/api_key"  # 鉴权 token 文件路径（install 阶段写入）
+    node_id: ""                      # 节点 ID（由 install 写入）
+    heartbeat_interval: 30           # 心跳间隔（秒）
+    config_poll_interval: 5          # 配置轮询间隔（分钟）
+    profiles_path: "./data/profiles" # Profile 缓存目录
+upstream:
+    - 1.1.1.1
+    - 8.8.8.8
+logging:
+    level: "info"
+    buffer_path: "/var/lib/ocer-dns/log-buffer"
+nats:
+    enabled: false
+redis:
+    enabled: false
+geodns:
+    enabled: false
+    endpoint: "http://127.0.0.1:5354"
+    request_timeout_seconds: 3

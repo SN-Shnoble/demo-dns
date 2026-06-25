@@ -48,7 +48,7 @@
 | dns-resolver | Logs | 查询日志批量上报 | 代码草案 |
 | dns-resolver | Metrics | 基础运行指标上报 | 代码草案 |
 | dns-resolver | Buffer | 上报失败时本地 buffer 落盘 | 代码草案 |
-| geodns | Routing | 权威 DNS 响应、GeoIP 路由、健康路由 | 代码草案 |
+| geodns | Routing | HTTP API 节点选择、GeoIP 路由、健康路由 | 代码草案 |
 | geodns | HTTPHealthView | `GET /health` `GET /health-view` `GET /pick?region=...` 周期刷新控制台健康视图 | 代码草案 |
 | geodns | Weight | 节点权重分配、故障回退 | 代码草案 |
 | geodns | GrayScale | 灰度调度（Stage 06 完整） | — |

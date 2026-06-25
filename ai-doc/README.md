@@ -107,7 +107,7 @@ ai-doc-v1/
 |------|--------|---------|---------|------|
 | 用户门户 | `portal-web` | Laravel + Vue 3 | MySQL / Redis | REST API（含原 console 域：节点管理、心跳、配置发布） |
 | DNS 节点 | `dns-resolver` | Go 单二进制 | 本地内存 / 文件 buffer | DNS / HTTPS Agent API |
-| 接入调度 | `geodns` | Go | 内存 / Redis 快照 | Authoritative DNS / Internal API |
+| 接入调度 | `geodns` | Go | 内存 | Health View / Selector Internal API |
 
 ### 基础设施
 

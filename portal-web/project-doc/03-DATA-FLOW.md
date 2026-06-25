@@ -10,7 +10,7 @@
 |------|--------|------|------|
 | **portal-web** | Laravel | 控制面：节点管理、配置发布、日志存储、计费 | 8081 |
 | **dns-resolver** | Go | 数据面：DNS 解析、规则匹配、日志采集 | 53/443/853 |
-| **geodns** | Go | 入口调度：健康视图同步、就近路由 | 53(权威)/5354(API) |
+| **geodns** | Go | 入口调度：健康视图同步、就近路由 | 5354(HTTP API) |
 | **clickhouse** | ClickHouse | 日志分析：查询日志存储与统计 | 8123/9000 |
 
 ### ⚠️ 强约束：GeoDNS = 调度解析器，不是节点
@@ -234,24 +234,23 @@ listen:
 客户端设备
      │
      │ 1. 解析 SNI 域名
-     │    bcfe3a.dns.ocerlinkdata.com
-     ▼
+                 │    bcfe3a.dns.ocerlinkdata.com
+                 ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │                    系统 DNS 递归解析                                │
 │                                                                    │
-│  → GeoDNS Authoritative DNS (:53)                                 │
+│  → GeoDNS HTTP API (:5354)                                        │
 └────────────────────────────────────────────────────────────────────┘
      │
-     │ 2. DNS 查询
-     │    bcfe3a.dns.ocerlinkdata.com A
+     │ 2. 选择请求
+     │    GET /pick?domain=bcfe3a...
      ▼
 ┌────────────────────────────────────────────────────────────────────┐
-│                 GeoDNS (Authoritative DNS)                         │
-│                        UDP/TCP :53                                 │
+│                 GeoDNS (Selector)                                  │
+│                        HTTP :5354                                  │
 │                                                                    │
-│  1. 收到查询: bcfe3a.dns.ocerlinkdata.com                        │
-│  2. 提取 profile_id: bcfe3a (从子域名)                            │
-│  3. 从 HealthView 本地缓存选择最优 resolver:                       │
+│  1. 收到选择请求: GET /pick?domain=...&client_ip=...              │
+│  2. 从 HealthView 本地缓存选择最优 resolver:                       │
 │     - 按 region/country 选择最近节点                               │
 │     - 按 weight 加权负载                                           │
 │     - 过滤 offline 节点                                           │
@@ -393,7 +392,7 @@ listen:
      ▼
 ┌────────────────────────────────────────────┐
 │          系统 DNS 递归解析                   │
-│     → GeoDNS Authoritative (UDP 53)         │
+│     → GeoDNS HTTP (5354)                   │
 └────────────────────────────────────────────┘
      │
      │ 返回 Resolver IP
@@ -428,7 +427,7 @@ listen:
 
 ### 4.1 组件职责
 
-- **Authoritative DNS (UDP/TCP 53)**：接收 DNS 查询，返回最优 resolver IP
+- **HTTP API (5354)**：接收节点选择请求，返回最优 resolver IP
 - **HealthView Client**：定时从 portal-web 拉取 resolver 节点健康状态
 - **Local Cache**：缓存节点列表，本地选择最优 resolver
 - **Selector**：根据客户端 IP 地理位置选择最近/最优节点
@@ -446,10 +445,9 @@ listen:
 │  └─────────────────────────────────────────────────────┘   │
 │                          │                                  │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  Authoritative DNS Server                            │   │
-│  │  UDP/TCP :53                                        │   │
+│  │  HTTP API Server (:5354)                             │   │
 │  │                                                     │   │
-│  │  收到查询: ns1.ocerlinkdata.com                     │   │
+│  │  收到查询: GET /pick?domain=...&client_ip=...       │   │
 │  │  → 从本地缓存的 HealthView 选择最优 resolver         │   │
 │  │  → 返回 resolver IP                                 │   │
 │  └─────────────────────────────────────────────────────┘   │
@@ -582,10 +580,10 @@ dns_query_logs 表
 └────────────────────────┬───────────────────────────────┘              │
                          │                                             │
 ┌────────────────────────┴────────────────────────────────────────────┐│
-│          geodns (Authoritative DNS + Selector)                       ││
+│          geodns (HTTP API + Selector)                                 ││
 │                                                                          ││
 │  ┌────────────────────────────────────────────────────────────────────┐ ││
-│  │  Authoritative DNS (UDP/TCP :53)                                   │ ││
+│  │  HTTP API (:5354)                                                  │ ││
 │  │  → 本地缓存的 HealthView → 返回最优 resolver IP                    │ ││
 │  └────────────────────────────────────────────────────────────────────┘ ││
 │                          ▲                                             ││
@@ -617,6 +615,6 @@ dns_query_logs 表
 
 | 日期 | 描述 |
 |------|------|
-| 2026-06-23 | 修正 GeoDNS 端口定义，区分 Authoritative DNS (53) 和 Internal API (5354) |
+| 2026-06-23 | 新增 GeoDNS 数据流说明，明确 GeoDNS 为 HTTP API (5354) 服务 |
 | 2026-06-23 | 修正 DoH 流程说明，明确不经过 GeoDNS |
 | 2026-06-23 | 修正 GeoDNS HealthView 拉取方式，定时同步而非每次查询拉取 |

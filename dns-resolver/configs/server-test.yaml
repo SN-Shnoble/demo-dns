@@ -25,7 +25,7 @@ upstream:
     - 8.8.8.8
 logging:
     level: debug
-    buffer_path: /tmp/ocer-dns-log-buffer
+    buffer_path: ./test-data/log-buffer
 nats:
     enabled: false
 redis:

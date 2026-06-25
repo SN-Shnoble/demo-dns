@@ -108,7 +108,7 @@ dns-resolver/
 |---|---|---|---|---|
 | 用户门户 + 总后台 | `portal-web`(含 User 域与原 console 域) | Laravel + Vue 3 | MySQL / File Cache | REST API / Node API / Internal API |
 | DNS 节点 | `dns-resolver` | Go 单二进制 | 本地内存 / 文件 buffer | DNS / HTTPS Agent API |
-| 接入调度 | `geodns` | Go | 内存 / Redis 快照 | Authoritative DNS / Internal API |
+| 接入调度 | `geodns` | Go | 内存 | Health View / Selector Internal API |
 | 日志分析 | `clickhouse` | ClickHouse | MergeTree | HTTP / Native |
 | 消息总线 | `nats`（V2+ 可选） | NATS JetStream | Stream | Pub/Sub |
 
@@ -221,7 +221,7 @@ Global Config（GET /config）：
   - 启动时拉取 + 定时刷新（5 分钟）
   - 仅返回公共运行参数：upstreams / plans / rulesets / limits
   - 绝对不包含任何用户 Profile 数据
-  - 保存为 data/global.json
+  - 保存为 {profiles_path}/global.json（默认 ./data/profiles/global.json，可通过 control_plane.profiles_path 配置）
 
 Profile Config（GET /profiles/{profile_id}）：
   - 按需拉取：Memory Cache MISS → Disk Cache MISS → Portal
@@ -422,8 +422,8 @@ return $this->belongsTo(User::class);
 18. Resolver 必须实现配额超限拒绝策略（quota_status=exceeded 时 DNS 返回 REFUSED，DoH 返回 403）
 19. 注册时必须自动创建 Free 订阅记录
 20. 设备IP识别必须去端口化
-21. GeoDNS 端口统一为 15354
-22. GeoDNS 权威 DNS 服务必须监听 UDP/TCP 53 端口
+21. GeoDNS HTTP API 端口统一为 5354
+22. GeoDNS 通过 HTTP API 提供健康视图和节点选择服务（端口 5354），不提供 DNS 协议接入
 23. GeoDNS 必须定时拉取并本地缓存 portal-web 健康视图
 24. DoH 查询直接访问 Resolver，不经过 GeoDNS
 25. DoT/DoQ 查询必须经过 GeoDNS 调度
