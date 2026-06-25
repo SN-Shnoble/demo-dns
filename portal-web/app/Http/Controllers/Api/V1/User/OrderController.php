@@ -155,6 +155,112 @@ final class OrderController
         ], 201);
     }
 
+    /** POST /api/v1/user/orders/{id}/payment-intent — 创建 PaymentIntent（信用卡 Elements 支付） */
+    public function createPaymentIntent(Request $request, string $id): JsonResponse
+    {
+        $order = Order::where('id', $id)
+            ->where('user_id', (string) $request->user()->uid)
+            ->firstOrFail();
+        if ($order->status !== Order::STATUS_PENDING) {
+            return response()->json(['message' => 'Order is not payable.'], 422);
+        }
+
+        $methods = $this->payments->configuredPaymentMethods();
+        if (! in_array('card', $methods, true)) {
+            return response()->json(['message' => 'Card payment is not enabled.'], 422);
+        }
+
+        try {
+            $result = $this->payments->createPaymentIntent($order);
+            return response()->json([
+                'data' => [
+                    'order_id' => (string) $order->id,
+                    'client_secret' => $result['client_secret'],
+                    'payment_intent_id' => $result['payment_intent_id'],
+                    'payment_transaction_id' => $result['payment_transaction_id'],
+                    'publishable_key' => $this->payments->stripePublishableKey(),
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** POST /api/v1/user/orders/{id}/qr-payment — 创建二维码支付（微信/支付宝） */
+    public function createQrPayment(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'payment_method' => [
+                'required',
+                'string',
+                Rule::in(['wechat_pay', 'alipay']),
+            ],
+        ]);
+
+        $order = Order::where('id', $id)
+            ->where('user_id', (string) $request->user()->uid)
+            ->firstOrFail();
+        if ($order->status !== Order::STATUS_PENDING) {
+            return response()->json(['message' => 'Order is not payable.'], 422);
+        }
+
+        $methods = $this->payments->configuredPaymentMethods();
+        if (! in_array($validated['payment_method'], $methods, true)) {
+            return response()->json(['message' => 'Payment method is not enabled.'], 422);
+        }
+
+        try {
+            $result = $this->payments->createQrPayment($order, $validated['payment_method']);
+            return response()->json([
+                'data' => [
+                    'order_id' => (string) $order->id,
+                    'qr_code_url' => $result['qr_code_url'],
+                    'payment_intent_id' => $result['payment_intent_id'],
+                    'client_secret' => $result['client_secret'],
+                    'payment_transaction_id' => $result['payment_transaction_id'],
+                    'payment_method' => $validated['payment_method'],
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** GET /api/v1/user/payment-transactions/{id}/status — 查询支付交易状态 */
+    public function paymentTransactionStatus(Request $request, string $id): JsonResponse
+    {
+        $tx = $this->payments->getTransactionStatus($id);
+        if (! $tx) {
+            return response()->json(['message' => 'Payment transaction not found.'], 404);
+        }
+        if ($tx->user_id !== (string) $request->user()->uid) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => (string) $tx->id,
+                'status' => $tx->status,
+                'order_id' => (string) $tx->order_id,
+                'amount_minor' => (int) $tx->amount_minor,
+                'currency' => $tx->currency,
+                'failure_message' => $tx->failure_message,
+                'updated_at' => $tx->updated_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /** GET /api/v1/user/stripe-config — 获取 Stripe 前端配置 */
+    public function stripeConfig(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'publishable_key' => $this->payments->stripePublishableKey(),
+                'payment_methods' => $this->payments->paymentMethodOptions(),
+            ],
+        ]);
+    }
+
     /** POST /api/v1/user/orders/{id}/pay-with-wallet — 使用余额支付订单 */
     public function payWithWallet(Request $request, string $id): JsonResponse
     {

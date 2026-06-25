@@ -116,8 +116,13 @@ Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function ():
         Route::post('', [OrderController::class, 'create']);
         Route::get('{id}', [OrderController::class, 'show']);
         Route::post('{id}/checkout', [OrderController::class, 'checkout']);
+        Route::post('{id}/payment-intent', [OrderController::class, 'createPaymentIntent']);
+        Route::post('{id}/qr-payment', [OrderController::class, 'createQrPayment']);
         Route::post('{id}/pay-with-wallet', [OrderController::class, 'payWithWallet']);
     });
+
+    Route::get('payment-transactions/{id}/status', [OrderController::class, 'paymentTransactionStatus']);
+    Route::get('stripe-config', [OrderController::class, 'stripeConfig']);
 
     // 套餐购买入口
     Route::get('plans', [OrderController::class, 'plans']);

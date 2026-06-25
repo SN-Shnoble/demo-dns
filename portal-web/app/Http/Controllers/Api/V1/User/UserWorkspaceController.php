@@ -435,19 +435,17 @@ final class UserWorkspaceController
             idempotencyKey: 'wallet-topup-' . $request->user()->uid . '-' . now()->format('YmdHisv'),
         );
 
-        // 必须走 Stripe Checkout；钱包入账只能由 Stripe webhook 回调确认后生效。
-        // 这里不再做任何"前端回调即入账"的模拟路径。
-        $tx = $payment->createCheckout($order, $validated['payment_method'] ?? null);
-        $redirectUrl = $tx->raw_payload['redirect_url'] ?? null;
-
         return response()->json([
             'data' => [
                 'paid' => false,
-                'order_id' => (string) $order->id,
-                'payment_transaction_id' => (string) $tx->id,
-                'redirect_url' => $redirectUrl,
-                'payment_method' => $tx->raw_payload['payment_method'] ?? null,
-                'message' => 'Redirect to Stripe to complete payment. Wallet will be credited after Stripe webhook.',
+                'order' => [
+                    'id' => (string) $order->id,
+                    'order_no' => $order->order_no,
+                    'payable_amount_minor' => (int) $order->payable_amount_minor,
+                    'currency' => $order->currency,
+                    'status' => $order->status,
+                ],
+                'message' => 'Order created. Complete payment via payment-intent or qr-payment endpoint.',
             ],
         ], 201);
     }

@@ -204,6 +204,16 @@ final class PaymentService
         return (string) config('services.stripe.secret', '');
     }
 
+    public function stripePublishableKey(): string
+    {
+        $configured = (string) SystemConfigValue::field('payment', 'publishable_key', '');
+        if ($configured !== '' && $configured !== '********') {
+            return $configured;
+        }
+
+        return (string) config('services.stripe.publishable', '');
+    }
+
     private function useFakeCheckout(): bool
     {
         $configured = SystemConfigValue::field('payment', 'fake', null);
@@ -270,6 +280,28 @@ final class PaymentService
         return $tx;
     }
 
+    /**
+     * payment_intent.succeeded 事件成功处理（用于 Elements/二维码支付）
+     */
+    public function handleSuccessByPaymentIntent(string $paymentIntentId): PaymentTransaction
+    {
+        $tx = PaymentTransaction::where('provider_payment_intent_id', $paymentIntentId)->first();
+        if (! $tx instanceof PaymentTransaction) {
+            throw new \RuntimeException("No payment transaction found for payment_intent [{$paymentIntentId}]");
+        }
+        if ($tx->status === PaymentTransaction::STATUS_SUCCESS) {
+            return $tx;
+        }
+        $tx->update([
+            'status' => PaymentTransaction::STATUS_SUCCESS,
+            'updated_at' => Carbon::now(),
+        ]);
+        if ($tx->order_id) {
+            (new OrderService())->markPaid((string) $tx->order_id, $paymentIntentId);
+        }
+        return $tx;
+    }
+
     public function refund(PaymentTransaction $tx): PaymentTransaction
     {
         if ($tx->status !== PaymentTransaction::STATUS_SUCCESS) {
@@ -280,5 +312,163 @@ final class PaymentService
             (new OrderService())->markRefunded((string) $tx->order_id);
         }
         return $tx;
+    }
+
+    /**
+     * 创建 PaymentIntent（用于 Stripe Elements 信用卡支付）。
+     *
+     * @return array{client_secret: string, payment_intent_id: string}
+     */
+    public function createPaymentIntent(Order $order): array
+    {
+        $secret = $this->stripeSecret();
+        $useFake = $this->useFakeCheckout();
+
+        if (app()->environment('production') && $useFake) {
+            throw new RuntimeException('Fake Stripe is forbidden in production.');
+        }
+
+        $hasStripe = $secret !== '' && class_exists(\Stripe\StripeClient::class) && ! $useFake;
+        if (! $hasStripe && ! $useFake) {
+            throw new RuntimeException('Stripe is not configured.');
+        }
+
+        $paymentIntentId = 'pi_test_' . Str::random(24);
+        $clientSecret = $paymentIntentId . '_secret_' . Str::random(16);
+
+        if ($hasStripe) {
+            try {
+                $stripe = new \Stripe\StripeClient($secret);
+                $intent = $stripe->paymentIntents->create([
+                    'amount' => (int) $order->payable_amount_minor,
+                    'currency' => strtolower((string) $order->currency),
+                    'payment_method_types' => ['card'],
+                    'metadata' => [
+                        'order_id' => (string) $order->id,
+                        'user_id' => (string) $order->user_id,
+                    ],
+                ]);
+                $paymentIntentId = $intent->id;
+                $clientSecret = $intent->client_secret;
+            } catch (\Throwable $e) {
+                throw new RuntimeException('Stripe PaymentIntent creation failed: ' . $e->getMessage(), 0, $e);
+            }
+        }
+
+        $tx = PaymentTransaction::create([
+            'user_id' => $order->user_id,
+            'order_id' => $order->id,
+            'provider' => 'stripe',
+            'provider_session_id' => $paymentIntentId,
+            'provider_payment_intent_id' => $paymentIntentId,
+            'status' => PaymentTransaction::STATUS_PENDING,
+            'amount_minor' => $order->payable_amount_minor,
+            'currency' => $order->currency,
+            'raw_payload' => [
+                'payment_method' => 'card',
+                'payment_intent_id' => $paymentIntentId,
+                'client_secret' => $clientSecret,
+            ],
+        ]);
+
+        return [
+            'client_secret' => $clientSecret,
+            'payment_intent_id' => $paymentIntentId,
+            'payment_transaction_id' => (string) $tx->id,
+        ];
+    }
+
+    /**
+     * 创建微信/支付宝支付（返回二维码 URL 等信息）。
+     *
+     * @return array{qr_code_url: string, payment_intent_id: string, client_secret: string}
+     */
+    public function createQrPayment(Order $order, string $paymentMethod): array
+    {
+        $secret = $this->stripeSecret();
+        $useFake = $this->useFakeCheckout();
+
+        if (! in_array($paymentMethod, ['wechat_pay', 'alipay'], true)) {
+            throw new RuntimeException('Invalid payment method for QR payment.');
+        }
+
+        if (app()->environment('production') && $useFake) {
+            throw new RuntimeException('Fake Stripe is forbidden in production.');
+        }
+
+        $hasStripe = $secret !== '' && class_exists(\Stripe\StripeClient::class) && ! $useFake;
+        if (! $hasStripe && ! $useFake) {
+            throw new RuntimeException('Stripe is not configured.');
+        }
+
+        $paymentIntentId = 'pi_test_' . Str::random(24);
+        $clientSecret = $paymentIntentId . '_secret_' . Str::random(16);
+        $qrCodeUrl = '';
+
+        if ($hasStripe) {
+            try {
+                $stripe = new \Stripe\StripeClient($secret);
+
+                $paymentIntentData = [
+                    'amount' => (int) $order->payable_amount_minor,
+                    'currency' => strtolower((string) $order->currency),
+                    'payment_method_types' => [$paymentMethod],
+                    'metadata' => [
+                        'order_id' => (string) $order->id,
+                        'user_id' => (string) $order->user_id,
+                    ],
+                ];
+
+                if ($paymentMethod === 'wechat_pay') {
+                    $paymentIntentData['payment_method_options'] = [
+                        'wechat_pay' => ['client' => 'web'],
+                    ];
+                }
+
+                $intent = $stripe->paymentIntents->create($paymentIntentData);
+                $paymentIntentId = $intent->id;
+                $clientSecret = $intent->client_secret;
+
+                $qrCodeUrl = $intent->next_action?->wechat_pay_handle_qr_code?->qr_code_url
+                    ?? $intent->next_action?->alipay_handle_redirect?->url
+                    ?? '';
+            } catch (\Throwable $e) {
+                throw new RuntimeException('Stripe QR payment creation failed: ' . $e->getMessage(), 0, $e);
+            }
+        } else {
+            $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=fake_' . $paymentMethod . '_' . $order->order_no;
+        }
+
+        $tx = PaymentTransaction::create([
+            'user_id' => $order->user_id,
+            'order_id' => $order->id,
+            'provider' => 'stripe',
+            'provider_session_id' => $paymentIntentId,
+            'provider_payment_intent_id' => $paymentIntentId,
+            'status' => PaymentTransaction::STATUS_PENDING,
+            'amount_minor' => $order->payable_amount_minor,
+            'currency' => $order->currency,
+            'raw_payload' => [
+                'payment_method' => $paymentMethod,
+                'payment_intent_id' => $paymentIntentId,
+                'client_secret' => $clientSecret,
+                'qr_code_url' => $qrCodeUrl,
+            ],
+        ]);
+
+        return [
+            'qr_code_url' => $qrCodeUrl,
+            'payment_intent_id' => $paymentIntentId,
+            'client_secret' => $clientSecret,
+            'payment_transaction_id' => (string) $tx->id,
+        ];
+    }
+
+    /**
+     * 查询支付交易状态。
+     */
+    public function getTransactionStatus(string $transactionId): ?PaymentTransaction
+    {
+        return PaymentTransaction::find($transactionId);
     }
 }

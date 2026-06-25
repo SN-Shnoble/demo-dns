@@ -215,9 +215,9 @@
         </el-dialog>
 
         <!-- 在线支付弹窗 (Stripe) -->
-        <el-dialog v-model="showPayDialog" :title="$t('account.pay.title') || '在线支付'" width="520px" top="8vh" :close-on-click-modal="false">
+        <el-dialog v-model="showPayDialog" :title="$t('account.pay.title') || '在线支付'" width="520px" top="8vh" :close-on-click-modal="false" :before-close="cancelPay">
             <div v-if="pendingOrder" class="pay-summary">
-                <p class="pay-tip">{{ $t('account.pay.tip') || '请使用 Stripe 完成订阅支付，支付成功后将自动激活套餐。' }}</p>
+                <p class="pay-tip">{{ $t('account.pay.tip') || '请完成支付，支付成功后将自动激活套餐。' }}</p>
                 <div class="pay-row">
                     <span class="pay-label">{{ $t('account.pay.orderNo') || '订单号' }}</span>
                     <span class="pay-value">{{ pendingOrder.order_no }}</span>
@@ -228,7 +228,7 @@
                 </div>
                 <div class="pay-methods">
                     <div class="pay-method-label">支付方式</div>
-                    <el-radio-group v-model="selectedPaymentMethod" class="pay-method-group">
+                    <el-radio-group v-model="selectedPaymentMethod" class="pay-method-group" @change="handlePaymentMethodChange">
                         <el-radio
                             v-for="method in paymentMethods"
                             :key="method.value"
@@ -239,13 +239,58 @@
                             {{ method.label }}
                         </el-radio>
                     </el-radio-group>
-                    <div class="pay-method-desc">通过 Stripe 测试模式完成支付</div>
+                </div>
+
+                <!-- 信用卡支付表单 -->
+                <div v-if="selectedPaymentMethod === 'card' && payStep === 'form'" class="card-form-section">
+                    <div class="form-label">信用卡信息</div>
+                    <div ref="cardElementRef" class="stripe-card-element"></div>
+                    <p v-if="cardError" class="card-error">{{ cardError }}</p>
+                </div>
+
+                <!-- 二维码支付 -->
+                <div v-if="(selectedPaymentMethod === 'wechat_pay' || selectedPaymentMethod === 'alipay') && payStep === 'qrcode'" class="qr-section">
+                    <div class="qr-container">
+                        <img v-if="qrCodeUrl" :src="qrCodeUrl" class="qr-image" alt="支付二维码" />
+                        <div v-else class="qr-loading">
+                            <el-icon class="is-loading"><Loading /></el-icon>
+                            <span>正在生成二维码...</span>
+                        </div>
+                    </div>
+                    <p class="qr-tip">请使用{{ selectedPaymentMethod === 'wechat_pay' ? '微信' : '支付宝' }}扫码支付</p>
+                    <p class="qr-status">
+                        <el-icon><Refresh /></el-icon>
+                        <span>等待支付中... 请在手机上完成支付</span>
+                    </p>
+                </div>
+
+                <!-- 支付成功 -->
+                <div v-if="payStep === 'success'" class="pay-success">
+                    <el-icon class="success-icon"><CircleCheck /></el-icon>
+                    <p class="success-text">支付成功！</p>
+                    <p class="success-desc">订单已确认，页面即将刷新...</p>
                 </div>
             </div>
             <template #footer>
-                <el-button @click="cancelPay">{{ $t('common.cancel') }}</el-button>
-                <el-button type="primary" :loading="paying" @click="confirmPay">
-                    {{ $t('account.pay.goPay') || '前往支付' }}
+                <el-button v-if="payStep !== 'success'" @click="handleBackOrCancel">
+                    {{ payStep === 'form' || payStep === 'qrcode' ? '返回' : $t('common.cancel') }}
+                </el-button>
+                <el-button
+                    v-if="payStep === 'select'"
+                    type="primary"
+                    :loading="paying"
+                    @click="confirmPay"
+                >
+                    {{ $t('account.pay.goPay') || '确认支付' }}
+                </el-button>
+                <el-button
+                    v-if="selectedPaymentMethod === 'card' && payStep === 'form'"
+                    type="primary"
+                    :loading="paying"
+                    :disabled="!stripeReady"
+                    @click="confirmCardPay"
+                >
+                    {{ paying ? '支付中...' : '确认支付' }}
                 </el-button>
             </template>
         </el-dialog>
@@ -293,10 +338,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Coin, Wallet, Tickets, Message, Lock } from '@element-plus/icons-vue'
+import { Coin, Wallet, Tickets, Message, Lock, Loading, Refresh, CircleCheck } from '@element-plus/icons-vue'
+import { loadStripe } from '@stripe/stripe-js'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
 
@@ -345,6 +391,15 @@ const paying = ref(false)
 const pendingOrder = ref(null)
 const paymentMethods = ref([{ value: 'card', label: '信用卡' }])
 const selectedPaymentMethod = ref('card')
+const payStep = ref('select')
+const cardElementRef = ref(null)
+const stripeReady = ref(false)
+const cardError = ref('')
+const qrCodeUrl = ref('')
+const paymentTransactionId = ref('')
+let stripeInstance = null
+let cardElement = null
+let paymentPollTimer = null
 
 // 套餐相关
 const currentPlanCode = ref('free')
@@ -575,34 +630,17 @@ const handleSubscribe = async () => {
     }
 }
 
-// 确认支付：订单和订阅续费统一使用 Stripe Checkout
+// 确认支付：根据支付方式走不同流程
 const confirmPay = async () => {
     if (!pendingOrder.value) return
 
     paying.value = true
     try {
-        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/checkout`, {
-            payment_method: selectedPaymentMethod.value,
-        })
-        const redirectUrl = data?.data?.redirect_url
-
-        if (!redirectUrl) {
-            throw new Error('missing redirect_url')
+        if (selectedPaymentMethod.value === 'card') {
+            await initCardPayment()
+        } else if (selectedPaymentMethod.value === 'wechat_pay' || selectedPaymentMethod.value === 'alipay') {
+            await initQrPayment()
         }
-
-        // 真实 Stripe：跳转到支付页
-        if (redirectUrl.startsWith('https://checkout.stripe.com/')) {
-            window.open(redirectUrl, '_blank')
-            showPayDialog.value = false
-            ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
-            pendingOrder.value = null
-            return
-        }
-
-        // 非 Stripe URL → 无法完成支付，提示配置 Stripe
-        ElMessage.warning(t('account.pay.stripeNotConfigured') || 'Stripe 支付未配置，请联系管理员')
-        showPayDialog.value = false
-        pendingOrder.value = null
     } catch (err) {
         ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed') || '支付失败')
     } finally {
@@ -610,10 +648,218 @@ const confirmPay = async () => {
     }
 }
 
+// 初始化信用卡支付（Stripe Elements）
+const initCardPayment = async () => {
+    if (!pendingOrder.value) return
+
+    const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/payment-intent`)
+    const result = data?.data || data
+
+    if (!result?.publishable_key) {
+        throw new Error('Stripe publishable key not configured')
+    }
+
+    paymentTransactionId.value = result.payment_transaction_id
+
+    stripeInstance = await loadStripe(result.publishable_key)
+    if (!stripeInstance) {
+        throw new Error('Failed to load Stripe')
+    }
+
+    const elements = stripeInstance.elements({
+        clientSecret: result.client_secret,
+    })
+
+    await nextTick()
+
+    cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                    color: '#aab7c4',
+                },
+            },
+            invalid: {
+                color: '#9e2146',
+            },
+        },
+    })
+
+    cardElement.mount(cardElementRef.value)
+    cardElement.on('change', (event) => {
+        cardError.value = event.error?.message || ''
+        stripeReady.value = event.complete
+    })
+
+    payStep.value = 'form'
+}
+
+// 确认信用卡支付
+const confirmCardPay = async () => {
+    if (!stripeInstance || !cardElement || !pendingOrder.value) return
+
+    paying.value = true
+    cardError.value = ''
+
+    try {
+        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/payment-intent`)
+        const result = data?.data || data
+
+        const { error, paymentIntent } = await stripeInstance.confirmCardPayment(
+            result.client_secret,
+            {
+                payment_method: {
+                    card: cardElement,
+                },
+            }
+        )
+
+        if (error) {
+            cardError.value = error.message || '支付失败'
+            return
+        }
+
+        if (paymentIntent && paymentIntent.status === 'succeeded') {
+            handlePaymentSuccess()
+        } else {
+            startPaymentPolling()
+        }
+    } catch (err) {
+        cardError.value = err?.message || '支付失败'
+    } finally {
+        paying.value = false
+    }
+}
+
+// 初始化二维码支付（微信/支付宝）
+const initQrPayment = async () => {
+    if (!pendingOrder.value) return
+
+    qrCodeUrl.value = ''
+    payStep.value = 'qrcode'
+
+    const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/qr-payment`, {
+        payment_method: selectedPaymentMethod.value,
+    })
+    const result = data?.data || data
+
+    qrCodeUrl.value = result.qr_code_url
+    paymentTransactionId.value = result.payment_transaction_id
+
+    startPaymentPolling()
+}
+
+// 开始轮询支付状态
+const startPaymentPolling = () => {
+    if (paymentPollTimer) {
+        clearInterval(paymentPollTimer)
+    }
+
+    paymentPollTimer = setInterval(async () => {
+        if (!paymentTransactionId.value) return
+
+        try {
+            const { data } = await client.get(`/user/payment-transactions/${paymentTransactionId.value}/status`)
+            const status = data?.data?.status
+
+            if (status === 'success') {
+                handlePaymentSuccess()
+            } else if (status === 'failed') {
+                clearInterval(paymentPollTimer)
+                paymentPollTimer = null
+                ElMessage.error(data.data.failure_message || '支付失败')
+            }
+        } catch {}
+    }, 3000)
+}
+
+// 支付成功处理
+const handlePaymentSuccess = () => {
+    if (paymentPollTimer) {
+        clearInterval(paymentPollTimer)
+        paymentPollTimer = null
+    }
+
+    payStep.value = 'success'
+    ElMessage.success(t('account.pay.success') || '支付成功')
+
+    setTimeout(() => {
+        showPayDialog.value = false
+        pendingOrder.value = null
+        payStep.value = 'select'
+        qrCodeUrl.value = ''
+        paymentTransactionId.value = ''
+        if (cardElement) {
+            cardElement.destroy()
+            cardElement = null
+        }
+        stripeInstance = null
+        stripeReady.value = false
+        cardError.value = ''
+        refreshSubscriptionData()
+    }, 2000)
+}
+
+// 返回或取消
+const handleBackOrCancel = () => {
+    if (payStep.value === 'form' || payStep.value === 'qrcode') {
+        if (paymentPollTimer) {
+            clearInterval(paymentPollTimer)
+            paymentPollTimer = null
+        }
+        if (cardElement) {
+            cardElement.destroy()
+            cardElement = null
+        }
+        stripeInstance = null
+        stripeReady.value = false
+        cardError.value = ''
+        qrCodeUrl.value = ''
+        paymentTransactionId.value = ''
+        payStep.value = 'select'
+    } else {
+        cancelPay()
+    }
+}
+
+const handlePaymentMethodChange = () => {
+    if (payStep.value !== 'select') {
+        payStep.value = 'select'
+        if (cardElement) {
+            cardElement.destroy()
+            cardElement = null
+        }
+        stripeInstance = null
+        stripeReady.value = false
+        cardError.value = ''
+        qrCodeUrl.value = ''
+        paymentTransactionId.value = ''
+        if (paymentPollTimer) {
+            clearInterval(paymentPollTimer)
+            paymentPollTimer = null
+        }
+    }
+}
+
 const cancelPay = () => {
+    if (paymentPollTimer) {
+        clearInterval(paymentPollTimer)
+        paymentPollTimer = null
+    }
+    if (cardElement) {
+        cardElement.destroy()
+        cardElement = null
+    }
+    stripeInstance = null
+    stripeReady.value = false
+    cardError.value = ''
+    payStep.value = 'select'
+    qrCodeUrl.value = ''
+    paymentTransactionId.value = ''
     showPayDialog.value = false
     pendingOrder.value = null
-    ElMessage.info(t('account.pay.cancelled') || '已取消支付')
 }
 
 // 刷新订阅/使用量数据
@@ -647,14 +893,18 @@ const handleRecharge = async () => {
             payment_method: selectedPaymentMethod.value
         })
         const payload = data?.data || data
-        const redirectUrl = payload.redirect_url || payload.pay_url
-        if (redirectUrl) {
-            window.open(redirectUrl, '_blank')
-            ElMessage.info(t('account.pay.redirectTip') || '已打开支付页面，完成后请刷新本页面查看状态')
-        } else {
-            await loadAccountData()
-            ElMessage.success(t('account.recharge.success') || '充值请求已提交')
+        const order = payload.order || payload
+
+        if (order?.id) {
+            const amountLabel = money(order.payable_amount_minor, order.currency)
+            pendingOrder.value = { ...order, amount_label: amountLabel }
+            showRechargeDialog.value = false
+            showPayDialog.value = true
+            return
         }
+
+        await loadAccountData()
+        ElMessage.success(t('account.recharge.success') || '充值请求已提交')
         showRechargeDialog.value = false
     } catch (err) {
         const errors = err?.response?.data?.errors
@@ -1144,5 +1394,104 @@ onMounted(() => {
 .pay-method-desc {
     color: #64748b;
     font-size: 13px;
+}
+
+/* 信用卡表单 */
+.card-form-section {
+    margin-top: 24px;
+}
+.form-label {
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+.stripe-card-element {
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    min-height: 44px;
+}
+.card-error {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* 二维码支付 */
+.qr-section {
+    margin-top: 24px;
+    text-align: center;
+}
+.qr-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.qr-image {
+    width: 200px;
+    height: 200px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fff;
+}
+.qr-loading {
+    width: 200px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+.qr-tip {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 8px;
+}
+.qr-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+.qr-status .el-icon {
+    animation: spin 2s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 支付成功 */
+.pay-success {
+    text-align: center;
+    padding: 32px 0;
+}
+.success-icon {
+    font-size: 64px;
+    color: #22c55e;
+    margin-bottom: 16px;
+}
+.success-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px;
+}
+.success-desc {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
 }
 </style>

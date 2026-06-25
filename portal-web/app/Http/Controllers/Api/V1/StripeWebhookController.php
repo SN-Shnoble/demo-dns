@@ -102,6 +102,11 @@ final class StripeWebhookController
                     $reason = (string) ($payload['data']['object']['last_payment_error']['message'] ?? '');
                     $this->payments->handleFailureByPaymentIntent($intentId, $reason !== '' ? $reason : null);
                     break;
+                case 'payment_intent.succeeded':
+                    // PaymentIntent 成功（用于 Elements 信用卡支付和二维码支付）
+                    $intentId = (string) ($payload['data']['object']['id'] ?? '');
+                    $this->payments->handleSuccessByPaymentIntent($intentId);
+                    break;
                 default:
                     $log->update(['status' => StripeWebhookLog::STATUS_IGNORED, 'processed_at' => now()]);
                     return response()->json(['data' => ['event_id' => $eventId, 'status' => StripeWebhookLog::STATUS_IGNORED]]);
