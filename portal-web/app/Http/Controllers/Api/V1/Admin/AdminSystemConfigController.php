@@ -36,9 +36,7 @@ final class AdminSystemConfigController
             $rows = SystemConfig::query()->get();
             $payload = [];
             foreach ($rows as $row) {
-                $payload[$row->key] = $this->isSensitiveKey($row->key)
-                    ? $this->maskConfigValue($row->value)
-                    : $row->value;
+                $payload[$row->key] = $this->maskConfigValue($row->config_value);
             }
 
             return [
@@ -77,7 +75,7 @@ final class AdminSystemConfigController
         foreach ($configs as $key => $value) {
             $keyStr = (string) $key;
             $current = SystemConfig::query()->where('config_key', $keyStr)->first();
-            $resolvedValue = $this->restoreMaskedSensitiveValues($value, $current?->value, $keyStr);
+            $resolvedValue = $this->restoreMaskedSensitiveValues($value, $current?->config_value, $keyStr);
             // 加密入库
             $storedValue = $this->isSensitiveKey($keyStr)
                 ? $this->encryptSensitive($resolvedValue)

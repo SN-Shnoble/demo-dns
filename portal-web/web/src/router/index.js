@@ -14,7 +14,6 @@ import Analytics from '@/views/Analytics.vue'
 import Logs from '@/views/Logs.vue'
 import Devices from '@/views/Devices.vue'
 import APIKeys from '@/views/APIKeys.vue'
-import Settings from '@/views/Settings.vue'
 import Membership from '@/views/Membership.vue'
 import Account from '@/views/user/Account.vue'
 import TeamList from '@/views/TeamList.vue'
@@ -87,7 +86,6 @@ const routes = [
     { path: '/user/:profile_id/allowlist', name: 'Allowlist', component: Allowlist, meta: { auth: true } },
     { path: '/user/:profile_id/analytics', name: 'Analytics', component: Analytics, meta: { auth: true } },
     { path: '/user/:profile_id/logs', name: 'Logs', component: Logs, meta: { auth: true } },
-    { path: '/user/:profile_id/settings', name: 'Settings', component: Settings, meta: { auth: true } },
     { path: '/user/:profile_id/devices', name: 'Devices', component: Devices, meta: { auth: true } },
     { path: '/user/:profile_id/api-keys', name: 'APIKeys', component: APIKeys, meta: { auth: true } },
 

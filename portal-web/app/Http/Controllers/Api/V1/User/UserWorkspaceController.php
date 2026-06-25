@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\User;
 
 use App\Application\Member\WorkspaceRuleService;
+use App\Domain\Billing\PlanCatalogService;
 use App\Domain\Profile\MemberCatalogService;
 use App\Domain\Profile\UserWorkspaceService;
 use App\Domain\Billing\OrderService;
@@ -324,6 +325,19 @@ final class UserWorkspaceController
         return response()->json(['data' => $this->workspace->membership($request->user()->uid)]);
     }
 
+    public function paymentMethods(Request $request): JsonResponse
+    {
+        $payment = new PaymentService();
+        $methods = $payment->paymentMethodOptions();
+
+        return response()->json([
+            'data' => [
+                'methods' => $methods,
+                'default' => $methods[0]['value'] ?? 'card',
+            ],
+        ]);
+    }
+
     public function dnsEndpoints(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->workspace->dnsEndpoints($request->user()->uid, $this->profileId($request))]);
@@ -332,12 +346,22 @@ final class UserWorkspaceController
     public function usage(Request $request): JsonResponse
     {
         $user = User::findOrFail($request->user()->uid);
-        $subscription = DB::table('subscriptions')->where('user_id', $user->uid)->first();
-        $plan = $subscription ? DB::table('plans')->where('code', $subscription->plan_code ?? 'free')->first() : null;
-        
-        $monthlyLimit = $plan && isset($plan->limits) ? (json_decode($plan->limits, true)['monthly_queries'] ?? null) : 300000;
-        
-        // Get usage from usage_records
+        (new PlanCatalogService())->ensureDefaults();
+
+        $subscription = DB::table('subscriptions')
+            ->where('user_id', $user->uid)
+            ->whereIn('status', ['active', 'trialing', 'past_due'])
+            ->orderByDesc('id')
+            ->first();
+        $planCode = (string) ($subscription->plan_code ?? $user->plan_code ?? 'free');
+        $plan = DB::table('plans')->where('code', $planCode)->first();
+        $limits = is_string($plan?->limits ?? null) ? json_decode($plan->limits, true) : [];
+        $limits = is_array($limits) ? $limits : [];
+
+        $monthlyLimit = array_key_exists('monthly_queries', $limits)
+            ? $limits['monthly_queries']
+            : 300000;
+
         $periodIds = DB::table('billing_periods')
             ->where('user_id', $user->uid)
             ->where('period_start', '<=', now())
@@ -354,6 +378,8 @@ final class UserWorkspaceController
                 'queries_total' => $monthlyLimit,
                 'is_unlimited' => $monthlyLimit === null,
                 'upgrade_price' => 'US$3.99',
+                'quota_status' => (string) ($subscription->quota_status ?? 'normal'),
+                'plan_code' => $planCode,
             ]
         ]);
     }
@@ -388,8 +414,14 @@ final class UserWorkspaceController
 
     public function rechargeWallet(Request $request): JsonResponse
     {
+        $payment = new PaymentService();
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1|max:1000000',
+            'payment_method' => [
+                'nullable',
+                'string',
+                Rule::in($payment->configuredPaymentMethods()),
+            ],
         ]);
 
         $amountMinor = (int) round(((float) $validated['amount']) * 100);
@@ -405,7 +437,7 @@ final class UserWorkspaceController
 
         // 必须走 Stripe Checkout；钱包入账只能由 Stripe webhook 回调确认后生效。
         // 这里不再做任何"前端回调即入账"的模拟路径。
-        $tx = (new PaymentService())->createCheckout($order);
+        $tx = $payment->createCheckout($order, $validated['payment_method'] ?? null);
         $redirectUrl = $tx->raw_payload['redirect_url'] ?? null;
 
         return response()->json([
@@ -414,6 +446,7 @@ final class UserWorkspaceController
                 'order_id' => (string) $order->id,
                 'payment_transaction_id' => (string) $tx->id,
                 'redirect_url' => $redirectUrl,
+                'payment_method' => $tx->raw_payload['payment_method'] ?? null,
                 'message' => 'Redirect to Stripe to complete payment. Wallet will be credited after Stripe webhook.',
             ],
         ], 201);

@@ -50,10 +50,6 @@
                     <el-menu-item index="/user/logs" @click="navigateTo('/user/logs')">
                         <span>{{ $t('nav.logs') }}</span>
                     </el-menu-item>
-                    <el-menu-item index="/user/settings" @click="navigateToSettings">
-                        <el-icon><Setting /></el-icon>
-                        <span>{{ $t('nav.settings') }}</span>
-                    </el-menu-item>
                 </div>
 
                 <div class="nav-right">
@@ -144,7 +140,7 @@ import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { ArrowRight, ArrowDown, Plus, Select, Monitor, Setting } from '@element-plus/icons-vue'
+import { ArrowRight, ArrowDown, Plus, Select, Monitor } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import enLocale from 'element-plus/dist/locale/en.mjs'
 import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
@@ -178,17 +174,6 @@ const navigateTo = (path) => {
     }
 }
 
-const navigateToSettings = () => {
-    // 设置跟随当前 profile；无 profile 时回退到第一个
-    const profileId = route.params.profile_id || localStorage.getItem('current_profile_id')
-    if (profileId) {
-        router.push(`/user/${profileId}/settings`)
-    } else {
-        router.push('/user/settings').catch(() => {
-            // 静态 /user/settings 路由不存在；等待 loadProfiles 完成后由路由守卫处理
-        })
-    }
-}
 const userName = ref(t('common.defaultUser'))
 const userInitial = computed(() => (userName.value?.trim()?.charAt(0) || 'U').toUpperCase())
 

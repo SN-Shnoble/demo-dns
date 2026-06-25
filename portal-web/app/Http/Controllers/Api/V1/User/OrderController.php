@@ -10,7 +10,7 @@ use App\Domain\Billing\PlanCatalogService;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * UI.md #51 #53 — 用户订单中心。
@@ -127,13 +127,21 @@ final class OrderController
     /** POST /api/v1/user/orders/{id}/checkout — 创建支付会话 */
     public function checkout(Request $request, string $id): JsonResponse
     {
+        $validated = $request->validate([
+            'payment_method' => [
+                'nullable',
+                'string',
+                Rule::in($this->payments->configuredPaymentMethods()),
+            ],
+        ]);
+
         $order = Order::where('id', $id)
             ->where('user_id', (string) $request->user()->uid)
             ->firstOrFail();
         if ($order->status !== Order::STATUS_PENDING) {
             return response()->json(['message' => 'Order is not payable.'], 422);
         }
-        $tx = $this->payments->createCheckout($order);
+        $tx = $this->payments->createCheckout($order, $validated['payment_method'] ?? null);
         $payload = is_array($tx->raw_payload) ? $tx->raw_payload : [];
         return response()->json([
             'data' => [
@@ -141,6 +149,8 @@ final class OrderController
                 'payment_transaction_id' => (string) $tx->id,
                 'redirect_url' => $payload['redirect_url'] ?? null,
                 'provider_session_id' => (string) $tx->provider_session_id,
+                'payment_method' => $payload['payment_method'] ?? null,
+                'payment_method_types' => $payload['payment_method_types'] ?? [],
             ],
         ], 201);
     }

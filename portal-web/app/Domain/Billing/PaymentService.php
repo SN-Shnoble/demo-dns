@@ -22,6 +22,12 @@ use RuntimeException;
  */
 final class PaymentService
 {
+    private const PAYMENT_METHOD_LABELS = [
+        'card' => '信用卡',
+        'wechat_pay' => '微信支付',
+        'alipay' => '支付宝',
+    ];
+
     /**
      * 创建一个支付会话 (Stripe Checkout Session)。
      *
@@ -30,8 +36,9 @@ final class PaymentService
      *    SDK 抛异常 → 抛回 RuntimeException，禁止 fallback 成占位 session。
      *  - 没有 SDK / secret 时：仅允许 fake 模式（仅在非 production）使用占位 session。
      */
-    public function createCheckout(Order $order): PaymentTransaction
+    public function createCheckout(Order $order, ?string $paymentMethod = null): PaymentTransaction
     {
+        $paymentMethodTypes = $this->paymentMethodsForCheckout($paymentMethod);
         $secret = $this->stripeSecret();
         $appUrl = rtrim((string) config('app.url'), '/');
         $successUrl = $appUrl . '/user/order?status=success&order_id=' . $order->id . '&session_id={CHECKOUT_SESSION_ID}';
@@ -48,7 +55,10 @@ final class PaymentService
             ->where('status', PaymentTransaction::STATUS_PENDING)
             ->latest('id')
             ->first();
-        if ($existing instanceof PaymentTransaction) {
+        $existingMethod = is_array($existing?->raw_payload)
+            ? ($existing->raw_payload['payment_method'] ?? null)
+            : null;
+        if ($existing instanceof PaymentTransaction && ($paymentMethod === null || $existingMethod === $paymentMethod)) {
             return $existing;
         }
 
@@ -65,8 +75,9 @@ final class PaymentService
             try {
                 /** @var \Stripe\StripeClient $stripe */
                 $stripe = new \Stripe\StripeClient($secret);
-                $session = $stripe->checkout->sessions->create([
+                $payload = [
                     'mode' => 'payment',
+                    'payment_method_types' => $paymentMethodTypes,
                     'line_items' => [[
                         'price_data' => [
                             'currency' => strtolower((string) $order->currency),
@@ -81,7 +92,15 @@ final class PaymentService
                         'order_id' => (string) $order->id,
                         'user_id' => (string) $order->user_id,
                     ],
-                ]);
+                ];
+
+                if (in_array('wechat_pay', $paymentMethodTypes, true)) {
+                    $payload['payment_method_options'] = [
+                        'wechat_pay' => ['client' => 'web'],
+                    ];
+                }
+
+                $session = $stripe->checkout->sessions->create($payload);
                 $sessionId = $session->id;
                 $redirectUrl = (string) $session->url;
             } catch (\Throwable $e) {
@@ -100,8 +119,79 @@ final class PaymentService
             'currency' => $order->currency,
             'raw_payload' => [
                 'redirect_url' => $redirectUrl,
+                'payment_method' => $paymentMethodTypes[0] ?? 'card',
+                'payment_method_types' => $paymentMethodTypes,
             ],
         ]);
+    }
+
+    /**
+     * @return array<int, array{value: string, label: string}>
+     */
+    public function paymentMethodOptions(): array
+    {
+        return array_map(
+            fn (string $method): array => [
+                'value' => $method,
+                'label' => self::PAYMENT_METHOD_LABELS[$method] ?? $method,
+            ],
+            $this->configuredPaymentMethods(),
+        );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function configuredPaymentMethods(): array
+    {
+        return $this->normalizePaymentMethods(
+            SystemConfigValue::field('payment', 'payment_methods', ['card']),
+        );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function paymentMethodsForCheckout(?string $selected): array
+    {
+        $configured = $this->configuredPaymentMethods();
+        $selected = is_string($selected) ? trim($selected) : '';
+
+        if ($selected === '') {
+            return $configured;
+        }
+
+        if (! in_array($selected, $configured, true)) {
+            throw new RuntimeException('Selected payment method is not enabled.');
+        }
+
+        return [$selected];
+    }
+
+    /**
+     * @param mixed $methods
+     * @return array<int, string>
+     */
+    private function normalizePaymentMethods(mixed $methods): array
+    {
+        if (is_string($methods)) {
+            $methods = array_map('trim', explode(',', $methods));
+        }
+
+        if (! is_array($methods)) {
+            return ['card'];
+        }
+
+        $allowed = array_keys(self::PAYMENT_METHOD_LABELS);
+        $normalized = [];
+        foreach ($methods as $method) {
+            $method = trim((string) $method);
+            if ($method !== '' && in_array($method, $allowed, true)) {
+                $normalized[] = $method;
+            }
+        }
+
+        return array_values(array_unique($normalized)) ?: ['card'];
     }
 
     private function stripeSecret(): string

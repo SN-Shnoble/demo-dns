@@ -58,6 +58,7 @@ Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function ():
     Route::get('logs', [UserWorkspaceController::class, 'logs']);
     Route::get('catalogs', [UserWorkspaceController::class, 'catalogs']);
     Route::get('membership', [UserWorkspaceController::class, 'membership']);
+    Route::get('payment-methods', [UserWorkspaceController::class, 'paymentMethods']);
     // upgrade 路由已移除 — 升级必须走订单 + Stripe 支付流程
     Route::get('usage', [UserWorkspaceController::class, 'usage']);
     Route::get('wallet', [UserWorkspaceController::class, 'wallet']);

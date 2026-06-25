@@ -97,6 +97,14 @@
                                 <el-option value="live" label="Live" />
                             </el-select>
                         </el-form-item>
+                        <el-form-item label="启用支付方式">
+                            <el-checkbox-group v-model="config.payment.payment_methods" class="payment-methods">
+                                <el-checkbox-button value="card">信用卡</el-checkbox-button>
+                                <el-checkbox-button value="wechat_pay">微信</el-checkbox-button>
+                                <el-checkbox-button value="alipay">支付宝</el-checkbox-button>
+                            </el-checkbox-group>
+                            <span class="form-hint">用户支付订单时只能选择这里启用的 Stripe 支付方式。</span>
+                        </el-form-item>
                         <el-form-item :label="$t('admin.systemConfig.stripePublishableKey') || 'Publishable Key'">
                             <el-input v-model="config.payment.publishable_key" placeholder="pk_test_..." />
                         </el-form-item>
@@ -202,6 +210,7 @@ const defaultConfig = {
     },
     payment: {
         mode: 'test',
+        payment_methods: ['card'],
         publishable_key: '',
         secret_key: '',
         webhook_secret: '',
@@ -265,6 +274,7 @@ onMounted(async () => {
             const clickhouse = parseMaybe(data.data.clickhouse)
             const payment = parseMaybe(data.data.payment)
             const mail = parseMaybe(data.data.mail)
+            payment.payment_methods = normalizePaymentMethods(payment.payment_methods)
 
             config.value = {
                 ...config.value,
@@ -278,6 +288,16 @@ onMounted(async () => {
         }
     } catch {}
 })
+
+const normalizePaymentMethods = (methods) => {
+    const allowed = ['card', 'wechat_pay', 'alipay']
+    if (typeof methods === 'string') {
+        methods = methods.split(',').map((item) => item.trim())
+    }
+    if (!Array.isArray(methods)) return ['card']
+    const normalized = methods.filter((method) => allowed.includes(method))
+    return normalized.length > 0 ? [...new Set(normalized)] : ['card']
+}
 </script>
 
 <style scoped>
@@ -303,5 +323,10 @@ onMounted(async () => {
     font-size: 12px;
     line-height: 1.5;
     margin-top: 4px;
+}
+.payment-methods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 </style>

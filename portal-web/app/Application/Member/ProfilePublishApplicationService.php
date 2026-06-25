@@ -8,7 +8,6 @@ use App\Domain\Profile\ProfileConfigBuilder;
 use App\Domain\Profile\ProfilePublishService;
 use App\Domain\Publish\PublishService;
 use App\Models\Profile;
-use App\Models\ConfigVersion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -156,16 +155,6 @@ final class ProfilePublishApplicationService
             );
 
             $newVersion = (int) ($profile->version ?? 1) + 1;
-
-            ConfigVersion::create([
-                'target_scope' => 'profile',
-                'target_profile_id' => $profile->id,
-                'version' => $newVersion,
-                'config_json' => $publishResult['config_json'],
-                'checksum' => $publishResult['checksum'],
-                'published_at' => now(),
-                'created_at' => now(),
-            ]);
 
             $profile->update([
                 'version' => $newVersion,

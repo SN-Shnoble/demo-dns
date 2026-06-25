@@ -48,9 +48,9 @@
                             size="small"
                             type="primary"
                             :loading="payingId === row.id"
-                            @click="payOrder(row)"
+                            @click="openPayDialog(row)"
                         >
-                            {{ tr('order.payNow', 'Stripe 支付') }}
+                            {{ tr('order.payNow', '去支付') }}
                         </el-button>
                     </template>
                 </el-table-column>
@@ -73,9 +73,39 @@
                     v-if="activeOrder?.status === 'pending'"
                     type="primary"
                     :loading="payingId === activeOrder.id"
-                    @click="payOrder(activeOrder)"
+                    @click="openPayDialog(activeOrder)"
                 >
-                    {{ tr('order.payNow', 'Stripe 支付') }}
+                    {{ tr('order.payNow', '去支付') }}
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <el-dialog v-model="paymentVisible" :title="tr('order.selectPayment', '选择支付方式')" width="460px" :close-on-click-modal="false">
+            <div v-if="activePayOrder" class="payment-box">
+                <div class="payment-row">
+                    <span>{{ tr('order.orderNo', '订单号') }}</span>
+                    <strong>{{ activePayOrder.order_no }}</strong>
+                </div>
+                <div class="payment-row">
+                    <span>{{ tr('order.amount', '金额') }}</span>
+                    <strong>{{ money(activePayOrder.payable_amount_minor, activePayOrder.currency || 'USD') }}</strong>
+                </div>
+                <el-radio-group v-model="selectedPaymentMethod" class="payment-method-group">
+                    <el-radio
+                        v-for="method in paymentMethods"
+                        :key="method.value"
+                        :value="method.value"
+                        border
+                        class="payment-method-option"
+                    >
+                        {{ method.label }}
+                    </el-radio>
+                </el-radio-group>
+            </div>
+            <template #footer>
+                <el-button @click="paymentVisible = false">{{ tr('common.cancel', '取消') }}</el-button>
+                <el-button type="primary" :loading="payingId === activePayOrder?.id" @click="payOrder(activePayOrder)">
+                    {{ tr('account.pay.goPay', '前往支付') }}
                 </el-button>
             </template>
         </el-dialog>
@@ -84,7 +114,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import client from '@/api/client'
@@ -92,11 +122,16 @@ import Layout from '@/components/Layout.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const orders = ref([])
 const loading = ref(false)
 const payingId = ref(null)
 const detailVisible = ref(false)
 const activeOrder = ref(null)
+const paymentVisible = ref(false)
+const activePayOrder = ref(null)
+const paymentMethods = ref([{ value: 'card', label: '信用卡' }])
+const selectedPaymentMethod = ref('card')
 
 const tr = (key, fallback) => {
     const value = t(key)
@@ -168,17 +203,50 @@ const fetchOrders = async () => {
     }
 }
 
+const ensureSelectedPaymentMethod = () => {
+    const enabled = paymentMethods.value.map((method) => method.value)
+    if (!enabled.includes(selectedPaymentMethod.value)) {
+        selectedPaymentMethod.value = enabled[0] || 'card'
+    }
+}
+
+const fetchPaymentMethods = async () => {
+    try {
+        const { data } = await client.get('/user/payment-methods')
+        const methods = data?.data?.methods || []
+        if (Array.isArray(methods) && methods.length > 0) {
+            paymentMethods.value = methods
+            selectedPaymentMethod.value = data?.data?.default || methods[0].value
+            ensureSelectedPaymentMethod()
+        }
+    } catch {
+        paymentMethods.value = [{ value: 'card', label: '信用卡' }]
+        selectedPaymentMethod.value = 'card'
+    }
+}
+
+const openPayDialog = async (row) => {
+    if (!row?.id) return
+    await fetchPaymentMethods()
+    activePayOrder.value = row
+    detailVisible.value = false
+    paymentVisible.value = true
+}
+
 const payOrder = async (row) => {
     if (!row?.id) return
     payingId.value = row.id
     try {
-        const { data } = await client.post(`/user/orders/${row.id}/checkout`)
+        const { data } = await client.post(`/user/orders/${row.id}/checkout`, {
+            payment_method: selectedPaymentMethod.value,
+        })
         const redirectUrl = data?.data?.redirect_url
         if (!redirectUrl) {
             throw new Error('missing redirect_url')
         }
         window.open(redirectUrl, '_blank')
         detailVisible.value = false
+        paymentVisible.value = false
         ElMessage.info(tr('account.pay.redirectTip', '已打开 Stripe 支付页面，完成后请刷新查看状态'))
     } catch (e) {
         ElMessage.error(e?.response?.data?.message || e.message || tr('account.pay.failed', '支付失败'))
@@ -192,7 +260,15 @@ const openDetail = (row) => {
     detailVisible.value = true
 }
 
-onMounted(fetchOrders)
+onMounted(async () => {
+    await fetchPaymentMethods()
+    if (route.query.status === 'success') {
+        ElMessage.success(tr('order.paymentSuccess', '支付完成，订单状态已刷新'))
+    } else if (route.query.status === 'cancel') {
+        ElMessage.info(tr('order.paymentCancelled', '支付已取消'))
+    }
+    await fetchOrders()
+})
 </script>
 
 <style scoped>
@@ -223,6 +299,31 @@ onMounted(fetchOrders)
 }
 .cycle-tag {
     margin-left: 8px;
+}
+.payment-box {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.payment-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    color: var(--color-text-muted);
+}
+.payment-row strong {
+    color: var(--color-text);
+    font-weight: 700;
+}
+.payment-method-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+.payment-method-option {
+    width: 100%;
+    margin: 0 !important;
 }
 @media (max-width: 720px) {
     .page-header {

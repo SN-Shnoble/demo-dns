@@ -22,13 +22,12 @@
                             :color="quotaColor"
                         />
                         <div class="quota-text">
-                            <span>{{ $t('account.quota.used', { used: usageData.queries_used, total: usageData.queries_total }) }}</span>
+                            <span>{{ $t('account.quota.used', { used: usageUsedLabel, total: usageTotalLabel }) }}</span>
                             <span v-if="usageData.is_unlimited" class="quota-unlimited">{{ $t('account.quota.unlimited') }}</span>
                         </div>
                     </div>
                     <div v-if="!usageData.is_unlimited" class="quota-upgrade">
                         <p>{{ $t('account.quota.upgrade', { price: usageData.upgrade_price }) }}</p>
-                        <el-button type="primary" @click="openSubscribeDialog">{{ $t('account.quota.upgradeBtn') }}</el-button>
                     </div>
                 </div>
             </div>
@@ -146,6 +145,19 @@
                 <el-form-item :label="$t('account.recharge.amount')">
                     <el-input-number v-model="rechargeForm.amount" :min="1" :step="1" />
                 </el-form-item>
+                <el-form-item label="支付方式">
+                    <el-radio-group v-model="selectedPaymentMethod" class="pay-method-group">
+                        <el-radio
+                            v-for="method in paymentMethods"
+                            :key="method.value"
+                            :value="method.value"
+                            border
+                            class="pay-method-option"
+                        >
+                            {{ method.label }}
+                        </el-radio>
+                    </el-radio-group>
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="showRechargeDialog = false">{{ $t('common.cancel') }}</el-button>
@@ -235,9 +247,20 @@
                     <span class="pay-label">{{ $t('account.pay.amount') || '应付金额' }}</span>
                     <span class="pay-value pay-amount">{{ pendingOrder.amount_label }}</span>
                 </div>
-                <div class="stripe-only-method">
-                    <span class="pay-method-label">Stripe</span>
-                    <span class="pay-method-desc">{{ $t('account.pay.stripeDesc') || '信用卡 / Apple Pay / Google Pay' }}</span>
+                <div class="pay-methods">
+                    <div class="pay-method-label">支付方式</div>
+                    <el-radio-group v-model="selectedPaymentMethod" class="pay-method-group">
+                        <el-radio
+                            v-for="method in paymentMethods"
+                            :key="method.value"
+                            :value="method.value"
+                            border
+                            class="pay-method-option"
+                        >
+                            {{ method.label }}
+                        </el-radio>
+                    </el-radio-group>
+                    <div class="pay-method-desc">通过 Stripe 测试模式完成支付</div>
                 </div>
             </div>
             <template #footer>
@@ -311,10 +334,12 @@ const userInfo = ref({
 
 // 使用量数据
 const usageData = ref({
-    queries_used: 8221,
+    queries_used: 0,
     queries_total: 300000,
     is_unlimited: false,
-    upgrade_price: 'HK$15.00'
+    upgrade_price: 'US$3.99',
+    quota_status: 'normal',
+    plan_code: 'free'
 })
 
 // 钱包余额
@@ -342,6 +367,8 @@ const paying = ref(false)
 
 // 支付相关
 const pendingOrder = ref(null)
+const paymentMethods = ref([{ value: 'card', label: '信用卡' }])
+const selectedPaymentMethod = ref('card')
 
 // 套餐相关
 const currentPlanCode = ref('free')
@@ -357,8 +384,13 @@ const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword
 // 计算配额百分比
 const quotaPercentage = computed(() => {
     if (usageData.value.is_unlimited) return 0
-    return Math.min(100, Math.round((usageData.value.queries_used / usageData.value.queries_total) * 100))
+    const total = Number(usageData.value.queries_total || 0)
+    if (total <= 0) return 0
+    return Math.min(100, Math.round((Number(usageData.value.queries_used || 0) / total) * 100))
 })
+
+const usageUsedLabel = computed(() => formatCount(usageData.value.queries_used))
+const usageTotalLabel = computed(() => usageData.value.is_unlimited ? '∞' : formatCount(usageData.value.queries_total))
 
 // 配额颜色
 const quotaColor = computed(() => {
@@ -368,10 +400,39 @@ const quotaColor = computed(() => {
     return '#22c55e'
 })
 
+const formatCount = (value) => {
+    const n = Number(value || 0)
+    return new Intl.NumberFormat().format(n)
+}
+
+const ensureSelectedPaymentMethod = () => {
+    const enabled = paymentMethods.value.map((method) => method.value)
+    if (!enabled.includes(selectedPaymentMethod.value)) {
+        selectedPaymentMethod.value = enabled[0] || 'card'
+    }
+}
+
+const loadPaymentMethods = async () => {
+    try {
+        const { data } = await client.get('/user/payment-methods')
+        const methods = data?.data?.methods || []
+        if (Array.isArray(methods) && methods.length > 0) {
+            paymentMethods.value = methods
+            selectedPaymentMethod.value = data?.data?.default || methods[0].value
+            ensureSelectedPaymentMethod()
+        }
+    } catch {
+        paymentMethods.value = [{ value: 'card', label: '信用卡' }]
+        selectedPaymentMethod.value = 'card'
+    }
+}
+
 // 加载账户数据
 const loadAccountData = async () => {
     loading.value = true
     try {
+        await loadPaymentMethods()
+
         // 加载用户信息
         const { data: meData } = await client.get('/user/me')
         userInfo.value = meData.data || {}
@@ -440,6 +501,7 @@ const loadAccountData = async () => {
 const openSubscribeDialog = async () => {
     selectedPlan.value = null
     selectedBillingCycle.value = 'monthly'
+    await loadPaymentMethods()
     
     // 如果套餐列表为空，重新加载
     if (plans.value.length === 0) {
@@ -551,7 +613,9 @@ const confirmPay = async () => {
 
     paying.value = true
     try {
-        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/checkout`)
+        const { data } = await client.post(`/user/orders/${pendingOrder.value.id}/checkout`, {
+            payment_method: selectedPaymentMethod.value,
+        })
         const redirectUrl = data?.data?.redirect_url
 
         if (!redirectUrl) {
@@ -621,7 +685,8 @@ const handleRecharge = async () => {
     recharging.value = true
     try {
         const { data } = await client.post('/user/wallet/recharge', {
-            amount: rechargeForm.value.amount
+            amount: rechargeForm.value.amount,
+            payment_method: selectedPaymentMethod.value
         })
         const payload = data?.data || data
         const redirectUrl = payload.redirect_url || payload.pay_url
@@ -663,7 +728,7 @@ const handleUpdateEmail = async () => {
         emailForm.value = { email: '', password: '' }
         ElMessage.success(t('account.email.success') || '邮箱已更新')
     } catch (err) {
-        ElMessage.error(err.message || t('account.email.failed') || '更新失败')
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.email.failed') || '更新失败')
     } finally {
         updatingEmail.value = false
     }
@@ -691,7 +756,12 @@ const handleUpdatePassword = async () => {
         passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
         ElMessage.success(t('account.password.success') || '密码已更新')
     } catch (err) {
-        ElMessage.error(err.message || t('account.password.failed') || '更新失败')
+        const errors = err?.response?.data?.errors
+        if (errors && typeof errors === 'object') {
+            ElMessage.error(Object.values(errors).flat().join('\n'))
+        } else {
+            ElMessage.error(err?.response?.data?.message || err.message || t('account.password.failed') || '更新失败')
+        }
     } finally {
         updatingPassword.value = false
     }
