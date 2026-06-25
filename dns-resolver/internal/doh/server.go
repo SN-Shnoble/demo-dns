@@ -33,17 +33,18 @@ import (
 // proxy (nginx, Caddy, Envoy) that owns the certificates. The resolver
 // itself only needs to speak RFC 8484 wire format.
 type Server struct {
-	cfg             *config.Config
-	engine          *matching.Engine
-	resolutionLayer *resolver.ProfileResolutionLayer
-	logBuffer       *logging.Buffer
-	metrics         *metrics.Metrics
-	cache           *cache.Cache
-	client          *dns.Client
-	hostname        string
-	dedupTTL        time.Duration
-	validator       *validation.Validator // optional (UI.md #40)
-	profileLoader   func(string) error    // 按需拉取 Profile 回调
+	cfg                 *config.Config
+	engine              *matching.Engine
+	resolutionLayer     *resolver.ProfileResolutionLayer
+	logBuffer           *logging.Buffer
+	metrics             *metrics.Metrics
+	cache               *cache.Cache
+	client              *dns.Client
+	hostname            string
+	dedupTTL            time.Duration
+	validator           *validation.Validator                       // optional (UI.md #40)
+	profileLoader       func(string) error                          // 按需拉取 Profile 回调
+	profileConfigLoader func(string) (*config.ProfileConfig, error) // 按需获取 Profile 元数据
 }
 
 // NewServer creates a new DoH server.
@@ -76,6 +77,13 @@ func NewServer(cfg *config.Config, engine *matching.Engine,
 // subscription checks instead of resolving them.
 func (s *Server) SetValidator(v *validation.Validator) {
 	s.validator = v
+}
+
+// SetProfileConfigLoader wires a function to load ProfileConfig metadata.
+// When set, resolveDNS reads block_response, quota, safe_search, and device
+// mappings from the loaded config instead of using hardcoded defaults.
+func (s *Server) SetProfileConfigLoader(loader func(string) (*config.ProfileConfig, error)) {
+	s.profileConfigLoader = loader
 }
 
 // upstreamAddr returns the full address with default port if not specified.
@@ -240,18 +248,66 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			}
 		}
 
+		// P0.5: 加载 Profile 元数据（blockResponse、quota、safeSearch 等）
+		var pc *config.ProfileConfig
+		if profileUID != "" && s.profileConfigLoader != nil {
+			var loadErr error
+			pc, loadErr = s.profileConfigLoader(profileUID)
+			if loadErr != nil {
+				log.Printf("doh: load profile config %s: %v", profileUID, loadErr)
+			}
+		}
+
+		// 配额检查：quota_status == "exceeded" 时返回 403
+		if pc != nil && pc.Quota != nil {
+			if status, ok := pc.Quota["quota_status"]; ok {
+				if s, ok := status.(string); ok && s == "exceeded" {
+					log.Printf("[QUOTA_EXCEEDED] profile=%s client=%s domain=%s", profileUID, clientAddr, domain)
+					http.Error(w, "quota exceeded", http.StatusForbidden)
+					return
+				}
+			}
+		}
+
 		// Extract device info from headers
 		deviceUID, deviceType = resolver.ExtractDeviceFromHeaders(map[string]string{
 			"X-Device-ID":   r.Header.Get("X-Device-ID"),
 			"X-Device-Type": r.Header.Get("X-Device-Type"),
 		})
 
+		// 如果 HTTP 头没有提供 deviceID，从 Profile 设备列表按 sourceIP 匹配
+		if deviceUID == "" && pc != nil {
+			for _, dev := range pc.Devices {
+				if dev.SourceIP == clientAddr {
+					deviceUID = dev.DeviceID
+					deviceType = dev.DeviceType
+					break
+				}
+			}
+		}
+
+		// 从 Profile 读取 safe_search 配置
+		safeSearchEnabled := false
+		if pc != nil && pc.Parental != nil {
+			if v, ok := pc.Parental["safe_search"]; ok {
+				if b, ok := v.(bool); ok {
+					safeSearchEnabled = b
+				}
+			}
+		}
+
+		// 从 Profile 读取 block_response 模式
+		blockMode := blockresponse.ModeNXDomain
+		if pc != nil && pc.BlockResponse != "" {
+			blockMode = pc.BlockResponse
+		}
+
 		// Build resolution context
 		ctx := &resolver.ResolutionContext{
 			ProfileUID:        profileUID,
 			DeviceUID:         deviceUID,
 			DeviceType:        deviceType,
-			SafeSearchEnabled: false,
+			SafeSearchEnabled: safeSearchEnabled,
 			ClientIP:          remoteIPFromAddr(r.RemoteAddr),
 			Domain:            domain,
 			QueryType:         queryType,
@@ -266,7 +322,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 
 			reply := new(dns.Msg)
 			reply.SetReply(msg)
-			blockresponse.ApplyTo(reply, msg.Question[0], blockresponse.ModeNXDomain)
+			blockresponse.ApplyTo(reply, msg.Question[0], blockMode)
 
 			packed, err := reply.Pack()
 			if err != nil {

@@ -24,7 +24,9 @@ type Server struct {
 	tcpServer     *dns.Server
 	dotServer     *dns.Server
 	sniMap        sync.Map // key: remoteAddr -> sni (用于 DoT 按 SNI 识别 Profile)
-	profileLoader func(string) error
+	profileLoader        func(string) error
+	profileConfigLoader  func(string) (*config.ProfileConfig, error)
+	deviceResolver       func(string) (string, string, bool) // (sourceIP) -> (profileID, deviceID, ok)
 }
 
 func New(
@@ -125,19 +127,67 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 }
 
+func (s *Server) SetProfileConfigLoader(loader func(string) (*config.ProfileConfig, error)) {
+	s.profileConfigLoader = loader
+}
+
+func (s *Server) SetDeviceResolver(resolver func(string) (string, string, bool)) {
+	s.deviceResolver = resolver
+}
+
 func (s *Server) handleQuery(w dns.ResponseWriter, req *dns.Msg, proto string) {
-	// ① Profile 匹配 — 通过 SNI 或 profileUID
+	// ① Profile 匹配 — 通过 SNI 或 deviceResolver
 	profileUID := ""
+	deviceID := ""
 	if proto == "dot" {
 		if sni, ok := s.sniMap.Load(w.RemoteAddr().String()); ok {
 			profileUID = resolver.ExtractProfileFromSNI(sni.(string))
 		}
 	}
 
-	// ② 共享 pipeline：去重 → 规则判定 → DNS 缓存 → 上游转发 → 日志
-	result := s.handler.Handle(req, w.RemoteAddr().String(), proto, profileUID, "", "", blockresponse.ModeNXDomain, false)
+	// ② 如果 profileUID 为空且 deviceResolver 存在，尝试通过客户端 IP 查询设备
+	if profileUID == "" && s.deviceResolver != nil {
+		clientIP := remoteHost(w.RemoteAddr().String())
+		if pid, did, ok := s.deviceResolver(clientIP); ok {
+			profileUID = pid
+			deviceID = did
+		}
+	}
 
-	// ③ 写出响应
+	// ③ 通过 ProfileConfigLoader 加载策略配置
+	blockResponse := blockresponse.ModeNXDomain
+	safeSearchEnabled := false
+	if profileUID != "" && s.profileConfigLoader != nil {
+		if pc, err := s.profileConfigLoader(profileUID); err == nil {
+			if pc.BlockResponse != "" {
+				blockResponse = pc.BlockResponse
+			}
+			if pc.Parental != nil {
+				if v, ok := pc.Parental["safe_search"]; ok {
+					if b, ok := v.(bool); ok && b {
+						safeSearchEnabled = true
+					}
+				}
+			}
+			// quota: quota_status == "exceeded" 时返回 REFUSED
+			if pc.Quota != nil {
+				if v, ok := pc.Quota["quota_status"]; ok {
+					if s, ok := v.(string); ok && s == "exceeded" {
+						reply := new(dns.Msg)
+						reply.SetReply(req)
+						reply.Rcode = dns.RcodeRefused
+						_ = w.WriteMsg(reply)
+						return
+					}
+				}
+			}
+		}
+	}
+
+	// ④ 共享 pipeline：去重 → 规则判定 → DNS 缓存 → 上游转发 → 日志
+	result := s.handler.Handle(req, w.RemoteAddr().String(), proto, profileUID, deviceID, "", blockResponse, safeSearchEnabled)
+
+	// ⑤ 写出响应
 	_ = w.WriteMsg(result.Reply)
 }
 

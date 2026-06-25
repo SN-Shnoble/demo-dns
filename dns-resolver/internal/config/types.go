@@ -27,26 +27,26 @@ type ResolverConfig struct {
 }
 
 type ProfileConfig struct {
-	ProfileID     string        `json:"profile_id"`
-	UserID        string        `json:"user_id"`
-	TeamID        *string       `json:"team_id"`
-	Version       int64         `json:"version"`
-	DefaultAction string        `json:"default_action"`
-	BlockResponse string        `json:"block_response"`
-	Security      FeatureSwitch `json:"security"`
-	Adblock       FeatureSwitch `json:"adblock"`
-	Privacy       FeatureSwitch `json:"privacy"`
-	Parental      FeatureSwitch `json:"parental"`
-	Rules         []RuleConfig  `json:"rules"`
-	Quota         ProfileQuota  `json:"quota"`
+	ProfileID     string           `json:"profile_id"`
+	UserID        string           `json:"user_id"`
+	TeamID        *string          `json:"team_id"`
+	Version       int64            `json:"version"`
+	DefaultAction string           `json:"default_action"`
+	BlockResponse string           `json:"block_response"`
+	Security      map[string]any   `json:"security"`
+	Adblock       map[string]any   `json:"adblock"`
+	Privacy       map[string]any   `json:"privacy"`
+	Parental      map[string]any   `json:"parental"`
+	Devices       []DeviceEntry    `json:"devices"`
+	Rules         []RuleConfig     `json:"rules"`
+	Quota         map[string]any   `json:"quota"`
 }
 
-type FeatureSwitch struct {
-	Enabled bool `json:"enabled"`
-}
-
-type ProfileQuota struct {
-	QuotaStatus string `json:"quota_status"`
+type DeviceEntry struct {
+	DeviceID     string `json:"device_id"`
+	Name         string `json:"name"`
+	SourceIP     string `json:"source_ip"`
+	DeviceType   string `json:"device_type"`
 }
 
 type RuleConfig struct {

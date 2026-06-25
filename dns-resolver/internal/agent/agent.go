@@ -27,6 +27,12 @@ import (
 	"ocer-dns/dns-resolver/internal/metrics"
 )
 
+// deviceIndexEntry 记录设备 IP 到 Profile 的映射。
+type deviceIndexEntry struct {
+	ProfileID string
+	DeviceID  string
+}
+
 // Credentials 是 console 预签发凭据的内存表示，来源于 configs/server.yaml
 // 中 control_plane.api_key / control_plane.node_id。
 type Credentials struct {
@@ -46,6 +52,7 @@ type Agent struct {
 	localProfiles  map[string]int64
 	lastLogFlushAt string
 	globalVersion  int64
+	deviceIndex    map[string]deviceIndexEntry // source_ip → {profileID, deviceID}
 }
 
 type heartbeatRequest struct {
@@ -95,6 +102,7 @@ func New(cfg *config.Config, engine *matching.Engine, collector *metrics.Metrics
 			NodeID: strings.TrimSpace(cfg.ControlPlane.NodeID),
 		},
 		localProfiles: make(map[string]int64),
+		deviceIndex:   make(map[string]deviceIndexEntry),
 		client: &http.Client{
 			Timeout: timeout,
 		},
@@ -337,6 +345,16 @@ func (a *Agent) loadProfileIntoEngine(profileID string, data json.RawMessage, ve
 		// 记录版本到 localProfiles（供心跳上报）
 		a.mu.Lock()
 		a.localProfiles[profileID] = version
+
+		// 更新设备 IP → Profile 索引
+		for _, dev := range p.Devices {
+			if dev.SourceIP != "" {
+				a.deviceIndex[dev.SourceIP] = deviceIndexEntry{
+					ProfileID: profileID,
+					DeviceID:  dev.DeviceID,
+				}
+			}
+		}
 		a.mu.Unlock()
 	}
 
@@ -527,4 +545,38 @@ func (a *Agent) MarkLogFlush(ts time.Time) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.lastLogFlushAt = ts.UTC().Format(time.RFC3339)
+}
+
+// GetProfileConfig 从 ProfileCache 获取 Profile 配置（Memory → Disk → Portal 三级回源）。
+func (a *Agent) GetProfileConfig(profileID string) (*config.ProfileConfig, error) {
+	if err := a.FetchProfile(profileID); err != nil {
+		return nil, fmt.Errorf("fetch profile %s: %w", profileID, err)
+	}
+
+	// 从内存缓存读取
+	data, _, ok := a.pCache.GetFromMemory(profileID)
+	if !ok {
+		// 兜底从磁盘读取
+		data, _, ok = a.pCache.GetFromDisk(profileID)
+		if !ok {
+			return nil, fmt.Errorf("profile %s not found in cache", profileID)
+		}
+	}
+
+	var pc config.ProfileConfig
+	if err := json.Unmarshal(data, &pc); err != nil {
+		return nil, fmt.Errorf("unmarshal profile %s: %w", profileID, err)
+	}
+	return &pc, nil
+}
+
+// LookupDeviceByIP 根据客户端 IP 查询所属 Profile 和设备。
+func (a *Agent) LookupDeviceByIP(sourceIP string) (profileID string, deviceID string, ok bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	entry, found := a.deviceIndex[sourceIP]
+	if !found {
+		return "", "", false
+	}
+	return entry.ProfileID, entry.DeviceID, true
 }

@@ -22,13 +22,14 @@ import (
 
 // Server handles DNS over QUIC (RFC 9250) with full Profile Resolution Layer.
 type Server struct {
-	cfg           *config.Config
-	handler       *resolver.Handler
-	logBuffer     *logging.Buffer
-	metrics       *metrics.Metrics
-	listener      *quic.Listener
-	mu            sync.Mutex
-	profileLoader func(string) error
+	cfg                 *config.Config
+	handler             *resolver.Handler
+	logBuffer           *logging.Buffer
+	metrics             *metrics.Metrics
+	listener            *quic.Listener
+	mu                  sync.Mutex
+	profileLoader       func(string) error
+	profileConfigLoader func(string) (*config.ProfileConfig, error)
 }
 
 
@@ -48,6 +49,11 @@ func New(
 		metrics:       collector,
 		profileLoader: profileLoader,
 	}
+}
+
+// SetProfileConfigLoader sets the loader for retrieving profile metadata from cache.
+func (s *Server) SetProfileConfigLoader(loader func(string) (*config.ProfileConfig, error)) {
+	s.profileConfigLoader = loader
 }
 
 // Run starts the DoQ QUIC listener. Blocks until ctx is cancelled.
@@ -154,14 +160,37 @@ func (s *Server) handleStream(stream *quic.Stream, remoteAddr string, profileUID
 		return
 	}
 
-	// ② 配额检查
-	if false {
-		reply := new(dns.Msg)
-		reply.SetReply(req)
-		reply.Rcode = dns.RcodeRefused
-		s.writeStream(stream, reply)
-		s.metrics.IncErrors()
-		return
+	// ② 从 ProfileCache 读取 Profile 元数据，覆盖硬编码默认值
+	if s.profileConfigLoader != nil {
+		if pc, err := s.profileConfigLoader(profileID); err == nil && pc != nil {
+			if pc.BlockResponse != "" {
+				blockResponse = pc.BlockResponse
+			}
+			if pc.Parental != nil {
+				if v, ok := pc.Parental["safe_search"].(bool); ok {
+					safeSearchEnabled = v
+				}
+			}
+			if deviceID == "" && len(pc.Devices) > 0 {
+				srcIP := remoteHost(remoteAddr)
+				for _, dev := range pc.Devices {
+					if dev.SourceIP == srcIP {
+						deviceID = dev.DeviceID
+						break
+					}
+				}
+			}
+			if pc.Quota != nil {
+				if v, ok := pc.Quota["quota_status"].(string); ok && v == "exceeded" {
+					reply := new(dns.Msg)
+					reply.SetReply(req)
+					reply.Rcode = dns.RcodeRefused
+					s.writeStream(stream, reply)
+					s.metrics.IncErrors()
+					return
+				}
+			}
+		}
 	}
 
 	// ③ 共享 pipeline
