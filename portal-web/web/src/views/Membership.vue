@@ -145,10 +145,14 @@ const normalizeOrder = (order) => ({
 })
 
 const money = (minor, currency = 'USD') => {
+    const code = String(currency || 'USD').toUpperCase()
     const amount = Number(minor || 0) / 100
+    if (code === 'USD') {
+        return `US$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
     return new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency,
+        currency: code,
         minimumFractionDigits: 2,
     }).format(amount)
 }

@@ -404,23 +404,26 @@ final class UserWorkspaceService
         // V2.2: 使用 profile_id（6位 hex 字符串）作为 DNS 路由 key
         $shortId = $profile->profile_id;
 
-        // 收集在线 resolver 节点的 public IPv4（用作家庭网络兜底）
+        // 每个 Profile 稳定绑定一个在线 resolver IPv4，避免一个方案展示多个服务器。
         // 2026-06-22: 单一事实源 — nodes.status 列已 drop，用 install_status + last_heartbeat_at 阈值即时算"在线"。
         $threshold = (int) env('NODE_HEARTBEAT_STALE_SECONDS', 90);
-        $ipv4List = DB::table('resolver_nodes')
+        $onlineIps = DB::table('resolver_nodes')
             ->where('install_status', 'installed')
             ->whereNotNull('last_heartbeat_at')
             ->where('last_heartbeat_at', '>', now()->subSeconds($threshold))
             ->whereNotNull('public_ipv4')
             ->where('public_ipv4', '!=', '')
             ->orderBy('id')
-            ->limit(4)
             ->pluck('public_ipv4')
             ->map(fn ($ip) => trim($ip))
             ->filter()
             ->unique()
             ->values()
             ->all();
+        $boundIpv4 = null;
+        if ($onlineIps !== []) {
+            $boundIpv4 = $onlineIps[hexdec(substr(hash('crc32b', (string) $shortId), 0, 8)) % count($onlineIps)];
+        }
 
         $host = sprintf('%s.%s', $shortId, $domain);
 
@@ -431,7 +434,8 @@ final class UserWorkspaceService
             'doq' => $host,
             'doq_url' => sprintf('quic://%s:853', $host),
             'ipv6' => [sprintf('2606:%s:%s::53', substr($shortId, 0, 2), substr($shortId, 2, 4))],
-            'ipv4' => $ipv4List,
+            'ipv4' => $boundIpv4 ? [$boundIpv4] : [],
+            'server_ip' => $boundIpv4,
         ];
     }
 

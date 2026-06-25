@@ -124,13 +124,14 @@ import client from '@/api/client'
 const { t } = useI18n()
 
 const currencySymbol = (currency) => {
-    const map = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
-    return map[currency] || (currency || 'CNY') + ' '
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || (currency || 'USD') + ' '
 }
 
 const formatBalance = (minor, currency) => {
     if (minor === null || minor === undefined) return '-'
-    const symbol = currencySymbol(currency || 'CNY')
+    const symbol = currencySymbol(currency || 'USD')
     const amount = (minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     return symbol + amount
 }
@@ -203,6 +204,7 @@ const handleQuickCharge = async () => {
         selectedBalance.value.balance_minor = data.data.balance_after
         showQuickCharge.value = false
         ElMessage.success(t('admin.usersPage.chargeSuccess'))
+        await fetchBalances()
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.usersPage.chargeFailed'))
     } finally {

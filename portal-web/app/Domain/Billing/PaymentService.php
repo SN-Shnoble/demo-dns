@@ -484,53 +484,6 @@ final class PaymentService
      */
     public function payWithWallet(Order $order): array
     {
-        if ($order->status !== Order::STATUS_PENDING) {
-            throw new \RuntimeException('Order is not payable.');
-        }
-
-        $userId = (string) $order->user_id;
-        $amountMinor = (int) $order->payable_amount_minor;
-
-        $wallet = (new WalletService())->balance($userId);
-        $balanceMinor = (int) $wallet['balance_minor'];
-
-        if ($balanceMinor < $amountMinor) {
-            throw new \RuntimeException('Insufficient wallet balance.');
-        }
-
-        $balanceAfter = 0;
-
-        DB::transaction(function () use ($order, $userId, $amountMinor, &$balanceAfter) {
-            $tx = PaymentTransaction::create([
-                'user_id' => $userId,
-                'order_id' => (string) $order->id,
-                'provider' => 'wallet',
-                'provider_session_id' => 'wallet_' . Str::random(16),
-                'status' => PaymentTransaction::STATUS_SUCCESS,
-                'amount_minor' => $amountMinor,
-                'currency' => $order->currency,
-                'raw_payload' => [
-                    'payment_method' => 'wallet',
-                ],
-            ]);
-
-            (new WalletService())->debit(
-                userId: $userId,
-                amountMinor: $amountMinor,
-                source: 'order_payment',
-                idempotencyKey: 'order-payment-' . $order->id,
-                description: $order->description !== '' ? $order->description : 'Order payment',
-            );
-
-            (new OrderService())->markPaid((string) $order->id, 'wallet');
-
-            $after = (new WalletService())->balance($userId);
-            $balanceAfter = (int) $after['balance_minor'];
-        });
-
-        return [
-            'status' => Order::STATUS_PAID,
-            'balance_after_minor' => $balanceAfter,
-        ];
+        throw new \RuntimeException('Member orders must be paid through Stripe.');
     }
 }

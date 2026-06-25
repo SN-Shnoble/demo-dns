@@ -113,7 +113,6 @@ const routes = [
             { path: 'bill', name: 'AdminBill', component: AdminBill },
             { path: 'refund-records', name: 'AdminRefundRecords', component: AdminRefundRecords },
             { path: 'system-config', name: 'AdminSystemConfig', component: AdminSystemConfig },
-            { path: 'basic-config', redirect: { name: 'AdminSystemConfig' } },
             { path: 'audit-logs', redirect: { name: 'AdminAuditLogs' } },
             { path: 'admin-audit-logs', name: 'AdminAuditLogs', component: AdminAuditLogs },
             { path: 'rbac', name: 'AdminRoleManagement', component: AdminRoleManagement },

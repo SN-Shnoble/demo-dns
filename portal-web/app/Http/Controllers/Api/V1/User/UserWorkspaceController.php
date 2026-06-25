@@ -6,7 +6,6 @@ use App\Application\Member\WorkspaceRuleService;
 use App\Domain\Billing\PlanCatalogService;
 use App\Domain\Profile\MemberCatalogService;
 use App\Domain\Profile\UserWorkspaceService;
-use App\Domain\Billing\OrderService;
 use App\Domain\Billing\PaymentService;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -414,47 +413,9 @@ final class UserWorkspaceController
 
     public function rechargeWallet(Request $request): JsonResponse
     {
-        $payment = new PaymentService();
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:1|max:1000000',
-            'payment_method' => [
-                'nullable',
-                'string',
-                Rule::in($payment->configuredPaymentMethods()),
-            ],
-            'idempotency_key' => 'nullable|string|max:80',
-        ]);
-
-        $idempotencyKey = (string) $request->header('Idempotency-Key', '') !== ''
-            ? (string) $request->header('Idempotency-Key')
-            : ((string) ($validated['idempotency_key'] ?? '') !== ''
-                ? (string) $validated['idempotency_key']
-                : 'wallet-topup-' . $request->user()->uid . '-' . now()->format('YmdHisv'));
-
-        $amountMinor = (int) round(((float) $validated['amount']) * 100);
-        $order = (new OrderService())->create(
-            userId: (string) $request->user()->uid,
-            planCode: 'wallet_topup',
-            payableAmountMinor: $amountMinor,
-            currency: 'USD',
-            description: 'Wallet recharge',
-            meta: ['source' => 'member_wallet_recharge'],
-            idempotencyKey: $idempotencyKey,
-        );
-
         return response()->json([
-            'data' => [
-                'paid' => false,
-                'order' => [
-                    'id' => (string) $order->id,
-                    'order_no' => $order->order_no,
-                    'payable_amount_minor' => (int) $order->payable_amount_minor,
-                    'currency' => $order->currency,
-                    'status' => $order->status,
-                ],
-                'message' => 'Order created. Complete payment via payment-intent or qr-payment endpoint.',
-            ],
-        ], 201);
+            'message' => 'Member wallet recharge is disabled. Please contact an administrator.',
+        ], 410);
     }
 
     public function subscription(Request $request): JsonResponse

@@ -31,20 +31,25 @@
             <el-table :data="transactions" stripe :empty-text="$t('common.noData')" style="width: 100%">
                 <el-table-column prop="type" :label="$t('admin.billing.type') || 'Type'" width="110">
                     <template #default="{ row }">
-                        <el-tag :type="row.type === 'charge' ? 'success' : 'danger'" size="small" effect="light">{{ transactionTypeLabel(row.type) }}</el-tag>
+                        <el-tag :type="isPositiveTransaction(row.type) ? 'success' : 'danger'" size="small" effect="light">{{ transactionTypeLabel(row.type) }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column :label="$t('admin.billing.userName') || 'User'" min-width="180" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <span>{{ row.user_name || row.user_email || row.user_id || '-' }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column prop="amount_minor" :label="$t('admin.billing.amount') || 'Amount'" width="140">
                     <template #default="{ row }">
-                        <span :style="{ color: row.type === 'charge' ? '#67c23a' : '#f56c6c' }">
-                            {{ row.type === 'charge' ? '+' : '-' }}{{ formatMoney(row.amount_minor) }}
+                        <span :style="{ color: isPositiveTransaction(row.type) ? '#67c23a' : '#f56c6c' }">
+                            {{ isPositiveTransaction(row.type) ? '+' : '-' }}{{ formatMoney(row.amount_minor, row.currency) }}
                         </span>
                     </template>
                 </el-table-column>
                 <el-table-column prop="description" :label="$t('admin.billing.description') || 'Description'" min-width="260" show-overflow-tooltip />
                 <el-table-column prop="status" :label="$t('admin.billing.status') || 'Status'" width="100">
                     <template #default="{ row }">
-                        <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small" effect="light">{{ transactionStatusLabel(row.status) }}</el-tag>
+                        <el-tag :type="['completed', 'succeeded', 'paid'].includes(row.status) ? 'success' : 'warning'" size="small" effect="light">{{ transactionStatusLabel(row.status) }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column :label="$t('admin.billing.time') || 'Time'" width="180">
@@ -114,7 +119,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { CaretRight, Search, Download, List } from '@element-plus/icons-vue'
+import { Search, Download, List } from '@element-plus/icons-vue'
 import client from '@/api/client'
 
 const { t } = useI18n()
@@ -147,7 +152,7 @@ const searchUsers = async (query) => {
     searching.value = true
     try {
         const { data } = await client.get('/admin/users', { params: { email: query, per_page: 20 } })
-        userOptions.value = (data.data ?? []).map(u => ({ id: u.uid || u.id, username: u.username, email: u.email }))
+        userOptions.value = (data.data ?? []).map(u => ({ id: u.id || u.uid, username: u.username, email: u.email }))
     } catch {
         userOptions.value = []
     } finally {
@@ -155,14 +160,24 @@ const searchUsers = async (query) => {
     }
 }
 
-const formatMoney = (minor) => {
-    if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
-    return `¥${(Number(minor) / 100).toFixed(2)}`
+const currencySymbol = (currency) => {
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || `${currency || 'USD'} `
 }
+
+const formatMoney = (minor, currency = 'USD') => {
+    if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
+    return `${currencySymbol(currency)}${(Number(minor) / 100).toFixed(2)}`
+}
+
+const isPositiveTransaction = (type) => ['charge', 'wallet_topup', 'manual', 'payment', 'order'].includes(type)
 
 const transactionTypeLabel = (type) => {
     const map = {
         charge: t('admin.billing.typeCharge'),
+        wallet_topup: t('admin.billing.typeWalletTopup'),
+        manual: t('admin.billing.typeWalletTopup'),
         refund: t('admin.billing.typeRefund'),
         payment: t('admin.billing.typePayment'),
         order: t('admin.billing.typeOrder'),
@@ -175,6 +190,8 @@ const transactionTypeLabel = (type) => {
 const transactionStatusLabel = (status) => {
     const map = {
         completed: t('admin.billing.statusCompleted'),
+        succeeded: t('admin.billing.statusCompleted'),
+        paid: t('admin.finance.statusPaid') || t('admin.billing.statusCompleted'),
         pending: t('admin.billing.statusPending'),
         failed: t('admin.billing.statusFailed'),
         canceled: t('admin.billing.statusCanceled'),
@@ -185,14 +202,14 @@ const transactionStatusLabel = (status) => {
 const handleCharge = async () => {
     charging.value = true
     try {
-        const { data } = await client.post('/admin/billing/charge', {
+        await client.post('/admin/billing/charge', {
             user_id: chargeData.user_id,
             amount_minor: Math.round(chargeAmount.value * 100),
             description: chargeData.description || 'Admin charge',
         })
         ElMessage.success(t('admin.billing.chargeSuccess'))
         showCharge.value = false
-        transactions.value.unshift(data.data)
+        await fetchBills()
         chargeData.user_id = ''; chargeData.description = ''; chargeAmount.value = 100
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.billing.chargeFailed'))
@@ -204,14 +221,14 @@ const handleCharge = async () => {
 const handleRefund = async () => {
     refunding.value = true
     try {
-        const { data } = await client.post('/admin/billing/refund', {
+        await client.post('/admin/billing/refund', {
             user_id: refundData.user_id,
             amount_minor: Math.round(refundAmount.value * 100),
             description: refundData.description || 'Admin refund',
         })
         ElMessage.success(t('admin.billing.refundSuccess'))
         showRefund.value = false
-        transactions.value.unshift(data.data)
+        await fetchBills()
         refundData.user_id = ''; refundData.description = ''; refundAmount.value = 100
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.billing.refundFailed'))

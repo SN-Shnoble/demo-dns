@@ -110,6 +110,8 @@ class Admin extends Authenticatable
         DB::table('admin_user_roles')->insert([
             'admin_id'   => $this->admin_id,
             'admin_role_id' => $role->id,
+            'assigned_by' => $assignedBy,
+            'assigned_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

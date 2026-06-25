@@ -172,12 +172,11 @@ const normalizeMenuConfig = (mainMenu = [], subMenu = []) => {
 
 const menuTree = computed(() => {
     return mainMenuItems.value
-        .filter((main) => main.visible)
         .sort((a, b) => a.sort - b.sort)
         .map((main) => ({
             ...main,
             children: subMenuItems.value
-                .filter((sub) => sub.parentId === main.id && sub.visible)
+                .filter((sub) => sub.parentId === main.id)
                 .sort((a, b) => a.sort - b.sort),
         }))
 })
@@ -327,7 +326,17 @@ const updateSortOrder = (items) => {
     })
 }
 
-const handleVisibleChange = (row) => {
+const dispatchMenuConfig = () => {
+    window.dispatchEvent(new CustomEvent('menu-config-updated', {
+        detail: {
+            mainMenu: mainMenuItems.value,
+            subMenu: subMenuItems.value,
+        }
+    }))
+}
+
+const handleVisibleChange = async (row) => {
+    const previousVisible = !row.visible
     if (row.parentId) {
         const item = subMenuItems.value.find(i => i.id === row.id)
         if (item) item.visible = row.visible
@@ -335,13 +344,25 @@ const handleVisibleChange = (row) => {
         const item = mainMenuItems.value.find(i => i.id === row.id)
         if (item) item.visible = row.visible
     }
-    // 派发事件通知 AdminLayout 更新菜单
-    window.dispatchEvent(new CustomEvent('menu-config-updated', {
-        detail: {
-            mainMenu: mainMenuItems.value,
-            subMenu: subMenuItems.value,
+    dispatchMenuConfig()
+
+    try {
+        await client.put('/admin/menu-config/visibility', {
+            id: row.id,
+            visible: row.visible,
+        })
+    } catch {
+        row.visible = previousVisible
+        if (row.parentId) {
+            const item = subMenuItems.value.find(i => i.id === row.id)
+            if (item) item.visible = previousVisible
+        } else {
+            const item = mainMenuItems.value.find(i => i.id === row.id)
+            if (item) item.visible = previousVisible
         }
-    }))
+        dispatchMenuConfig()
+        ElMessage.error(t('admin.menuConfig.saveFailed'))
+    }
 }
 
 const editMenu = (menu) => {

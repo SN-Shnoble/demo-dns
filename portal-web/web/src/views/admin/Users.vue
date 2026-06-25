@@ -169,20 +169,21 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { Delete, Edit, Plus, RefreshLeft, Search, User, VideoPause, VideoPlay, Coin } from '@element-plus/icons-vue'
+import { Delete, Edit, Plus, RefreshLeft, Search, User, VideoPause, VideoPlay } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 
 const { t } = useI18n()
 
 const currencySymbol = (currency) => {
-    const map = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
-    return map[currency] || (currency || 'CNY') + ' '
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || (currency || 'USD') + ' '
 }
 
 const formatBalance = (minor, currency) => {
     if (minor === null || minor === undefined) return '-'
-    const symbol = currencySymbol(currency || 'CNY')
+    const symbol = currencySymbol(currency || 'USD')
     const amount = (minor / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     return symbol + amount
 }
@@ -371,6 +372,7 @@ const handleCharge = async () => {
         })
         ElMessage.success(t('admin.usersPage.chargeSuccess'))
         showChargeDialog.value = false
+        await fetchUsers()
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.usersPage.chargeFailed'))
     } finally {

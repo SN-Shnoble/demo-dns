@@ -15,25 +15,60 @@ final class AdminUserController
 {
     public function index(Request $request): JsonResponse
     {
-        $query = User::query();
+        $prefix = DB::getTablePrefix();
+        $query = User::query()
+            ->from('users as u')
+            ->leftJoin('wallets as w', 'w.user_id', '=', 'u.uid')
+            ->select([
+                'u.uid',
+                'u.username',
+                'u.email',
+                'u.plan_code',
+                'u.status',
+                'u.current_team_id',
+                'u.locale',
+                'u.email_verified_at',
+                'u.created_at',
+                'u.updated_at',
+                DB::raw("COALESCE({$prefix}w.balance_minor, 0) as balance_minor"),
+                DB::raw("COALESCE({$prefix}w.currency, 'USD') as currency"),
+            ]);
 
         if ($email = $request->input('email')) {
-            $query->where('email', 'like', "%{$email}%");
+            $query->where('u.email', 'like', "%{$email}%");
         }
 
         if ($name = $request->input('name', $request->input('username'))) {
-            $query->where('username', 'like', "%{$name}%");
+            $query->where('u.username', 'like', "%{$name}%");
         }
 
         if ($status = $request->input('status')) {
-            $query->where('status', $status);
+            $query->where('u.status', $status);
         }
 
         $perPage = (int) $request->input('per_page', 20);
-        $paginator = $query->orderByDesc('created_at')->paginate(min($perPage, 100));
+        $paginator = $query->orderByDesc('u.created_at')->paginate(min($perPage, 100));
+
+        $items = collect($paginator->items())->map(fn ($row): array => [
+            'id' => (int) $row->uid,
+            'uid' => (int) $row->uid,
+            'username' => (string) $row->username,
+            'email' => (string) $row->email,
+            'plan_code' => $row->plan_code,
+            'status' => $row->status,
+            'role' => 'member',
+            'current_team_id' => $row->current_team_id,
+            'locale' => $row->locale,
+            'balance_minor' => (int) $row->balance_minor,
+            'currency' => (string) $row->currency,
+            'email_verified_at' => $row->email_verified_at,
+            'last_login_at' => null,
+            'created_at' => $row->created_at,
+            'updated_at' => $row->updated_at,
+        ])->all();
 
         return response()->json([
-            'data' => $paginator->items(),
+            'data' => $items,
             'meta' => [
                 'total' => $paginator->total(),
                 'per_page' => $paginator->perPage(),

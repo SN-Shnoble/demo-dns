@@ -89,7 +89,7 @@
                     <span v-else class="muted">—</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('common.actions')" width="240" fixed="right">
+            <el-table-column :label="$t('common.actions')" width="320" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" text type="primary" @click="openEdit(row)">
                         <el-icon><Edit /></el-icon>

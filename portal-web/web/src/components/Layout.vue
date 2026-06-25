@@ -515,7 +515,7 @@ onMounted(async () => {
 }
 
 /* 隐藏 Element Plus 默认的下拉箭头，使用自定义的 */
-.top-nav .el-sub-menu .el-sub-menu__icon-arrow {
+:deep(.top-nav .el-sub-menu__icon-arrow) {
     display: none !important;
 }
 

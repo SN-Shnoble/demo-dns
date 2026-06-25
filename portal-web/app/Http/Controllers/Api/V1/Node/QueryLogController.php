@@ -111,6 +111,12 @@ final class QueryLogController
                     $profilePk = $dev->profile_id;
                     $userPk = $dev->user_id;
                     $devicePk = $dev->id;
+                    $resolvedProfileUid = Profile::query()
+                        ->whereKey($profilePk)
+                        ->value('profile_id');
+                    if (is_string($resolvedProfileUid) && $resolvedProfileUid !== '') {
+                        $profileUid = $resolvedProfileUid;
+                    }
                 }
             }
 

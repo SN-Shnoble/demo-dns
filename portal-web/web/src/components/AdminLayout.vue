@@ -161,7 +161,7 @@ window.addEventListener('menu-config-updated', (e) => {
 onMounted(async () => {
     // 完全依赖后端：失败则保持空菜单，不再使用任何静态默认数据
     try {
-        const response = await client.get('/admin/menu-config')
+        const response = await client.get('/admin/menu-config', { params: { scope: 'navigation' } })
         const dbData = response?.data?.data
         if (Array.isArray(dbData) && dbData.length > 0) {
             const mainMenu = []
@@ -227,7 +227,6 @@ const titleMap = {
     AdminBill: 'admin.finance.bill',
     AdminRefundRecords: 'admin.finance.refundRecords',
     AdminSystemConfig: 'nav.systemConfig',
-    AdminBasicConfig: 'admin.basicConfig.title',
     AdminAuditLogs: 'nav.auditLogs',
     AdminRoleManagement: 'admin.rbac.title',
     AdminMenuConfig: 'admin.menuConfig.title',

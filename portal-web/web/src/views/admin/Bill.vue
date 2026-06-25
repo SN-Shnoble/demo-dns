@@ -62,6 +62,11 @@
                 </div>
             </template>
             <el-table-column prop="billing_no" :label="$t('admin.finance.invoiceNo')" width="180" show-overflow-tooltip />
+            <el-table-column :label="$t('admin.finance.userName')" min-width="160" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <span>{{ row.user_name || row.user_email || '-' }}</span>
+                </template>
+            </el-table-column>
             <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
             <el-table-column prop="total_amount_minor" :label="$t('admin.finance.totalAmount')" width="140">
                 <template #default="{ row }">
@@ -88,6 +93,7 @@
     <el-dialog v-model="showBillDetail" :title="$t('admin.finance.billDetail')" width="600px">
         <el-descriptions v-if="selectedBill" :column="2" border>
             <el-descriptions-item :label="$t('admin.finance.invoiceNo')">{{ selectedBill.billing_no }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.userName')">{{ selectedBill.user_name || selectedBill.user_email || '-' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.userId')">{{ selectedBill.user_id }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.subtotal')">{{ formatMoney(selectedBill.subtotal_amount_minor, selectedBill.currency) }}</el-descriptions-item>
             <el-descriptions-item :label="$t('admin.finance.discount')">{{ formatMoney(selectedBill.discount_amount_minor, selectedBill.currency) }}</el-descriptions-item>
@@ -109,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Tickets, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
@@ -130,11 +136,12 @@ const showBillDetail = ref(false)
 const selectedBill = ref(null)
 
 const currencySymbol = (currency) => {
-    const map = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
-    return map[currency] || ((currency || 'CNY') + ' ')
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || ((currency || 'USD') + ' ')
 }
 
-const formatMoney = (minor, currency = 'CNY') => {
+const formatMoney = (minor, currency = 'USD') => {
     if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
     return `${currencySymbol(currency)}${(Number(minor) / 100).toFixed(2)}`
 }

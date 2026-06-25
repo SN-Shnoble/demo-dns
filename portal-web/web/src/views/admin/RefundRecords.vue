@@ -60,25 +60,25 @@
                     <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                 </div>
             </template>
-            <el-table-column prop="refund_no" :label="$t('admin.finance.refundNo')" width="180" show-overflow-tooltip />
-            <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
-            <el-table-column prop="payment_id" :label="$t('admin.finance.paymentId')" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="amount_minor" :label="$t('admin.finance.refundAmount')" width="140">
+            <el-table-column prop="refund_no" :label="$t('admin.finance.refundNo')" width="210" show-overflow-tooltip />
+            <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="220" show-overflow-tooltip />
+            <el-table-column prop="payment_id" :label="$t('admin.finance.paymentId')" min-width="240" show-overflow-tooltip />
+            <el-table-column prop="amount_minor" :label="$t('admin.finance.refundAmount')" width="150">
                 <template #default="{ row }">
                     <span class="amount-negative">-{{ formatMoney(row.amount_minor, row.currency) }}</span>
                 </template>
             </el-table-column>
             <el-table-column prop="currency" :label="$t('admin.finance.currency')" width="80" />
-            <el-table-column prop="status" :label="$t('admin.finance.status')" width="100">
+            <el-table-column prop="status" :label="$t('admin.finance.status')" width="120">
                 <template #default="{ row }">
                     <el-tag :type="getStatusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="reason" :label="$t('admin.finance.reason')" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt')" width="160">
+            <el-table-column prop="reason" :label="$t('admin.finance.reason')" min-width="180" show-overflow-tooltip />
+            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt')" width="180">
                 <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('admin.finance.actions')" width="160">
+            <el-table-column :label="$t('admin.finance.actions')" width="190" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') }}</el-button>
                     <el-button v-if="row.status === 'pending'" size="small" text type="success" @click="handleApprove(row)">{{ $t('common.approve') }}</el-button>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Wallet, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
@@ -131,11 +131,12 @@ const showRefundDetail = ref(false)
 const selectedRefund = ref(null)
 
 const currencySymbol = (currency) => {
-    const map = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
-    return map[currency] || ((currency || 'CNY') + ' ')
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || ((currency || 'USD') + ' ')
 }
 
-const formatMoney = (minor, currency = 'CNY') => {
+const formatMoney = (minor, currency = 'USD') => {
     if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
     return `${currencySymbol(currency)}${(Number(minor) / 100).toFixed(2)}`
 }

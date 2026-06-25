@@ -47,6 +47,11 @@
                     <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                 </div>
             </template>
+            <el-table-column :label="$t('admin.finance.userName')" min-width="160" show-overflow-tooltip>
+                <template #default="{ row }">
+                    <span>{{ row.user_name || row.user_email || '-' }}</span>
+                </template>
+            </el-table-column>
             <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
             <el-table-column prop="amount_minor" :label="$t('admin.finance.amount')" width="140">
                 <template #default="{ row }">
@@ -68,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { CreditCard, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
@@ -86,17 +91,18 @@ const filterUserId = ref('')
 const exporting = ref(false)
 
 const currencySymbol = (currency) => {
-    const map = { CNY: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
-    return map[currency] || ((currency || 'CNY') + ' ')
+    if ((currency || 'USD').toUpperCase() === 'USD') return 'US$'
+    const map = { CNY: '¥', EUR: '€', GBP: '£', JPY: '¥', KRW: '₩' }
+    return map[(currency || '').toUpperCase()] || ((currency || 'USD') + ' ')
 }
 
-const formatMoney = (minor, currency = 'CNY') => {
+const formatMoney = (minor, currency = 'USD') => {
     if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
     return `${currencySymbol(currency)}${(Number(minor) / 100).toFixed(2)}`
 }
 
 const getStatusType = (status) => {
-    const map = { completed: 'success', pending: 'warning', failed: 'danger' }
+    const map = { completed: 'success', succeeded: 'success', pending: 'warning', failed: 'danger' }
     return map[status] || 'info'
 }
 

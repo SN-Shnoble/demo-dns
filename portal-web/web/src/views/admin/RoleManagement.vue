@@ -122,7 +122,7 @@
         </el-row>
     </ListPage>
 
-    <el-dialog v-model="showRoleDialog" :title="editingRole ? ($t('common.edit')) : ($t('common.add'))" width="400px">
+    <el-dialog v-model="showRoleDialog" :title="editingRole ? ($t('common.edit')) : ($t('common.add'))" width="620px">
         <el-form :model="roleForm" label-position="top">
             <el-form-item :label="$t('admin.rbac.roleCode')" :rules="[{ required: true }]">
                 <el-input v-model="roleForm.code" :disabled="!!editingRole" />
@@ -132,6 +132,33 @@
             </el-form-item>
             <el-form-item :label="$t('admin.rbac.description')">
                 <el-input v-model="roleForm.description" type="textarea" :rows="2" />
+            </el-form-item>
+            <el-form-item v-if="!editingRole" :label="$t('admin.rbac.menuRules')">
+                <div class="add-role-menu-rules">
+                    <div class="menu-rules-toolbar">
+                        <el-checkbox
+                            v-model="roleFormMenuCheckAll"
+                            :indeterminate="roleFormMenuIndeterminate"
+                            @change="handleRoleFormMenuRulesAll"
+                        >
+                            {{ $t('admin.rbac.menuRulesAll') }}
+                        </el-checkbox>
+                    </div>
+                    <el-checkbox-group v-model="roleFormMenuRules" class="menu-rules-tree">
+                        <div v-for="root in menuTree" :key="root.id" class="menu-rules-group">
+                            <el-checkbox :value="root.id" :label="root.label" @change="(v) => toggleRoleFormGroupMenu(root, v)" />
+                            <div v-if="root.children && root.children.length" class="menu-rules-children">
+                                <el-checkbox
+                                    v-for="child in root.children"
+                                    :key="child.id"
+                                    :value="child.id"
+                                    :label="child.label"
+                                />
+                            </div>
+                        </div>
+                    </el-checkbox-group>
+                    <p v-if="!menuTree.length" class="empty-hint">{{ $t('admin.rbac.menuRulesEmpty') }}</p>
+                </div>
             </el-form-item>
         </el-form>
         <template #footer>
@@ -163,6 +190,9 @@ const showRoleDialog = ref(false)
 const editingRole = ref(null)
 const roleForm = reactive({ code: '', name: '', description: '' })
 const savingRole = ref(false)
+const roleFormMenuRules = ref([])
+const roleFormMenuCheckAll = ref(false)
+const roleFormMenuIndeterminate = ref(false)
 
 // 菜单规则
 const menuTree = ref([])
@@ -234,6 +264,10 @@ const showAddRole = () => {
     roleForm.code = ''
     roleForm.name = ''
     roleForm.description = ''
+    roleFormMenuRules.value = []
+    roleFormMenuCheckAll.value = false
+    roleFormMenuIndeterminate.value = false
+    fetchMenuConfig()
     showRoleDialog.value = true
 }
 
@@ -244,11 +278,21 @@ const handleSaveRole = async () => {
             await client.put(`/admin/rbac/roles/${editingRole.value.id}`, roleForm)
             ElMessage.success(t('admin.rbac.updateSuccess'))
         } else {
-            await client.post('/admin/rbac/roles', roleForm)
+            const { data } = await client.post('/admin/rbac/roles', roleForm)
+            const newRole = data.data
+            if (newRole?.id) {
+                await client.put(`/admin/rbac/roles/${newRole.id}/menu-rules`, {
+                    nav_keys: roleFormMenuRules.value,
+                })
+            }
             ElMessage.success(t('admin.rbac.createSuccess'))
         }
         showRoleDialog.value = false
-        fetchRoles()
+        await fetchRoles()
+        const created = roles.value.find((role) => role.code === roleForm.code)
+        if (created) {
+            selectRole(created)
+        }
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.rbac.saveFailed'))
     } finally {
@@ -345,26 +389,54 @@ const toggleGroupMenu = (root, checked) => {
     syncMenuRulesCheckAll()
 }
 
-const handleMenuRulesAll = (checked) => {
+const allMenuKeys = () => {
     const all = []
     for (const root of menuTree.value) {
         all.push(root.id)
         for (const c of root.children || []) all.push(c.id)
     }
+    return all
+}
+
+const handleMenuRulesAll = (checked) => {
+    const all = allMenuKeys()
     selectedMenuRules.value = checked ? all : []
     menuRulesIndeterminate.value = false
 }
 
 const syncMenuRulesCheckAll = () => {
-    const all = []
-    for (const root of menuTree.value) {
-        all.push(root.id)
-        for (const c of root.children || []) all.push(c.id)
-    }
+    const all = allMenuKeys()
     const total = all.length
     const sel = selectedMenuRules.value.length
     menuRulesCheckAll.value = total > 0 && sel === total
     menuRulesIndeterminate.value = sel > 0 && sel < total
+}
+
+const toggleRoleFormGroupMenu = (root, checked) => {
+    if (!root?.children) return
+    const ids = root.children.map((c) => c.id)
+    if (checked) {
+        const merged = new Set(roleFormMenuRules.value)
+        merged.add(root.id)
+        ids.forEach((id) => merged.add(id))
+        roleFormMenuRules.value = Array.from(merged)
+    } else {
+        roleFormMenuRules.value = roleFormMenuRules.value.filter((id) => id !== root.id && !ids.includes(id))
+    }
+    syncRoleFormMenuRulesCheckAll()
+}
+
+const handleRoleFormMenuRulesAll = (checked) => {
+    roleFormMenuRules.value = checked ? allMenuKeys() : []
+    roleFormMenuIndeterminate.value = false
+}
+
+const syncRoleFormMenuRulesCheckAll = () => {
+    const all = allMenuKeys()
+    const total = all.length
+    const sel = roleFormMenuRules.value.length
+    roleFormMenuCheckAll.value = total > 0 && sel === total
+    roleFormMenuIndeterminate.value = sel > 0 && sel < total
 }
 
 const saveMenuRules = async () => {
@@ -383,6 +455,7 @@ const saveMenuRules = async () => {
 }
 
 watch(selectedMenuRules, () => syncMenuRulesCheckAll())
+watch(roleFormMenuRules, () => syncRoleFormMenuRulesCheckAll())
 
 onMounted(() => {
     fetchRoles()
@@ -484,4 +557,12 @@ onMounted(() => {
     gap: 6px 16px;
 }
 .empty-hint { padding: 16px 0; color: #94a3b8; font-size: 13px; }
+.add-role-menu-rules {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    max-height: 280px;
+    overflow-y: auto;
+}
 </style>

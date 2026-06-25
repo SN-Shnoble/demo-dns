@@ -8,6 +8,7 @@ use App\Domain\Billing\OrderService;
 use App\Domain\Billing\PaymentService;
 use App\Domain\Billing\PlanCatalogService;
 use App\Models\Order;
+use App\Models\PaymentTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;

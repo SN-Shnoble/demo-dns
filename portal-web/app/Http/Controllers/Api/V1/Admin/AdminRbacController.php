@@ -65,6 +65,18 @@ final class AdminRbacController
             ->orderByDesc('created_at')
             ->get()
             ->map(function (Admin $admin): array {
+                $roleList = DB::table('admin_user_roles as ur')
+                    ->join('admin_roles as r', 'r.id', '=', 'ur.admin_role_id')
+                    ->where('ur.admin_id', $admin->admin_id)
+                    ->select(['r.id', 'r.code', 'r.name'])
+                    ->get()
+                    ->map(fn ($r): array => [
+                        'id' => (int) $r->id,
+                        'code' => (string) $r->code,
+                        'name' => (string) $r->name,
+                    ])
+                    ->all();
+
                 return [
                     'id' => $admin->admin_id,
                     'username' => $admin->username,
@@ -72,7 +84,7 @@ final class AdminRbacController
                     'status' => $admin->status,
                     'is_super_admin' => (bool) $admin->is_super,
                     'last_login_at' => $admin->last_login_at,
-                    'role_list' => [],
+                    'role_list' => $roleList,
                 ];
             })
             ->values();
@@ -132,9 +144,9 @@ final class AdminRbacController
             return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot delete system role.', 422);
         }
 
-        DB::table('admin_role_permissions')->where('role_id', $id)->delete();
-        DB::table('admin_role_nav_rules')->where('role_id', $id)->delete();
-        DB::table('admin_user_roles')->where('role_id', $id)->delete();
+        DB::table('admin_role_permissions')->where('admin_role_id', $id)->delete();
+        DB::table('admin_role_nav_rules')->where('admin_role_id', $id)->delete();
+        DB::table('admin_user_roles')->where('admin_role_id', $id)->delete();
         $role->delete();
 
         return \App\Helpers\ApiResponse::success(['deleted' => true]);
@@ -153,11 +165,11 @@ final class AdminRbacController
         ]);
 
         DB::transaction(function () use ($id, $validated): void {
-            DB::table('admin_role_permissions')->where('role_id', $id)->delete();
+            DB::table('admin_role_permissions')->where('admin_role_id', $id)->delete();
             foreach ($validated['permission_ids'] as $permissionId) {
                 DB::table('admin_role_permissions')->insert([
-                    'role_id' => $id,
-                    'permission_id' => $permissionId,
+                    'admin_role_id' => $id,
+                    'admin_permission_id' => $permissionId,
                 ]);
             }
         });
@@ -172,7 +184,7 @@ final class AdminRbacController
             return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Admin not found.', 404);
         }
 
-        if ($admin->is_super_admin) {
+        if ($admin->is_super) {
             return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot modify super admin roles.', 422);
         }
 
@@ -186,9 +198,11 @@ final class AdminRbacController
             foreach ($validated['role_ids'] as $roleId) {
                 DB::table('admin_user_roles')->insert([
                     'admin_id' => $adminId,
-                    'role_id' => $roleId,
+                    'admin_role_id' => $roleId,
                     'assigned_by' => $request->user()?->admin_id,
                     'assigned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
         });

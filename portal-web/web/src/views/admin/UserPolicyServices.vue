@@ -166,10 +166,14 @@ const featuredCount = computed(() => plans.value.filter((p) => p.is_featured).le
 const formatPrice = (amountMinor, currency) => {
     if (amountMinor === null || amountMinor === undefined) return '-'
     const amount = (Number(amountMinor) || 0) / 100
+    const code = String(currency || 'USD').toUpperCase()
+    if (code === 'USD') {
+        return `US$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
     try {
-        return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD' }).format(amount)
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(amount)
     } catch (e) {
-        return `${currency || 'USD'} ${amount.toFixed(2)}`
+        return `${code} ${amount.toFixed(2)}`
     }
 }
 

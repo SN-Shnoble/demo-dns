@@ -56,6 +56,7 @@ final class AdminBillingController
     {
         $validated = $request->validate([
             'user_id' => 'nullable|string|max:40',
+            'status' => 'nullable|string|max:30',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
@@ -64,6 +65,7 @@ final class AdminBillingController
             $validated['user_id'] ?? '',
             (int) ($validated['page'] ?? 1),
             (int) ($validated['per_page'] ?? 20),
+            $validated['status'] ?? '',
         );
 
         return response()->json($result);
@@ -73,12 +75,14 @@ final class AdminBillingController
     {
         $validated = $request->validate([
             'user_id' => 'nullable|string|max:40',
+            'status' => 'nullable|string|max:30',
         ]);
 
         $result = $this->service->bills(
             $validated['user_id'] ?? '',
             1,
             10000,
+            $validated['status'] ?? '',
         );
 
         return response()->json(['data' => $result['data'] ?? []]);

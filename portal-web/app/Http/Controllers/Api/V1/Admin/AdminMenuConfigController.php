@@ -10,13 +10,46 @@ use Illuminate\Support\Facades\DB;
 
 class AdminMenuConfigController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $navigationScope = $request->query('scope') === 'navigation';
+        $allowedKeys = $navigationScope ? $this->allowedMenuKeys($request) : null;
+
         $menus = AdminMenuRule::with('children')
             ->roots()
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($menu) {
+            ->when($navigationScope, function ($items) use ($allowedKeys) {
+                return $items
+                    ->filter(function ($menu) use ($allowedKeys): bool {
+                        if (! $menu->visible) {
+                            return false;
+                        }
+                        if ($allowedKeys === null) {
+                            return true;
+                        }
+                        if (in_array($menu->menu_key, $allowedKeys, true)) {
+                            return true;
+                        }
+                        return $menu->children
+                            ->where('visible', true)
+                            ->contains(fn ($child): bool => in_array($child->menu_key, $allowedKeys, true));
+                    })
+                    ->values();
+            })
+            ->map(function ($menu) use ($navigationScope, $allowedKeys) {
+                $children = $menu->children;
+                if ($navigationScope) {
+                    $children = $children
+                        ->filter(function ($child) use ($allowedKeys): bool {
+                            if (! $child->visible) {
+                                return false;
+                            }
+                            return $allowedKeys === null || in_array($child->menu_key, $allowedKeys, true);
+                        })
+                        ->values();
+                }
+
                 return [
                     'id' => $menu->menu_key,
                     'menuKey' => $menu->menu_key,
@@ -28,7 +61,7 @@ class AdminMenuConfigController extends Controller
                     'permissionCode' => $menu->permission_code,
                     'groupKey' => $menu->group_key,
                     'parentId' => $menu->parent_key,
-                    'children' => $menu->children->map(function ($child) {
+                    'children' => $children->map(function ($child) {
                         return [
                             'id' => $child->menu_key,
                             'menuKey' => $child->menu_key,
@@ -126,5 +159,23 @@ class AdminMenuConfigController extends Controller
         $menu->update(['visible' => $validated['visible']]);
 
         return response()->json(['message' => 'Visibility updated successfully']);
+    }
+
+    private function allowedMenuKeys(Request $request): ?array
+    {
+        $admin = $request->user();
+        if ($admin?->is_super === true) {
+            return null;
+        }
+
+        return DB::table('admin_role_nav_rules as r')
+            ->join('admin_user_roles as ur', 'ur.admin_role_id', '=', 'r.admin_role_id')
+            ->where('ur.admin_id', $admin?->admin_id)
+            ->where('r.visible', true)
+            ->pluck('r.nav_key')
+            ->map(fn ($key): string => (string) $key)
+            ->unique()
+            ->values()
+            ->all();
     }
 }

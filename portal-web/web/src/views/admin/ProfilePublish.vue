@@ -37,7 +37,7 @@
                 style="width: 100%"
                 row-key="profile_id"
             >
-                <el-table-column prop="profile_id" :label="$t('admin.profilePublish.profileUid')" width="100">
+                <el-table-column prop="profile_id" :label="$t('admin.profilePublish.profileUid')" width="160">
                     <template #default="{ row }">
                         <code class="uid-code">{{ row.profile_id }}</code>
                     </template>

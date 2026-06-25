@@ -577,6 +577,16 @@ fetchAll()
     gap: 10px;
     flex-wrap: wrap;
 }
+.catalog-tabs :deep(.el-input__wrapper),
+.catalog-tabs :deep(.el-select__wrapper),
+.catalog-tabs :deep(.el-input-number),
+.catalog-tabs :deep(.el-input-number .el-input__wrapper),
+:deep(.el-dialog .el-input__wrapper),
+:deep(.el-dialog .el-select__wrapper),
+:deep(.el-dialog .el-input-number),
+:deep(.el-dialog .el-input-number .el-input__wrapper) {
+    min-height: 40px;
+}
 .user-cell, .profile-cell {
     display: flex;
     flex-direction: column;

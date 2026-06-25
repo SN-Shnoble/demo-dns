@@ -226,11 +226,18 @@ const form = reactive({
     prices: [createEmptyPrice()],
 })
 
-const money = (minor, currency = 'USD') => new Intl.NumberFormat(undefined, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-}).format(Number(minor || 0) / 100)
+const money = (minor, currency = 'USD') => {
+    const code = String(currency || 'USD').toUpperCase()
+    const amount = Number(minor || 0) / 100
+    if (code === 'USD') {
+        return `US$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: code,
+        minimumFractionDigits: 2,
+    }).format(amount)
+}
 
 const resetForm = () => {
     editingPlan.value = null
@@ -373,6 +380,12 @@ fetchPlans()
     max-height: 65vh;
     overflow-y: auto;
     padding-right: 4px;
+}
+.plan-form :deep(.el-input__wrapper),
+.plan-form :deep(.el-select__wrapper),
+.plan-form :deep(.el-input-number),
+.plan-form :deep(.el-input-number .el-input__wrapper) {
+    min-height: 40px;
 }
 
 .form-section {

@@ -57,11 +57,9 @@
                             {{ $t('dashboard.endpointIpv4') }}
                             <span class="endpoint-hint">{{ $t('dashboard.endpointIpv4Hint') }}</span>
                         </div>
-                        <div v-if="endpoints.ipv4 && endpoints.ipv4.length">
-                            <div v-for="(ip, idx) in endpoints.ipv4" :key="'v4-' + idx" class="code-row" :class="{ 'mt-6': idx > 0 }">
-                                <div class="code">{{ ip }}</div>
-                                <button class="copy-btn" @click="copyText(ip)">{{ $t('dashboard.copy') }}</button>
-                            </div>
+                        <div v-if="boundIpv4" class="code-row">
+                            <div class="code">{{ boundIpv4 }}</div>
+                            <button class="copy-btn" @click="copyText(boundIpv4)">{{ $t('dashboard.copy') }}</button>
                         </div>
                         <div v-else class="code-row">
                             <div class="code">—</div>
@@ -216,7 +214,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import client from '@/api/client'
@@ -231,6 +229,7 @@ const endpoints = ref({ profile_id: '', doh: '', dot: '', doq: '', doq_url: '', 
 const topVisited = ref([])
 const topBlocked = ref([])
 const recentDevices = ref([])
+const boundIpv4 = computed(() => endpoints.value.server_ip || endpoints.value.ipv4?.[0] || '')
 
 const chartBars = ref([])
 
@@ -284,6 +283,7 @@ const fetchData = async () => {
             dot: ep.dot || '',
             doq: ep.doq || '',
             doq_url: ep.doq_url || '',
+            server_ip: ep.server_ip || '',
             ipv4: Array.isArray(ep.ipv4) ? ep.ipv4 : [],
             ipv6: Array.isArray(ep.ipv6) ? ep.ipv6 : [],
         }

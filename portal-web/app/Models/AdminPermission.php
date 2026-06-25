@@ -17,8 +17,8 @@ class AdminPermission extends Model
             AdminRole::class,
             // pivot 表走默认 + config/database.php 的 `prefix`
             "admin_role_permissions",
-            "permission_id",
-            "role_id"
+            "admin_permission_id",
+            "admin_role_id"
         );
     }
 }

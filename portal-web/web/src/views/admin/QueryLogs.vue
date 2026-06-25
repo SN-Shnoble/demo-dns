@@ -119,7 +119,7 @@
                     <span class="profile-name">{{ row.profile_name || '-' }}</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.queryLogsPage.action')" width="85">
+            <el-table-column :label="$t('admin.queryLogsPage.action')" width="110">
                 <template #default="{ row }">
                     <el-tag
                         v-if="row.action"
@@ -131,13 +131,13 @@
 </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="类型" width="70">
+            <el-table-column label="类型" width="100">
                 <template #default="{ row }">
                     <el-tag v-if="row.query_type" type="info" effect="light" size="small">{{ row.query_type }}</el-tag>
                     <span v-else style="color:#94a3b8">-</span>
                 </template>
             </el-table-column>
-            <el-table-column label="协议" width="70">
+            <el-table-column label="协议" width="100">
                 <template #default="{ row }">
                     <el-tag v-if="row.protocol" type="warning" effect="light" size="small">{{ row.protocol?.toUpperCase() }}</el-tag>
                     <span v-else style="color:#94a3b8">-</span>
