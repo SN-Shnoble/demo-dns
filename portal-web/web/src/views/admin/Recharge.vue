@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.finance.recharge') || '充值记录'"
+        :title="$t('admin.finance.recharge')"
         
         i18n-key="admin.finance.recharge"
         icon-name="CreditCard"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filterUserId"
-                :placeholder="$t('admin.finance.userId') || '用户ID'"
+                :placeholder="$t('admin.finance.userId')"
                 size="small"
                 style="width:200px"
                 clearable
@@ -25,18 +25,18 @@
             </el-input>
             <el-button size="small" type="primary" @click="fetchRecharges">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
         <template #actions>
             <el-button size="small" type="success" :loading="exporting" @click="handleExport">
                 <el-icon class="el-icon--left"><Download /></el-icon>
-                <span>{{ $t('common.export') || '导出' }}</span>
+                <span>{{ $t('common.export') }}</span>
             </el-button>
         </template>
 
@@ -44,24 +44,24 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><CreditCard /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                 </div>
             </template>
-            <el-table-column prop="user_id" :label="$t('admin.finance.userId') || '用户ID'" width="200" show-overflow-tooltip />
-            <el-table-column prop="amount_minor" :label="$t('admin.finance.amount') || '充值金额'" width="140">
+            <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
+            <el-table-column prop="amount_minor" :label="$t('admin.finance.amount')" width="140">
                 <template #default="{ row }">
                     <span class="amount-positive">+{{ formatMoney(row.amount_minor, row.currency) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="payment_method" :label="$t('admin.finance.paymentMethod') || '支付方式'" width="140" show-overflow-tooltip />
-            <el-table-column prop="transaction_id" :label="$t('admin.finance.transactionId') || '交易号'" min-width="220" show-overflow-tooltip />
-            <el-table-column prop="status" :label="$t('admin.finance.status') || '状态'" width="100">
+            <el-table-column prop="payment_method" :label="$t('admin.finance.paymentMethod')" width="140" show-overflow-tooltip />
+            <el-table-column prop="transaction_id" :label="$t('admin.finance.transactionId')" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="status" :label="$t('admin.finance.status')" width="100">
                 <template #default="{ row }">
                     <el-tag :type="getStatusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt') || '充值时间'" width="160">
-                <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt')" width="160">
+                <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}</template>
             </el-table-column>
         </el-table>
     </ListPage>
@@ -74,7 +74,6 @@ import { useI18n } from 'vue-i18n'
 import { CreditCard, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 
@@ -137,9 +136,9 @@ const handleExport = async () => {
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
-        ElMessage.success(t('admin.finance.exportSuccess') || '导出成功')
+        ElMessage.success(t('admin.finance.exportSuccess'))
     } catch {
-        ElMessage.error(t('admin.finance.exportFailed') || '导出失败')
+        ElMessage.error(t('admin.finance.exportFailed'))
     } finally {
         exporting.value = false
     }

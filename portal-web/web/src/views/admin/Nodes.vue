@@ -1,7 +1,7 @@
 <template>
     <ListPage
         :title="t('admin.nodes.title')"
-        :desc="t('admin.nodes.desc')"
+        :desc="'默认监听端口：DNS 53 (UDP/TCP) · DoH 443 · DoT 853 · DoQ 784'"
         i18n-key="admin.nodes"
         icon-name="Monitor"
         :total="meta?.total ?? 0"
@@ -30,7 +30,7 @@
         <template #filters>
             <el-input
                 v-model="filterKeyword"
-                :placeholder="t('admin.nodes.searchPlaceholder') || '搜索节点ID/别名/IP'"
+                :placeholder="t('admin.nodes.searchPlaceholder')"
                 class="search-input"
                 clearable
                 @keyup.enter="onSearch"
@@ -38,10 +38,10 @@
             >
             </el-input>
             <el-button size="small" type="primary" @click="onSearch">
-                <span>{{ t('common.search') || '搜索' }}</span>
+                <span>{{ t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="onReset">
-                <span>{{ t('common.reset') || '重置' }}</span>
+                <span>{{ t('common.reset') }}</span>
             </el-button>
         </template>
 
@@ -63,7 +63,7 @@
         <el-table v-loading="loading" :data="nodes" stripe style="margin-top:12px;width:100%" :header-cell-style="{'white-space':'nowrap'}" @selection-change="onSelectionChange">
             <template #empty>
                 <div class="empty-state">
-                    <p class="empty-title">{{ t('admin.nodes.noNodes') || '暂无节点' }}</p>
+                    <p class="empty-title">{{ t('admin.nodes.noNodes') }}</p>
                     <p class="empty-desc">点击右上角「{{ t('admin.nodes.create') }}」添加第一个 DNS 节点。</p>
                 </div>
             </template>
@@ -121,7 +121,7 @@
                     <div style="white-space:nowrap;display:flex;gap:4px;align-items:center">
                         <el-button size="small" text type="primary" @click="openEditDialog(row)">
                             <el-icon><Edit /></el-icon>
-                            <span>{{ t('common.edit') || '编辑' }}</span>
+                            <span>{{ t('common.edit') }}</span>
                         </el-button>
                         <!-- 2026-06-22: 已安装节点不显示「部署」按钮；仅展示文字，去除图标 -->
                         <el-button
@@ -142,7 +142,7 @@
                             @click="openKeyDialog(row)"
                         >
                             <el-icon><Refresh /></el-icon>
-                            <span>{{ t('admin.nodes.redeploy') || '重新部署' }}</span>
+                            <span>{{ t('admin.nodes.redeploy') }}</span>
                         </el-button>
                         <el-button size="small" text type="danger" @click="handleDelete(row.id)">
                             <el-icon><Delete /></el-icon>
@@ -159,12 +159,12 @@
                 <code class="node-code">{{ form.node_code }}</code>
             </el-form-item>
             <el-form-item :label="t('admin.nodes.region')" prop="region">
-                <el-select v-model="form.region" filterable clearable :placeholder="t('admin.nodes.regionPlaceholder') || '选择区域'" style="width:100%">
+                <el-select v-model="form.region" filterable clearable :placeholder="t('admin.nodes.regionPlaceholder')" style="width:100%">
                     <el-option v-for="r in regions" :key="r.code" :label="`${r.code} - ${r.name}`" :value="r.code" />
                 </el-select>
             </el-form-item>
             <el-form-item :label="t('admin.nodes.nodeAlias')" prop="node_alias">
-                <el-input v-model="form.node_alias" :placeholder="t('admin.nodes.nodeAliasPlaceholder') || '可选，留空将自动生成 node-xxxxxx'" />
+                <el-input v-model="form.node_alias" :placeholder="t('admin.nodes.nodeAliasPlaceholder')" />
             </el-form-item>
             <el-form-item :label="t('admin.nodes.ipv4')">
                 <el-input v-model="form.public_ipv4" />
@@ -217,7 +217,6 @@ import { CopyDocument, Delete, Edit, InfoFilled, Refresh } from '@element-plus/i
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
 import { useSystemConfig } from '@/composables/useSystemConfig'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 
@@ -270,7 +269,10 @@ const rules = {
     region: [{ required: true, message: t('admin.nodes.regionRequired') || 'Region is required', trigger: 'change' }],
 }
 
-const formatTime = (ts) => formatDateTime(ts)
+const formatTime = (ts) => {
+    if (!ts) return '-'
+    return new Date(ts).toLocaleString()
+}
 
 const fetchNodes = async () => {
     loading.value = true

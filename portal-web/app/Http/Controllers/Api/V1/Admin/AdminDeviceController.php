@@ -50,7 +50,7 @@ final class AdminDeviceController
     {
         $device = Device::with('user:uid,username,email')->find($deviceId);
         if (! $device) {
-            return response()->json(['message' => 'Device not found'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Device not found', 404);
         }
 
         return response()->json([
@@ -74,12 +74,12 @@ final class AdminDeviceController
     {
         $device = Device::find($deviceId);
         if (! $device) {
-            return response()->json(['message' => 'Device not found'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Device not found', 404);
         }
 
         $device->delete();
 
-        return response()->json(['message' => 'Device deleted']);
+        return \App\Helpers\ApiResponse::success(['deleted' => true]);
     }
 
     public function batchDestroy(Request $request): JsonResponse
@@ -94,6 +94,6 @@ final class AdminDeviceController
         $ids = array_map(static fn ($v): string => (string) $v, $validated['ids']);
         $deleted = Device::whereIn('id', $ids)->delete();
 
-        return response()->json(['message' => "Deleted {$deleted} device(s).", 'deleted' => $deleted]);
+        return \App\Helpers\ApiResponse::success(['deleted' => $deleted]);
     }
 }

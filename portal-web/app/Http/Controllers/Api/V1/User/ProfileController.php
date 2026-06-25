@@ -35,7 +35,7 @@ final class ProfileController
                 $request->only(['name', 'description', 'default_action', 'block_response', 'security_enabled', 'privacy_enabled']),
             );
         } catch (\InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return \App\Helpers\ApiResponse::error('INVALID_ARGUMENT', $e->getMessage(), 422);
         }
 
         return response()->json(['data' => $result], 201);

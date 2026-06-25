@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.auditLogs.title') || '管理员操作日志'"
+        :title="$t('admin.auditLogs.title')"
         
         i18n-key="admin.auditLogs"
         icon-name="Document"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filters.action"
-                :placeholder="$t('admin.auditLogs.searchAction') || '搜索操作'"
+                :placeholder="$t('admin.auditLogs.searchAction')"
                 style="width:220px"
                 clearable
                 @clear="fetchLogs"
@@ -33,7 +33,7 @@
             />
             <el-input
                 v-model="filters.target_type"
-                :placeholder="$t('admin.auditLogs.resourceType') || '资源类型'"
+                :placeholder="$t('admin.auditLogs.resourceType')"
                 style="width:180px"
                 clearable
                 @clear="fetchLogs"
@@ -50,18 +50,18 @@
             />
             <el-button type="primary" @click="fetchLogs">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('admin.auditLogs.query') || '查询' }}</span>
+                <span>{{ $t('admin.auditLogs.query') }}</span>
             </el-button>
             <el-button @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
         <template #actions>
             <el-button type="success" :loading="exporting" @click="handleExport">
                 <el-icon class="el-icon--left"><Download /></el-icon>
-                <span>{{ $t('admin.auditLogs.export') || '导出' }}</span>
+                <span>{{ $t('admin.auditLogs.export') }}</span>
             </el-button>
             <el-button
                 type="danger"
@@ -69,10 +69,10 @@
                 :disabled="selected.length === 0"
                 @click="handleBatchDelete"
             >
-                <span>{{ $t('admin.auditLogs.batchDelete') || '批量删除' }} ({{ selected.length }})</span>
+                <span>{{ $t('admin.auditLogs.batchDelete') }} ({{ selected.length }})</span>
             </el-button>
             <el-button type="danger" :disabled="(meta?.total ?? 0) === 0" @click="handleClearAll">
-                <span>{{ $t('common.clear') || '清空' }}</span>
+                <span>{{ $t('common.clear') }}</span>
             </el-button>
         </template>
 
@@ -80,27 +80,27 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Document /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无审计日志' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                     <p class="empty-desc">{{ $t('admin.auditLogs.emptyDesc') || 'Administrator operation records will be displayed here.' }}</p>
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="created_at" :label="$t('admin.auditLogs.time') || '时间'" width="170">
+            <el-table-column prop="created_at" :label="$t('admin.auditLogs.time')" width="170">
                 <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column prop="actor_id" :label="$t('admin.auditLogs.actor') || '操作者'" width="220" show-overflow-tooltip />
-            <el-table-column prop="action" :label="$t('admin.auditLogs.action') || '操作'" width="260">
+            <el-table-column prop="actor_id" :label="$t('admin.auditLogs.actor')" width="220" show-overflow-tooltip />
+            <el-table-column prop="action" :label="$t('admin.auditLogs.action')" width="260">
                 <template #default="{ row }">
                     <el-tag size="small" :type="actionTagType(row.action)" effect="light">{{ actionLabel(row.action) }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="target_type" :label="$t('admin.auditLogs.resourceType') || '资源类型'" width="140" />
-            <el-table-column prop="target_id" :label="$t('admin.auditLogs.resourceId') || '资源ID'" min-width="240" show-overflow-tooltip />
+            <el-table-column prop="target_type" :label="$t('admin.auditLogs.resourceType')" width="140" />
+            <el-table-column prop="target_id" :label="$t('admin.auditLogs.resourceId')" min-width="240" show-overflow-tooltip />
             <el-table-column prop="ip" :label="$t('admin.auditLogs.ip') || 'IP'" width="160" show-overflow-tooltip />
             <el-table-column prop="user_agent" label="User-Agent" min-width="260" show-overflow-tooltip />
-            <el-table-column :label="$t('admin.auditLogs.actions') || '操作'" width="88" fixed="right">
+            <el-table-column :label="$t('admin.auditLogs.actions')" width="88" fixed="right">
                 <template #default="{ row }">
-                    <el-button text type="danger" @click="handleDelete(row)">{{ $t('common.delete') || '删除' }}</el-button>
+                    <el-button text type="danger" @click="handleDelete(row)">{{ $t('common.delete') }}</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -114,7 +114,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 const logs = ref([])
@@ -126,7 +125,10 @@ const filters = ref({ action: '', actor_id: '', target_type: '', range: [] })
 const page = ref(1)
 const perPage = ref(20)
 
-const formatTime = (ts) => formatDateTime(ts)
+const formatTime = (ts) => {
+    if (!ts) return '-'
+    return new Date(ts).toLocaleString()
+}
 
 // 2026-06-22: 把 action 拆分为人类可读名（"user.create" -> "Create"）
 const actionLabel = (action) => {
@@ -226,22 +228,22 @@ const handleBatchDelete = async () => {
 const handleDelete = async (row) => {
     try {
         await ElMessageBox.confirm(
-            t('admin.auditLogs.deleteConfirm') || '确认删除这条日志吗？',
+            t('admin.auditLogs.deleteConfirm'),
             t('common.confirm'),
             { type: 'warning' },
         )
         await client.delete(`/admin/console/audit-logs/${row.id}`)
-        ElMessage.success(t('common.deleteSuccess') || '删除成功')
+        ElMessage.success(t('common.deleteSuccess'))
         await fetchLogs()
     } catch (e) {
-        if (e !== 'cancel') ElMessage.error(t('common.deleteFailed') || '删除失败')
+        if (e !== 'cancel') ElMessage.error(t('common.deleteFailed'))
     }
 }
 
 const handleClearAll = async () => {
     try {
         await ElMessageBox.confirm(
-            t('admin.auditLogs.clearConfirm') || '确认清空全部日志吗？',
+            t('admin.auditLogs.clearConfirm'),
             t('common.confirm'),
             { type: 'warning' },
         )

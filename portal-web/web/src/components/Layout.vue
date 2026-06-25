@@ -30,7 +30,7 @@
                             </el-icon>
                         </template>
                         <el-menu-item index="/user/security" @click="navigateTo('/user/security')">
-                            <span>{{ $t('nav.securitySettings') || '安全设置' }}</span>
+                            <span>{{ $t('nav.securitySettings') }}</span>
                         </el-menu-item>
                         <el-menu-item index="/user/privacy" @click="navigateTo('/user/privacy')">
                             <span>{{ $t('nav.privacy') }}</span>
@@ -74,7 +74,7 @@
                                 </el-dropdown-item>
                                 <el-dropdown-item command="create" divided>
                                     <el-icon><Plus /></el-icon>
-                                    <span>{{ $t('common.add') || '新建' }}</span>
+                                    <span>{{ $t('common.add') }}</span>
                                 </el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -102,9 +102,9 @@
                         </span>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item command="account">{{ $t('nav.account') || '账户' }}</el-dropdown-item>
-                                <el-dropdown-item command="order">{{ $t('nav.order') || '订单' }}</el-dropdown-item>
-                                <el-dropdown-item command="plans">{{ $t('nav.upgrade') || '升级套餐' }}</el-dropdown-item>
+                                <el-dropdown-item command="account">{{ $t('nav.account') }}</el-dropdown-item>
+                                <el-dropdown-item command="order">{{ $t('nav.order') }}</el-dropdown-item>
+                                <el-dropdown-item command="plans">{{ $t('nav.upgrade') }}</el-dropdown-item>
                                 <el-dropdown-item command="profiles">{{ $t('nav.profiles') }}</el-dropdown-item>
                                 <el-dropdown-item command="teams">{{ $t('nav.teams') }}</el-dropdown-item>
                                 <el-dropdown-item command="logout" divided>{{ $t('nav.logout') }}</el-dropdown-item>
@@ -120,10 +120,10 @@
         </main>
 
         <!-- 新建 Profile 弹窗 -->
-        <el-dialog v-model="createProfileVisible" :title="$t('profile.create') || '新建配置'" width="400px">
+        <el-dialog v-model="createProfileVisible" :title="$t('profile.create')" width="400px">
             <el-form :model="newProfile" label-position="top">
-                <el-form-item :label="$t('profile.name') || '配置名称'">
-                    <el-input v-model="newProfile.name" :placeholder="$t('profile.namePlaceholder') || '请输入配置名称'" />
+                <el-form-item :label="$t('profile.name')">
+                    <el-input v-model="newProfile.name" :placeholder="$t('profile.namePlaceholder')" />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -289,7 +289,7 @@ const handleProfileCommand = (command) => {
 
 const handleCreateProfile = async () => {
     if (!newProfile.value.name?.trim()) {
-        ElMessage.warning(t('profile.nameRequired') || '请输入配置名称')
+        ElMessage.warning(t('profile.nameRequired'))
         return
     }
 
@@ -302,12 +302,12 @@ const handleCreateProfile = async () => {
         if (data.data) {
             profiles.value.push(data.data)
             switchProfile(profileKey(data.data))
-            ElMessage.success(t('profile.created') || '配置已创建')
+            ElMessage.success(t('profile.created'))
         }
 
         createProfileVisible.value = false
     } catch (err) {
-        ElMessage.error(err.message || t('profile.createFailed') || '创建失败')
+        ElMessage.error(err.message || t('profile.createFailed'))
     } finally {
         creatingProfile.value = false
     }

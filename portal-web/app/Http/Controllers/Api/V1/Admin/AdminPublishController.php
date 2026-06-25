@@ -163,7 +163,7 @@ final class AdminPublishController
         $task = PublishTask::query()->findOrFail($taskId);
 
         if (in_array($task->status, ['succeeded', 'failed'], true)) {
-            return response()->json(['error' => 'Task cannot be cancelled in current state.'], 422);
+            return \App\Helpers\ApiResponse::error('INVALID_STATE', 'Task cannot be cancelled in current state.', 422);
         }
 
         $task->update([

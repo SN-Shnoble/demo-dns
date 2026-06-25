@@ -25,7 +25,7 @@ final class ProfileRuleController
         try {
             $rule = $this->service->create($request->user()->uid, $profileId, $request->all());
         } catch (\InvalidArgumentException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return \App\Helpers\ApiResponse::error('INVALID_ARGUMENT', $e->getMessage(), 422);
         }
 
         return response()->json(['data' => $rule], 201);

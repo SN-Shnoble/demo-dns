@@ -33,7 +33,7 @@
                             </span>
                             <span v-if="profile.is_default" class="meta-item">
                                 <el-icon><Star /></el-icon>
-                                {{ $t('profileDetail.default') || '默认' }}
+                                {{ $t('profileDetail.default') }}
                             </span>
                             <span v-if="profile.published_at" class="meta-item">
                                 <el-icon><Clock /></el-icon>
@@ -50,7 +50,7 @@
             <!-- Meta 统计区 -->
             <div v-if="profile" class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">{{ $t('profileDetail.totalRules') || '规则总数' }}</div>
+                    <div class="stat-label">{{ $t('profileDetail.totalRules') }}</div>
                     <div class="stat-value">{{ stats.total }}</div>
                 </div>
                 <div class="stat-card stat-allow">
@@ -62,7 +62,7 @@
                     <div class="stat-value">{{ stats.deny }}</div>
                 </div>
                 <div class="stat-card stat-enabled">
-                    <div class="stat-label">{{ $t('profileDetail.enabledRules') || '已启用' }}</div>
+                    <div class="stat-label">{{ $t('profileDetail.enabledRules') }}</div>
                     <div class="stat-value">{{ stats.enabled }}</div>
                 </div>
             </div>
@@ -72,15 +72,15 @@
                 <template #header>
                     <div class="card-header">
                         <el-icon><InfoFilled /></el-icon>
-                        <span>{{ $t('profileDetail.metaTitle') || '基础信息' }}</span>
+                        <span>{{ $t('profileDetail.metaTitle') }}</span>
                     </div>
                 </template>
                 <el-descriptions :column="3" :column-md="2" :column-sm="1">
-                    <el-descriptions-item :label="$t('profileDetail.matchType') || '默认匹配'">{{ profile.default_action || '-' }}</el-descriptions-item>
-                    <el-descriptions-item :label="$t('profileDetail.blockResponse') || '拦截响应'">{{ profile.block_response || '-' }}</el-descriptions-item>
-                    <el-descriptions-item :label="$t('profileDetail.version') || '版本'">v{{ profile.version || 0 }}</el-descriptions-item>
-                    <el-descriptions-item :label="$t('profileDetail.createdAt') || '创建时间'">{{ formatTime(profile.created_at) }}</el-descriptions-item>
-                    <el-descriptions-item :label="$t('profileDetail.updatedAt') || '更新时间'">{{ formatTime(profile.updated_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="$t('profileDetail.matchType')">{{ profile.default_action || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="$t('profileDetail.blockResponse')">{{ profile.block_response || '-' }}</el-descriptions-item>
+                    <el-descriptions-item :label="$t('profileDetail.version')">v{{ profile.version || 0 }}</el-descriptions-item>
+                    <el-descriptions-item :label="$t('profileDetail.createdAt')">{{ formatTime(profile.created_at) }}</el-descriptions-item>
+                    <el-descriptions-item :label="$t('profileDetail.updatedAt')">{{ formatTime(profile.updated_at) }}</el-descriptions-item>
                 </el-descriptions>
             </el-card>
 
@@ -90,7 +90,7 @@
                     <div class="rules-head">
                         <div class="card-header">
                             <el-icon><List /></el-icon>
-                            <span>{{ $t('profileDetail.rulesTitle') || '域名规则' }}</span>
+                            <span>{{ $t('profileDetail.rulesTitle') }}</span>
                         </div>
                         <div class="rules-actions">
                             <el-button size="small" type="danger" plain :disabled="selectedRules.length === 0" @click="handleBatchDeleteRules">
@@ -153,7 +153,7 @@
                 <el-empty v-if="!loading && profileRules.length === 0" :description="$t('profileDetail.noRules')">
                     <el-button type="primary" @click="showAddRuleDialog = true">
                         <el-icon><Plus /></el-icon>
-                        <span>{{ $t('profileDetail.addFirstRule') || '添加第一条规则' }}</span>
+                        <span>{{ $t('profileDetail.addFirstRule') }}</span>
                     </el-button>
                 </el-empty>
             </el-card>
@@ -220,7 +220,6 @@ import {
 import { useI18n } from 'vue-i18n'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -268,7 +267,14 @@ const matchTypeLabel = (type) => {
     return type || '-'
 }
 
-const formatTime = (time) => formatDateTime(time)
+const formatTime = (time) => {
+    if (!time) return '-'
+    try {
+        return new Date(time).toLocaleString()
+    } catch {
+        return time
+    }
+}
 
 const fetchData = async () => {
     try {

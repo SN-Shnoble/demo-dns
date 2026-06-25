@@ -15,7 +15,7 @@
                 </div>
             </div>
 
-        <el-table v-loading="loading" :data="rules" stripe :empty-text="$t('common.noData')" style="margin-top:20px">
+        <el-table :data="rules" stripe style="margin-top:20px">
             <el-table-column prop="domain" :label="$t('denylist.domain')" min-width="280" show-overflow-tooltip />
             <el-table-column prop="action" :label="$t('denylist.action')" width="100" />
             <el-table-column :label="$t('denylist.enabled')" width="110">
@@ -44,7 +44,7 @@
                     <el-input v-model="form.domain" :placeholder="$t('denylist.placeholder')" />
                 </el-form-item>
                 <el-alert type="info" :closable="false" style="margin-top:-4px">
-                    {{ $t('denylist.matchSubdomainHint') || '系统将自动同时匹配所有子域名' }}
+                    {{ $t('denylist.matchSubdomainHint') }}
                 </el-alert>
             </el-form>
             <template #footer>
@@ -59,7 +59,7 @@
                     <el-input v-model="editForm.domain" />
                 </el-form-item>
                 <el-alert type="info" :closable="false" style="margin-top:-4px">
-                    {{ $t('denylist.matchSubdomainHint') || '系统将自动同时匹配所有子域名' }}
+                    {{ $t('denylist.matchSubdomainHint') }}
                 </el-alert>
                 <el-form-item :label="$t('denylist.enabled')" style="margin-top:12px">
                     <el-switch v-model="editForm.enabled" />
@@ -86,7 +86,6 @@ const { t } = useI18n()
 const { currentProfileId } = useCurrentProfile()
 
 const rules = ref([])
-const loading = ref(false)
 const showDialog = ref(false)
 const showEditDialog = ref(false)
 const saving = ref(false)
@@ -97,14 +96,11 @@ const form = ref({ domain: '' })
 const editForm = ref({ id: null, domain: '', enabled: true })
 
 const fetchRules = async () => {
-    loading.value = true
     try {
         const { data } = await client.get('/user/denylist', { params: { profile_id: currentProfileId.value } })
         rules.value = data.data
     } catch {
         ElMessage.error(t('common.loadFailed'))
-    } finally {
-        loading.value = false
     }
 }
 

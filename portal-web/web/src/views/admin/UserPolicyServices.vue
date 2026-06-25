@@ -1,7 +1,7 @@
 <template>
     <ListPage
-        :title="$t('admin.userPolicyServices.title') || '方案列表'"
-        :desc="$t('admin.userPolicyServices.desc') || '前台展示的方案与订阅用户一览'"
+        :title="$t('admin.userPolicyServices.title')"
+        :desc="$t('admin.userPolicyServices.desc')"
         i18n-key="admin.userPolicyServices"
         icon-name="Tickets"
         :total="plans.length"
@@ -11,34 +11,34 @@
         <template #actions>
             <el-input
                 v-model="keyword"
-                :placeholder="$t('admin.userPolicyServices.searchPlaceholder') || '搜索方案编码/名称'"
+                :placeholder="$t('admin.userPolicyServices.searchPlaceholder')"
                 clearable
                 style="width: 240px"
                 @keyup.enter="fetchPlans"
             />
-            <el-select v-model="statusFilter" :placeholder="$t('common.status') || '状态'" clearable style="width: 140px" @change="fetchPlans">
-                <el-option value="active" :label="$t('admin.userPolicyServices.active') || '上架'" />
-                <el-option value="inactive" :label="$t('admin.userPolicyServices.inactive') || '下架'" />
+            <el-select v-model="statusFilter" :placeholder="$t('common.status')" clearable style="width: 140px" @change="fetchPlans">
+                <el-option value="active" :label="$t('admin.userPolicyServices.active')" />
+                <el-option value="inactive" :label="$t('admin.userPolicyServices.inactive')" />
             </el-select>
-            <el-button @click="fetchPlans">{{ $t('common.search') || '查询' }}</el-button>
+            <el-button @click="fetchPlans">{{ $t('common.search') }}</el-button>
         </template>
 
         <div class="plan-summary">
             <div class="summary-card">
                 <div class="summary-value">{{ meta.total ?? plans.length }}</div>
-                <div class="summary-label">{{ $t('admin.userPolicyServices.planTotal') || '方案总数' }}</div>
+                <div class="summary-label">{{ $t('admin.userPolicyServices.planTotal') }}</div>
             </div>
             <div class="summary-card">
                 <div class="summary-value">{{ activeCount }}</div>
-                <div class="summary-label">{{ $t('admin.userPolicyServices.active') || '上架中' }}</div>
+                <div class="summary-label">{{ $t('admin.userPolicyServices.active') }}</div>
             </div>
             <div class="summary-card">
                 <div class="summary-value">{{ featuredCount }}</div>
-                <div class="summary-label">{{ $t('admin.userPolicyServices.featured') || '推荐方案' }}</div>
+                <div class="summary-label">{{ $t('admin.userPolicyServices.featured') }}</div>
             </div>
             <div class="summary-card warn">
                 <div class="summary-value">{{ meta.user_total ?? 0 }}</div>
-                <div class="summary-label">{{ $t('admin.userPolicyServices.userTotal') || '订阅用户数' }}</div>
+                <div class="summary-label">{{ $t('admin.userPolicyServices.userTotal') }}</div>
             </div>
         </div>
 
@@ -46,15 +46,15 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Tickets /></el-icon>
-                    <p class="empty-title">{{ $t('admin.userPolicyServices.noData') || '暂无方案' }}</p>
-                    <p class="empty-desc">{{ $t('admin.userPolicyServices.emptyDesc') || '方案将在此显示' }}</p>
+                    <p class="empty-title">{{ $t('admin.userPolicyServices.noData') }}</p>
+                    <p class="empty-desc">{{ $t('admin.userPolicyServices.emptyDesc') }}</p>
                 </div>
             </template>
             <el-table-column type="expand">
                 <template #default="{ row }">
                     <div class="plan-detail">
                         <div class="plan-detail__section">
-                            <div class="plan-detail__title">{{ $t('admin.userPolicyServices.prices') || '价格' }}</div>
+                            <div class="plan-detail__title">{{ $t('admin.userPolicyServices.prices') }}</div>
                             <div v-if="(row.prices || []).length" class="price-list">
                                 <span v-for="price in row.prices" :key="price.id" class="price-pill">
                                     {{ price.billing_cycle }} · {{ formatPrice(price.amount_minor, price.currency) }}
@@ -63,7 +63,7 @@
                             <span v-else class="cell-sub">-</span>
                         </div>
                         <div class="plan-detail__section">
-                            <div class="plan-detail__title">{{ $t('admin.userPolicyServices.features') || '功能' }}</div>
+                            <div class="plan-detail__title">{{ $t('admin.userPolicyServices.features') }}</div>
                             <div v-if="(row.features || []).length" class="feature-list">
                                 <el-tag v-for="(f, idx) in row.features" :key="idx" size="small" effect="plain" class="feature-pill">
                                     {{ f }}
@@ -73,57 +73,57 @@
                         </div>
                         <div class="plan-detail__section plan-detail__section--full">
                             <div class="plan-detail__title">
-                                {{ $t('admin.userPolicyServices.users') || '订阅用户' }}
+                                {{ $t('admin.userPolicyServices.users') }}
                                 <span class="cell-sub">({{ row.user_count }})</span>
                             </div>
                             <el-table v-if="(row.users || []).length" :data="row.users" size="small" stripe>
-                                <el-table-column :label="$t('admin.userPolicyServices.userId') || '用户ID'" prop="uid" width="120" />
-                                <el-table-column :label="$t('admin.userPolicyServices.username') || '用户名'" prop="username" min-width="160" show-overflow-tooltip />
-                                <el-table-column :label="$t('admin.userPolicyServices.email') || '邮箱'" prop="email" min-width="200" show-overflow-tooltip />
-                                <el-table-column :label="$t('admin.userPolicyServices.userStatus') || '用户状态'" width="120">
+                                <el-table-column :label="$t('admin.userPolicyServices.userId')" prop="uid" width="120" />
+                                <el-table-column :label="$t('admin.userPolicyServices.username')" prop="username" min-width="160" show-overflow-tooltip />
+                                <el-table-column :label="$t('admin.userPolicyServices.email')" prop="email" min-width="200" show-overflow-tooltip />
+                                <el-table-column :label="$t('admin.userPolicyServices.userStatus')" width="120">
                                     <template #default="{ row: u }">
                                         <el-tag size="small" :type="u.status === 'active' ? 'success' : 'info'" effect="light">
                                             {{ u.status || '-' }}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
-                                <el-table-column :label="$t('admin.userPolicyServices.subscribedAt') || '注册时间'" min-width="200">
+                                <el-table-column :label="$t('admin.userPolicyServices.subscribedAt')" min-width="200">
                                     <template #default="{ row: u }">
-                                        {{ formatDateTime(u.subscribed_at) }}
+                                        {{ u.subscribed_at ? new Date(u.subscribed_at).toLocaleString() : '-' }}
                                     </template>
                                 </el-table-column>
                             </el-table>
-                            <div v-else class="cell-sub">{{ $t('admin.userPolicyServices.noUsers') || '暂无订阅用户' }}</div>
+                            <div v-else class="cell-sub">{{ $t('admin.userPolicyServices.noUsers') }}</div>
                         </div>
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.userPolicyServices.planId') || '方案ID'" prop="id" width="90" />
-            <el-table-column :label="$t('admin.userPolicyServices.planCode') || '方案编码'" prop="code" width="140">
+            <el-table-column :label="$t('admin.userPolicyServices.planId')" prop="id" width="90" />
+            <el-table-column :label="$t('admin.userPolicyServices.planCode')" prop="code" width="140">
                 <template #default="{ row }">
                     <el-tag size="small" effect="plain">{{ row.code }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.userPolicyServices.planName') || '方案名称'" prop="name" min-width="160" show-overflow-tooltip />
-            <el-table-column :label="$t('admin.userPolicyServices.planStatus') || '状态'" width="100">
+            <el-table-column :label="$t('admin.userPolicyServices.planName')" prop="name" min-width="160" show-overflow-tooltip />
+            <el-table-column :label="$t('admin.userPolicyServices.planStatus')" width="100">
                 <template #default="{ row }">
                     <el-tag v-if="row.status === 'active'" type="success" size="small" effect="light">
-                        {{ $t('admin.userPolicyServices.active') || '上架' }}
+                        {{ $t('admin.userPolicyServices.active') }}
                     </el-tag>
                     <el-tag v-else type="info" size="small" effect="plain">
-                        {{ $t('admin.userPolicyServices.inactive') || '下架' }}
+                        {{ $t('admin.userPolicyServices.inactive') }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.userPolicyServices.featured') || '推荐'" width="90">
+            <el-table-column :label="$t('admin.userPolicyServices.featured')" width="90">
                 <template #default="{ row }">
                     <el-tag v-if="row.is_featured" type="warning" size="small" effect="light">
-                        {{ $t('admin.userPolicyServices.recommend') || '推荐' }}
+                        {{ $t('admin.userPolicyServices.recommend') }}
                     </el-tag>
                     <span v-else>-</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.userPolicyServices.price') || '价格'" min-width="200">
+            <el-table-column :label="$t('admin.userPolicyServices.price')" min-width="200">
                 <template #default="{ row }">
                     <div class="price-list">
                         <span v-for="price in row.prices" :key="price.id" class="price-pill">
@@ -133,7 +133,7 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.userPolicyServices.userCount') || '订阅用户'" width="110" align="right">
+            <el-table-column :label="$t('admin.userPolicyServices.userCount')" width="110" align="right">
                 <template #default="{ row }">
                     <el-tag size="small" :type="row.user_count > 0 ? 'success' : 'info'" effect="light">
                         {{ row.user_count }}
@@ -151,7 +151,6 @@ import { useI18n } from 'vue-i18n'
 import { Tickets } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 

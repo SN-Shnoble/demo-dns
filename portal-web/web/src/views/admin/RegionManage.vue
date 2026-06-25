@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.regionManage.title') || '区域管理'"
+        :title="$t('admin.regionManage.title')"
         i18n-key="admin.regionManage"
         icon-name="Location"
         :total="regions.length"
@@ -10,7 +10,7 @@
         <template #actions>
             <el-button type="primary" size="small" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.regionManage.addRegion') || '添加区域' }}</span>
+                <span>{{ $t('admin.regionManage.addRegion') }}</span>
             </el-button>
         </template>
 
@@ -18,26 +18,26 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Location /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                     <p class="empty-desc">点击右上角「添加区域」添加第一条区域记录。</p>
                 </div>
             </template>
             <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="code" :label="$t('admin.regionManage.code') || '编码'" :min-width="100" />
-            <el-table-column prop="name" :label="$t('admin.regionManage.name') || '名称'" :min-width="120" />
-            <el-table-column :label="$t('admin.regionManage.status') || '状态'" :min-width="100">
+            <el-table-column prop="code" :label="$t('admin.regionManage.code')" :min-width="100" />
+            <el-table-column prop="name" :label="$t('admin.regionManage.name')" :min-width="120" />
+            <el-table-column :label="$t('admin.regionManage.status')" :min-width="100">
                 <template #default="{ row }">
-                    <el-tag v-if="row.status === 'active'" type="success" size="small">{{ $t('admin.regionManage.active') || '启用' }}</el-tag>
-                    <el-tag v-else type="info" size="small">{{ $t('admin.regionManage.disabled') || '禁用' }}</el-tag>
+                    <el-tag v-if="row.status === 'active'" type="success" size="small">{{ $t('admin.regionManage.active') }}</el-tag>
+                    <el-tag v-else type="info" size="small">{{ $t('admin.regionManage.disabled') }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="note" :label="$t('admin.regionManage.note') || '备注'" :min-width="150">
+            <el-table-column prop="note" :label="$t('admin.regionManage.note')" :min-width="150">
                 <template #default="{ row }">
                     <span v-if="row.note">{{ row.note }}</span>
                     <span v-else class="text-gray-400">-</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.regionManage.actions') || '操作'" fixed="right" width="140">
+            <el-table-column :label="$t('admin.regionManage.actions')" fixed="right" width="140">
                 <template #default="{ row }">
                     <div style="white-space:nowrap;display:flex;gap:4px;align-items:center">
                         <el-button size="small" text type="primary" @click="openEditDialog(row)">
@@ -54,17 +54,17 @@
 
     <el-dialog v-model="showDialog" :title="editingId ? $t('admin.regionManage.edit') : $t('admin.regionManage.addRegion')" width="500">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="$t('admin.regionManage.code') || '编码'" prop="code">
-                <el-input v-model="form.code" maxlength="20" :placeholder="$t('admin.regionManage.codePlaceholder') || '例: KR, JP'" />
+            <el-form-item :label="$t('admin.regionManage.code')" prop="code">
+                <el-input v-model="form.code" maxlength="20" :placeholder="$t('admin.regionManage.codePlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.regionManage.name') || '名称'" prop="name">
-                <el-input v-model="form.name" maxlength="100" :placeholder="$t('admin.regionManage.namePlaceholder') || '例: Korea, Japan'" />
+            <el-form-item :label="$t('admin.regionManage.name')" prop="name">
+                <el-input v-model="form.name" maxlength="100" :placeholder="$t('admin.regionManage.namePlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.regionManage.status') || '状态'">
+            <el-form-item :label="$t('admin.regionManage.status')">
                 <el-switch v-model="form.status" active-value="active" inactive-value="disabled" />
             </el-form-item>
-            <el-form-item :label="$t('admin.regionManage.note') || '备注'">
-                <el-input v-model="form.note" maxlength="255" :placeholder="$t('admin.regionManage.notePlaceholder') || '可选备注'" />
+            <el-form-item :label="$t('admin.regionManage.note')">
+                <el-input v-model="form.note" maxlength="255" :placeholder="$t('admin.regionManage.notePlaceholder')" />
             </el-form-item>
         </el-form>
         <template #footer>

@@ -14,7 +14,7 @@
                 <div class="section-desc">{{ $t('privacy.blocklists.desc') }}</div>
                 <!-- 2026-06-22: 未拉取完成前显示骨架占位，避免「2 项 → 0 项」闪烁 -->
                 <div v-if="!blocklistLoaded" class="empty-tip">
-                    {{ $t('common.loading') || '加载中...' }}
+                    {{ $t('common.loading') }}
                 </div>
                 <template v-else>
                     <div v-if="activeBlocklists.length === 0" class="empty-tip">

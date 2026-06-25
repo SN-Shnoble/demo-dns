@@ -4,29 +4,29 @@
             <template #header>
                 <div class="card-header">
                     <div>
-                        <h2>{{ $t('admin.basicConfig.title') || '基本设置' }}</h2>
-                        <p class="subtitle">{{ $t('admin.basicConfig.desc') || '配置网站基本信息' }}</p>
+                        <h2>{{ $t('admin.basicConfig.title') }}</h2>
+                        <p class="subtitle">{{ $t('admin.basicConfig.desc') }}</p>
                     </div>
                     <el-button type="primary" :loading="saving" @click="handleSave">
-                        {{ $t('common.save') || '保存' }}
+                        {{ $t('common.save') }}
                     </el-button>
                 </div>
             </template>
 
             <div style="max-width:600px">
                 <el-form label-position="left" label-width="140px">
-                    <el-form-item :label="$t('admin.basicConfig.siteName') || '网站名称'">
-                        <el-input v-model="config.site_name" :placeholder="$t('admin.basicConfig.siteNamePlaceholder') || '请输入网站名称'" />
+                    <el-form-item :label="$t('admin.basicConfig.siteName')">
+                        <el-input v-model="config.site_name" :placeholder="$t('admin.basicConfig.siteNamePlaceholder')" />
                     </el-form-item>
-                    <el-form-item :label="$t('admin.basicConfig.siteUrl') || '网站地址'">
-                        <el-input v-model="config.site_url" :placeholder="$t('admin.basicConfig.siteUrlPlaceholder') || '请输入网站地址'" />
+                    <el-form-item :label="$t('admin.basicConfig.siteUrl')">
+                        <el-input v-model="config.site_url" :placeholder="$t('admin.basicConfig.siteUrlPlaceholder')" />
                     </el-form-item>
                     <el-form-item label="DNS 域名">
                         <el-input v-model="config.dns_domain" placeholder="dns.ocerdns.local" />
                         <div style="font-size:12px;color:#909399;margin-top:4px">DNS 解析节点域名，例如 dns.ocerdns.local</div>
                     </el-form-item>
-                    <el-form-item :label="$t('admin.basicConfig.siteDescription') || '网站描述'">
-                        <el-input v-model="config.site_description" type="textarea" :rows="3" :placeholder="$t('admin.basicConfig.siteDescPlaceholder') || '请输入网站描述'" />
+                    <el-form-item :label="$t('admin.basicConfig.siteDescription')">
+                        <el-input v-model="config.site_description" type="textarea" :rows="3" :placeholder="$t('admin.basicConfig.siteDescPlaceholder')" />
                     </el-form-item>
                 </el-form>
             </div>
@@ -64,9 +64,9 @@ const handleSave = async () => {
                 dns_domain: config.value.dns_domain,
             },
         })
-        ElMessage.success(t('admin.basicConfig.saved') || '保存成功')
+        ElMessage.success(t('admin.basicConfig.saved'))
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || err.message || t('admin.basicConfig.saveFailed') || '保存失败')
+        ElMessage.error(err.response?.data?.message || err.message || t('admin.basicConfig.saveFailed'))
     } finally {
         saving.value = false
     }

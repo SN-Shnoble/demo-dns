@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.devicesPage.title') || '设备管理'"
+        :title="$t('admin.devicesPage.title')"
         
         i18n-key="admin.devicesPage"
         icon-name="Monitor"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filter.device_name"
-                :placeholder="$t('admin.devicesPage.name') || '搜索设备'"
+                :placeholder="$t('admin.devicesPage.name')"
                 style="width:220px"
                 size="small"
                 clearable
@@ -25,11 +25,11 @@
             </el-input>
             <el-button size="small" type="primary" @click="fetchDevices">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
@@ -41,7 +41,7 @@
                 @click="handleBatchDelete"
             >
                 <el-icon class="el-icon--left"><Delete /></el-icon>
-                {{ $t('common.batchDelete') || '批量删除' }} ({{ selected.length }})
+                {{ $t('common.batchDelete') }} ({{ selected.length }})
             </el-button>
         </template>
 
@@ -49,13 +49,13 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Monitor /></el-icon>
-                    <p class="empty-title">{{ $t('admin.devicesPage.noData') || '暂无设备' }}</p>
+                    <p class="empty-title">{{ $t('admin.devicesPage.noData') }}</p>
                     <p class="empty-desc">{{ $t('admin.devicesPage.emptyDesc') }}</p>
                 </div>
             </template>
             <el-table-column type="selection" width="40" />
-            <el-table-column prop="device_uid" :label="$t('admin.devicesPage.deviceId') || '设备ID'" width="180" />
-            <el-table-column prop="device_name" :label="$t('admin.devicesPage.name') || '设备名称'" min-width="180">
+            <el-table-column prop="device_uid" :label="$t('admin.devicesPage.deviceId')" width="180" />
+            <el-table-column prop="device_name" :label="$t('admin.devicesPage.name')" min-width="180">
                 <template #default="{ row }">
                     <div class="name-cell">
                         <el-icon :color="row.is_online ? '#67c23a' : '#909399'" size="14"><Connection /></el-icon>
@@ -63,25 +63,25 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column prop="user_email" :label="$t('admin.devicesPage.user') || '用户'" min-width="200" />
-            <el-table-column prop="device_type" :label="$t('admin.devicesPage.type') || '类型'" width="100">
+            <el-table-column prop="user_email" :label="$t('admin.devicesPage.user')" min-width="200" />
+            <el-table-column prop="device_type" :label="$t('admin.devicesPage.type')" width="100">
                 <template #default="{ row }">
                     <el-tag v-if="row.device_type" size="small" effect="plain">{{ row.device_type }}</el-tag>
                     <span v-else>-</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="device_os" :label="$t('admin.devicesPage.os') || '操作系统'" width="120" />
-            <el-table-column prop="protocol" :label="$t('admin.devicesPage.protocol') || '协议'" width="90" />
-            <el-table-column :label="$t('admin.devicesPage.status') || '状态'" width="100">
+            <el-table-column prop="device_os" :label="$t('admin.devicesPage.os')" width="120" />
+            <el-table-column prop="protocol" :label="$t('admin.devicesPage.protocol')" width="90" />
+            <el-table-column :label="$t('admin.devicesPage.status')" width="100">
                 <template #default="{ row }">
-                    <el-tag :type="row.is_online ? 'success' : 'info'" size="small" effect="light">{{ row.is_online ? ($t('admin.devicesPage.online') || '在线') : ($t('admin.devicesPage.offline') || '离线') }}</el-tag>
+                    <el-tag :type="row.is_online ? 'success' : 'info'" size="small" effect="light">{{ row.is_online ? ($t('admin.devicesPage.online')) : ($t('admin.devicesPage.offline')) }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="source_ip" :label="$t('admin.devicesPage.sourceIp') || '来源IP'" width="140" />
-            <el-table-column :label="$t('admin.devicesPage.lastSeen') || '最后在线'" width="170">
-                <template #default="{ row }">{{ formatDateTime(row.last_seen_at) }}</template>
+            <el-table-column prop="source_ip" :label="$t('admin.devicesPage.sourceIp')" width="140" />
+            <el-table-column :label="$t('admin.devicesPage.lastSeen')" width="170">
+                <template #default="{ row }">{{ row.last_seen_at ? new Date(row.last_seen_at).toLocaleString() : '-' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('common.actions') || '操作'" width="80" fixed="right">
+            <el-table-column :label="$t('common.actions')" width="80" fixed="right">
                 <template #default="{ row }">
                     <el-button type="danger" size="small" text @click="handleDelete(row)">
                         <el-icon><Delete /></el-icon>
@@ -98,7 +98,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Connection, Delete, Monitor, RefreshLeft, Search } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

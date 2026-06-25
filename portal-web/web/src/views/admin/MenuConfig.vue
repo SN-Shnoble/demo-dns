@@ -4,11 +4,11 @@
             <template #header>
                 <div class="card-header">
                     <div>
-                        <h2>{{ $t('admin.menuConfig.title') || '菜单导航配置' }}</h2>
-                        <p class="subtitle">{{ $t('admin.menuConfig.desc') || '配置后台管理菜单的显示和排序' }}</p>
+                        <h2>{{ $t('admin.menuConfig.title') }}</h2>
+                        <p class="subtitle">{{ $t('admin.menuConfig.desc') }}</p>
                     </div>
                     <el-button type="primary" :loading="saving" @click="handleSave">
-                        {{ $t('common.save') || '保存' }}
+                        {{ $t('common.save') }}
                     </el-button>
                 </div>
             </template>
@@ -21,7 +21,7 @@
                 default-expand-all
                 :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
             >
-                <el-table-column :label="$t('admin.menuConfig.name') || '菜单名称'" min-width="240">
+                <el-table-column :label="$t('admin.menuConfig.name')" min-width="240">
                     <template #default="{ row }">
                         <div class="menu-name-cell" :class="{ 'is-child': row.parentId }">
                             <el-icon v-if="row.icon" class="menu-icon">
@@ -40,17 +40,17 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('admin.menuConfig.path') || '路径'" min-width="200">
+                <el-table-column :label="$t('admin.menuConfig.path')" min-width="200">
                     <template #default="{ row }">
                         <code class="menu-path">{{ row.path }}</code>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('admin.menuConfig.visible') || '显示'" width="90" align="center">
+                <el-table-column :label="$t('admin.menuConfig.visible')" width="90" align="center">
                     <template #default="{ row }">
                         <el-switch v-model="row.visible" @change="handleVisibleChange(row)" />
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('admin.menuConfig.sortOrder') || '排序'" width="120" align="center">
+                <el-table-column :label="$t('admin.menuConfig.sortOrder')" width="120" align="center">
                     <template #default="{ row }">
                         <el-button-group v-if="!row.parentId" class="sort-buttons">
                             <el-button :disabled="isFirstMain(row)" size="small" :icon="Top" @click="moveUp(row)" />
@@ -62,22 +62,22 @@
                         </el-button-group>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('common.actions') || '操作'" width="180" align="center">
+                <el-table-column :label="$t('common.actions')" width="180" align="center">
                     <template #default="{ row }">
                         <el-button size="small" text type="primary" @click="editMenu(row)">
                             <el-icon><Edit /></el-icon>
-                            <span>{{ $t('common.edit') || '编辑' }}</span>
+                            <span>{{ $t('common.edit') }}</span>
                         </el-button>
                         <el-button
                             size="small"
                             text
                             type="danger"
                             :disabled="hasChildren(row)"
-                            :title="hasChildren(row) ? ($t('admin.menuConfig.deleteBlockedHasChildren') || '请先删除下级导航') : ''"
+                            :title="hasChildren(row) ? ($t('admin.menuConfig.deleteBlockedHasChildren')) : ''"
                             @click="handleDeleteMenu(row)"
                         >
                             <el-icon><Delete /></el-icon>
-                            <span>{{ $t('common.delete') || '删除' }}</span>
+                            <span>{{ $t('common.delete') }}</span>
                         </el-button>
                     </template>
                 </el-table-column>
@@ -86,16 +86,16 @@
 
         <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
             <el-form :model="editingMenu" label-position="left" label-width="120px">
-                <el-form-item :label="$t('admin.menuConfig.name') || '菜单名称'">
+                <el-form-item :label="$t('admin.menuConfig.name')">
                     <div class="menu-name-display">
                         <span class="menu-name-label">{{ translatedLabel }}</span>
                         <el-input v-model="editingMenu.labelKey" placeholder="nav.xxx 或 admin.xxx" />
                     </div>
                 </el-form-item>
-                <el-form-item :label="$t('admin.menuConfig.path') || '路径'">
+                <el-form-item :label="$t('admin.menuConfig.path')">
                     <el-input v-model="editingMenu.path" placeholder="/admin/xxx" />
                 </el-form-item>
-                <el-form-item :label="$t('admin.menuConfig.icon') || '图标'">
+                <el-form-item :label="$t('admin.menuConfig.icon')">
                     <el-select v-model="editingMenu.icon" placeholder="Select icon" style="width:100%">
                         <el-option v-for="icon in iconOptions" :key="icon" :label="icon" :value="icon">
                             <span style="display:flex;align-items:center;gap:8px">
@@ -105,16 +105,16 @@
                         </el-option>
                     </el-select>
                 </el-form-item>
-                <el-form-item :label="$t('admin.menuConfig.visible') || '显示'">
+                <el-form-item :label="$t('admin.menuConfig.visible')">
                     <el-switch v-model="editingMenu.visible" />
                 </el-form-item>
-                <el-form-item :label="$t('admin.menuConfig.sortOrder') || '排序'">
+                <el-form-item :label="$t('admin.menuConfig.sortOrder')">
                     <el-input-number v-model="editingMenu.sort" :min="1" :max="999" style="width:100%" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="dialogVisible = false">{{ $t('common.cancel') || '取消' }}</el-button>
-                <el-button type="primary" @click="saveMenu">{{ $t('common.save') || '保存' }}</el-button>
+                <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
+                <el-button type="primary" @click="saveMenu">{{ $t('common.save') }}</el-button>
             </template>
         </el-dialog>
     </div>
@@ -206,8 +206,8 @@ const getDepth = (id) => {
 const levelText = (row) => {
     const depth = getDepth(row?.id)
     return depth === 1
-        ? (t('admin.menuConfig.level1') || '一级')
-        : (t('admin.menuConfig.level2') || '二级')
+        ? (t('admin.menuConfig.level1'))
+        : (t('admin.menuConfig.level2'))
 }
 
 const isFirstMain = (row) => {
@@ -242,13 +242,13 @@ const hasChildren = (row) => {
 const handleDeleteMenu = async (row) => {
     if (!row) return
     if (hasChildren(row)) {
-        ElMessage.warning(t('admin.menuConfig.deleteBlockedHasChildren') || '该导航下存在子级，请先删除子级导航')
+        ElMessage.warning(t('admin.menuConfig.deleteBlockedHasChildren'))
         return
     }
     try {
         await ElMessageBox.confirm(
-            t('common.confirmDelete') || '确定要删除此菜单吗？',
-            t('common.confirm') || '确认',
+            t('common.confirmDelete'),
+            t('common.confirm'),
             { type: 'warning' },
         )
     } catch {
@@ -265,7 +265,7 @@ const handleDeleteMenu = async (row) => {
             subMenu: subMenuItems.value,
         }
     }))
-    ElMessage.success(t('common.deleteSuccess') || '已删除')
+    ElMessage.success(t('common.deleteSuccess'))
     // 同步到后端
     try {
         await client.put('/admin/menu-config', {
@@ -273,7 +273,7 @@ const handleDeleteMenu = async (row) => {
             subMenu: subMenuItems.value,
         })
     } catch {
-        ElMessage.error(t('admin.menuConfig.saveFailed') || '保存失败')
+        ElMessage.error(t('admin.menuConfig.saveFailed'))
     }
 }
 
@@ -346,7 +346,7 @@ const handleVisibleChange = (row) => {
 
 const editMenu = (menu) => {
     editingMenu.value = { ...menu }
-    dialogTitle.value = t('admin.menuConfig.editMenu') || '编辑菜单'
+    dialogTitle.value = t('admin.menuConfig.editMenu')
     dialogVisible.value = true
 }
 
@@ -379,7 +379,7 @@ const saveMenu = () => {
             subMenu: subMenuItems.value,
         }
     }))
-    ElMessage.success(t('admin.menuConfig.saveSuccess') || '菜单已保存')
+    ElMessage.success(t('admin.menuConfig.saveSuccess'))
 }
 
 const handleSave = async () => {
@@ -392,9 +392,9 @@ const handleSave = async () => {
         await client.put('/admin/menu-config', config)
         // 派发事件通知 AdminLayout 更新菜单
         window.dispatchEvent(new CustomEvent('menu-config-updated', { detail: config }))
-        ElMessage.success(t('admin.menuConfig.saveSuccess') || '配置已保存')
+        ElMessage.success(t('admin.menuConfig.saveSuccess'))
     } catch (err) {
-        ElMessage.error(t('admin.menuConfig.saveFailed') || '保存失败')
+        ElMessage.error(t('admin.menuConfig.saveFailed'))
     } finally {
         saving.value = false
     }

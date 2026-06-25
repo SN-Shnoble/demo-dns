@@ -2,9 +2,10 @@
 // 用于 Resolver 的按需配置拉取架构。
 //
 // 架构：
-//   Memory Cache: max 5000 entries, LRU, 30min TTL
-//   Disk Cache:   max 20000 entries, LRU, 7天 TTL
-//   SingleFlight: 同一 profile 并发请求仅回源 1 次
+//
+//	Memory Cache: max 5000 entries, LRU, 30min TTL
+//	Disk Cache:   max 20000 entries, LRU, 7天 TTL
+//	SingleFlight: 同一 profile 并发请求仅回源 1 次
 package cache
 
 import (
@@ -33,9 +34,9 @@ type CacheEnvelope struct {
 // 线程安全。
 type ProfileCache struct {
 	mu       sync.RWMutex
-	memory   map[string]*cacheEntry   // profileID → entry
-	mruList  []string                 // LRU 顺序（最近使用在末尾）
-	diskRoot string                   // 磁盘缓存根目录
+	memory   map[string]*cacheEntry // profileID → entry
+	mruList  []string               // LRU 顺序（最近使用在末尾）
+	diskRoot string                 // 磁盘缓存根目录
 
 	maxMemory int // 内存上限
 	maxDisk   int // 磁盘上限
@@ -46,11 +47,11 @@ type ProfileCache struct {
 }
 
 type cacheEntry struct {
-	Data         json.RawMessage `json:"data"`
-	Version      int64           `json:"version"`
-	LastUsedAt   time.Time       `json:"last_used_at"`
-	CachedAt     time.Time       `json:"cached_at"`
-	DiskPath     string          `json:"-"` // 磁盘路径
+	Data       json.RawMessage `json:"data"`
+	Version    int64           `json:"version"`
+	LastUsedAt time.Time       `json:"last_used_at"`
+	CachedAt   time.Time       `json:"cached_at"`
+	DiskPath   string          `json:"-"` // 磁盘路径
 }
 
 // NewProfileCache 创建新的 Profile 缓存。

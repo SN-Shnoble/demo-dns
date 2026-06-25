@@ -66,7 +66,7 @@
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.alertsPage.time')" width="170">
-                <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+                <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}</template>
             </el-table-column>
             <el-table-column :label="$t('admin.alertsPage.actions')" width="120">
                 <template #default="{ row }">
@@ -84,7 +84,6 @@ import { useI18n } from 'vue-i18n'
 import { Message } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 

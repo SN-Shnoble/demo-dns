@@ -66,9 +66,28 @@ client.interceptors.request.use((config) => {
     return config
 })
 
+/**
+ * 从后端响应中提取统一错误消息。
+ * 兼容两种格式：
+ *   { error: { message: '...' } }  — 标准格式 (ApiResponse::error)
+ *   { message: '...' }             — 旧格式
+ */
+function extractErrorMessage(data) {
+    if (!data) return ''
+    if (data.error?.message) return data.error.message
+    if (typeof data.error === 'string') return data.error
+    return data.message || ''
+}
+
 client.interceptors.response.use(
     (response) => response,
     (error) => {
+        // 统一归一化：将多种错误响应格式归一为 err.response.data.normalizedMessage
+        const data = error.response?.data
+        if (data) {
+            data.normalizedMessage = extractErrorMessage(data)
+        }
+
         if (error.response?.status === 401) {
             sessionStorage.removeItem('user_token')
             sessionStorage.removeItem('admin_token')

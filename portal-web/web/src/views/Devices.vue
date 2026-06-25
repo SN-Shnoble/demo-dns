@@ -125,6 +125,7 @@ const fetchEndpoints = async () => {
         endpoints.value = data.data
     } catch {
         endpoints.value = null
+        ElMessage.error(t('common.loadFailed'))
     }
 }
 
@@ -150,7 +151,7 @@ const handleDelete = async (row) => {
             { confirmButtonText: t('devices.delete'), cancelButtonText: t('common.cancel'), type: 'warning' }
         )
         await client.delete(`/user/devices/${row.id}`)
-        ElMessage.success(t('common.deleteSuccess') || '删除成功')
+        ElMessage.success(t('common.deleteSuccess'))
         fetchDevices()
     } catch { /* cancelled */ }
 }
@@ -166,7 +167,7 @@ const handleRename = async () => {
     renaming.value = true
     try {
         await client.put(`/user/devices/${renameTarget.value.id}`, { name: renameForm.value.name })
-        ElMessage.success(t('common.saveSuccess') || '保存成功')
+        ElMessage.success(t('common.saveSuccess'))
         showRenameDialog.value = false
         fetchDevices()
     } catch (error) {

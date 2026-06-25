@@ -58,7 +58,7 @@ final class ConfigPullController
         // 1. 通过 6 位 hex 查找 Profile
         $profile = Profile::where('profile_id', $profileId)->first();
         if (! $profile) {
-            return response()->json(['error' => 'Profile not found'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Profile not found', 404);
         }
 
         // 2. 取该 Profile 的最新 ConfigVersion
@@ -67,7 +67,7 @@ final class ConfigPullController
             ->first();
 
         if (! $configVersion) {
-            return response()->json(['error' => 'No published config for this profile'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'No published config for this profile', 404);
         }
 
         // 3. 解析 config_json
@@ -75,7 +75,7 @@ final class ConfigPullController
         $config = is_string($raw) ? json_decode($raw, true) : (array) $raw;
 
         if (! is_array($config)) {
-            return response()->json(['error' => 'Invalid config format'], 500);
+            return \App\Helpers\ApiResponse::error('INTERNAL_ERROR', 'Invalid config format', 500);
         }
 
         // 4. 确保 quota 对象格式正确

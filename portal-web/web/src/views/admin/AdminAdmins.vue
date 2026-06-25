@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.adminUsers.title') || '管理员列表'"
+        :title="$t('admin.adminUsers.title')"
         i18n-key="admin.adminUsers"
         icon-name="UserFilled"
         :total="total"
@@ -13,7 +13,7 @@
         <template #filters>
             <el-input
                 v-model="filter.username"
-                :placeholder="$t('admin.adminUsers.username') || '用户名'"
+                :placeholder="$t('admin.adminUsers.username')"
                 size="small"
                 style="width:180px"
                 clearable
@@ -23,7 +23,7 @@
             </el-input>
             <el-input
                 v-model="filter.email"
-                :placeholder="$t('admin.adminUsers.email') || '邮箱'"
+                :placeholder="$t('admin.adminUsers.email')"
                 size="small"
                 style="width:220px"
                 clearable
@@ -33,33 +33,33 @@
             </el-input>
             <el-select
                 v-model="filter.status"
-                :placeholder="$t('common.status') || '状态'"
+                :placeholder="$t('common.status')"
                 size="small"
                 style="width:120px"
                 clearable
                 @change="fetchAdmins"
             >
-                <el-option :label="$t('admin.adminUsers.active') || '启用'" value="active" />
-                <el-option :label="$t('admin.adminUsers.disabled') || '禁用'" value="disabled" />
+                <el-option :label="$t('admin.adminUsers.active')" value="active" />
+                <el-option :label="$t('admin.adminUsers.disabled')" value="disabled" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchAdmins">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
         </template>
 
         <template #actions>
             <el-button size="small" type="primary" @click="openCreate">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.adminUsers.add') || '添加管理员' }}</span>
+                <span>{{ $t('admin.adminUsers.add') }}</span>
             </el-button>
         </template>
 
         <el-table v-loading="loading" :data="admins" stripe :empty-text="$t('common.noData')">
             <el-table-column type="index" :label="$t('common.index')" width="60" />
-            <el-table-column prop="username" :label="$t('admin.adminUsers.username') || '用户名'" min-width="140" />
-            <el-table-column prop="email" :label="$t('admin.adminUsers.email') || '邮箱'" min-width="200" />
-            <el-table-column :label="$t('admin.adminUsers.roles') || '角色'" min-width="220">
+            <el-table-column prop="username" :label="$t('admin.adminUsers.username')" min-width="140" />
+            <el-table-column prop="email" :label="$t('admin.adminUsers.email')" min-width="200" />
+            <el-table-column :label="$t('admin.adminUsers.roles')" min-width="220">
                 <template #default="{ row }">
                     <el-tag v-for="r in (row.role_list || [])" :key="r.id" size="small" style="margin-right:4px">
                         {{ r.name }}
@@ -67,47 +67,47 @@
                     <span v-if="!row.role_list || !row.role_list.length" class="muted">—</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.adminUsers.isSuper') || '超管'" width="90" align="center">
+            <el-table-column :label="$t('admin.adminUsers.isSuper')" width="90" align="center">
                 <template #default="{ row }">
                     <el-tag v-if="row.is_super_admin" type="danger" size="small">Super</el-tag>
                     <span v-else>—</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.adminUsers.status') || '状态'" width="100">
+            <el-table-column :label="$t('admin.adminUsers.status')" width="100">
                 <template #default="{ row }">
                     <el-tag v-if="row.status === 'active'" type="success" size="small">
-                        {{ $t('admin.adminUsers.active') || '启用' }}
+                        {{ $t('admin.adminUsers.active') }}
                     </el-tag>
                     <el-tag v-else type="info" size="small">
-                        {{ $t('admin.adminUsers.disabled') || '禁用' }}
+                        {{ $t('admin.adminUsers.disabled') }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.adminUsers.lastLogin') || '最后登录'" width="170">
+            <el-table-column :label="$t('admin.adminUsers.lastLogin')" width="170">
                 <template #default="{ row }">
                     <span v-if="row.last_login_at">{{ formatDate(row.last_login_at) }}</span>
                     <span v-else class="muted">—</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('common.actions') || '操作'" width="240" fixed="right">
+            <el-table-column :label="$t('common.actions')" width="240" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" text type="primary" @click="openEdit(row)">
                         <el-icon><Edit /></el-icon>
-                        {{ $t('common.edit') || '编辑' }}
+                        {{ $t('common.edit') }}
                     </el-button>
                     <el-button size="small" text type="warning" @click="openAssignRoles(row)">
                         <el-icon><Key /></el-icon>
-                        {{ $t('admin.rbac.assignRole') || '分配角色' }}
+                        {{ $t('admin.rbac.assignRole') }}
                     </el-button>
                     <el-button v-if="row.status !== 'active'" size="small" text type="success" @click="handleStatus(row, 'active')">
-                        {{ $t('admin.adminUsers.enable') || '启用' }}
+                        {{ $t('admin.adminUsers.enable') }}
                     </el-button>
                     <el-button v-else size="small" text type="info" @click="handleStatus(row, 'disabled')">
-                        {{ $t('admin.adminUsers.disable') || '禁用' }}
+                        {{ $t('admin.adminUsers.disable') }}
                     </el-button>
                     <el-button size="small" text type="danger" :disabled="row.is_super_admin" @click="handleDelete(row)">
                         <el-icon><Delete /></el-icon>
-                        {{ $t('common.delete') || '删除' }}
+                        {{ $t('common.delete') }}
                     </el-button>
                 </template>
             </el-table-column>
@@ -117,55 +117,55 @@
     <!-- 新建/编辑 弹窗 -->
     <el-dialog
         v-model="dialogVisible"
-        :title="editingAdmin ? ($t('common.edit') || '编辑管理员') : ($t('admin.adminUsers.add') || '添加管理员')"
+        :title="editingAdmin ? ($t('common.edit')) : ($t('admin.adminUsers.add'))"
         width="500px"
         @close="resetForm"
     >
         <el-form ref="formRef" :model="form" :rules="formRules" label-position="top">
-            <el-form-item :label="$t('admin.adminUsers.username') || '用户名'" prop="username">
+            <el-form-item :label="$t('admin.adminUsers.username')" prop="username">
                 <el-input v-model="form.username" :disabled="!!editingAdmin" />
             </el-form-item>
-            <el-form-item :label="$t('admin.adminUsers.email') || '邮箱'" prop="email">
+            <el-form-item :label="$t('admin.adminUsers.email')" prop="email">
                 <el-input v-model="form.email" :disabled="!!editingAdmin" />
             </el-form-item>
             <el-form-item
                 v-if="!editingAdmin"
-                :label="$t('admin.adminUsers.password') || '初始密码'"
+                :label="$t('admin.adminUsers.password')"
                 prop="password"
             >
-                <el-input v-model="form.password" type="password" show-password :placeholder="$t('admin.adminUsers.passwordPlaceholder') || '至少 8 位'" />
+                <el-input v-model="form.password" type="password" show-password :placeholder="$t('admin.adminUsers.passwordPlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.adminUsers.status') || '状态'">
+            <el-form-item :label="$t('admin.adminUsers.status')">
                 <el-radio-group v-model="form.status">
-                    <el-radio value="active">{{ $t('admin.adminUsers.active') || '启用' }}</el-radio>
-                    <el-radio value="disabled">{{ $t('admin.adminUsers.disabled') || '禁用' }}</el-radio>
+                    <el-radio value="active">{{ $t('admin.adminUsers.active') }}</el-radio>
+                    <el-radio value="disabled">{{ $t('admin.adminUsers.disabled') }}</el-radio>
                 </el-radio-group>
             </el-form-item>
         </el-form>
         <template #footer>
-            <el-button @click="dialogVisible = false">{{ $t('common.cancel') || '取消' }}</el-button>
+            <el-button @click="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="saving" @click="handleSubmit">
-                {{ $t('common.confirm') || '确认' }}
+                {{ $t('common.confirm') }}
             </el-button>
         </template>
     </el-dialog>
 
     <!-- 分配角色弹窗 -->
-    <el-dialog v-model="assignDialogVisible" :title="$t('admin.rbac.assignRole') || '分配角色'" width="480px">
+    <el-dialog v-model="assignDialogVisible" :title="$t('admin.rbac.assignRole')" width="480px">
         <el-form label-position="top">
-            <el-form-item :label="$t('admin.adminUsers.username') || '管理员'">
+            <el-form-item :label="$t('admin.adminUsers.username')">
                 <el-input :model-value="assigningAdmin?.username" disabled />
             </el-form-item>
-            <el-form-item :label="$t('admin.rbac.selectRoles') || '选择角色'">
+            <el-form-item :label="$t('admin.rbac.selectRoles')">
                 <el-select v-model="assignForm.role_ids" multiple style="width:100%" :loading="loadingRoles">
                     <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" :disabled="r.is_system" />
                 </el-select>
             </el-form-item>
         </el-form>
         <template #footer>
-            <el-button @click="assignDialogVisible = false">{{ $t('common.cancel') || '取消' }}</el-button>
+            <el-button @click="assignDialogVisible = false">{{ $t('common.cancel') }}</el-button>
             <el-button type="primary" :loading="assigning" @click="handleAssignSubmit">
-                {{ $t('common.confirm') || '确认' }}
+                {{ $t('common.confirm') }}
             </el-button>
         </template>
     </el-dialog>
@@ -197,14 +197,14 @@ const editingAdmin = ref(null)
 const dialogVisible = ref(false)
 
 const formRules = {
-    username: [{ required: true, message: () => t('common.required') || '必填', trigger: 'blur' }],
+    username: [{ required: true, message: () => t('common.required'), trigger: 'blur' }],
     email: [
-        { required: true, message: () => t('common.required') || '必填', trigger: 'blur' },
-        { type: 'email', message: () => t('admin.adminUsers.emailInvalid') || '邮箱格式不正确', trigger: 'blur' },
+        { required: true, message: () => t('common.required'), trigger: 'blur' },
+        { type: 'email', message: () => t('admin.adminUsers.emailInvalid'), trigger: 'blur' },
     ],
     password: [
-        { required: true, message: () => t('common.required') || '必填', trigger: 'blur' },
-        { min: 8, message: () => t('admin.adminUsers.passwordMin') || '至少 8 位', trigger: 'blur' },
+        { required: true, message: () => t('common.required'), trigger: 'blur' },
+        { min: 8, message: () => t('admin.adminUsers.passwordMin'), trigger: 'blur' },
     ],
 }
 
@@ -301,7 +301,7 @@ const handleSubmit = async () => {
             await client.put(`/admin/admins/${editingAdmin.value.id}`, {
                 status: form.status,
             })
-            ElMessage.success(t('admin.adminUsers.updateSuccess') || '更新成功')
+            ElMessage.success(t('admin.adminUsers.updateSuccess'))
         } else {
             await client.post('/admin/admins', {
                 username: form.username,
@@ -309,12 +309,12 @@ const handleSubmit = async () => {
                 password: form.password,
                 status: form.status,
             })
-            ElMessage.success(t('admin.adminUsers.createSuccess') || '创建成功')
+            ElMessage.success(t('admin.adminUsers.createSuccess'))
         }
         dialogVisible.value = false
         fetchAdmins()
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.saveFailed') || '保存失败')
+        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.saveFailed'))
     } finally {
         saving.value = false
     }
@@ -323,18 +323,18 @@ const handleSubmit = async () => {
 const handleStatus = async (row, status) => {
     try {
         await client.put(`/admin/admins/${row.id}`, { status })
-        ElMessage.success(t('admin.adminUsers.statusUpdated') || '状态已更新')
+        ElMessage.success(t('admin.adminUsers.statusUpdated'))
         fetchAdmins()
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.saveFailed') || '操作失败')
+        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.saveFailed'))
     }
 }
 
 const handleDelete = async (row) => {
     try {
         await ElMessageBox.confirm(
-            t('admin.adminUsers.deleteConfirm') || '确定删除此管理员？',
-            t('common.confirm') || '确认',
+            t('admin.adminUsers.deleteConfirm'),
+            t('common.confirm'),
             { type: 'warning' },
         )
     } catch {
@@ -342,10 +342,10 @@ const handleDelete = async (row) => {
     }
     try {
         await client.delete(`/admin/admins/${row.id}`)
-        ElMessage.success(t('admin.adminUsers.deleteSuccess') || '删除成功')
+        ElMessage.success(t('admin.adminUsers.deleteSuccess'))
         fetchAdmins()
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.deleteFailed') || '删除失败')
+        ElMessage.error(err.response?.data?.message || t('admin.adminUsers.deleteFailed'))
     }
 }
 
@@ -363,11 +363,11 @@ const handleAssignSubmit = async () => {
         await client.put(`/admin/rbac/admins/${assigningAdmin.value.id}/roles`, {
             role_ids: assignForm.role_ids,
         })
-        ElMessage.success(t('admin.rbac.assignSuccess') || '角色已更新')
+        ElMessage.success(t('admin.rbac.assignSuccess'))
         assignDialogVisible.value = false
         fetchAdmins()
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || (t('admin.rbac.assignFailed') || '分配失败'))
+        ElMessage.error(err.response?.data?.message || (t('admin.rbac.assignFailed')))
     } finally {
         assigning.value = false
     }

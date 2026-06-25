@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.finance.balance') || '账户余额'"
+        :title="$t('admin.finance.balance')"
         
         i18n-key="admin.finance.balance"
         icon-name="Wallet"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filterUserId"
-                :placeholder="$t('admin.finance.userId') || '用户ID'"
+                :placeholder="$t('admin.finance.userId')"
                 size="small"
                 style="width:200px"
                 clearable
@@ -25,11 +25,11 @@
             </el-input>
             <el-button size="small" type="primary" @click="fetchBalances">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
@@ -37,54 +37,54 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Wallet /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                 </div>
             </template>
-            <el-table-column prop="id" :label="$t('admin.finance.userId') || '用户ID'" width="200" show-overflow-tooltip />
-            <el-table-column prop="username" :label="$t('admin.usersPage.name') || '用户名'" min-width="140" />
-            <el-table-column prop="email" :label="$t('admin.usersPage.email') || '邮箱'" min-width="200" />
-            <el-table-column :label="$t('admin.finance.balance') || '余额'" width="140">
+            <el-table-column prop="id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
+            <el-table-column prop="username" :label="$t('admin.usersPage.name')" min-width="140" />
+            <el-table-column prop="email" :label="$t('admin.usersPage.email')" min-width="200" />
+            <el-table-column :label="$t('admin.finance.balance')" width="140">
                 <template #default="{ row }">
                     <span class="balance-value">{{ formatBalance(row.balance_minor, row.currency) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="currency" :label="$t('admin.finance.currency') || '货币'" width="80" />
-            <el-table-column prop="status" :label="$t('admin.finance.status') || '状态'" width="120">
+            <el-table-column prop="currency" :label="$t('admin.finance.currency')" width="80" />
+            <el-table-column prop="status" :label="$t('admin.finance.status')" width="120">
                 <template #default="{ row }">
                     <span :class="row.status === 'active' ? 'status-text status-text--success' : 'status-text status-text--danger'">
-                        {{ row.status === 'active' ? ($t('admin.usersPage.enabled') || '启用') : ($t('admin.usersPage.disabled') || '禁用') }}
+                        {{ row.status === 'active' ? ($t('admin.usersPage.enabled')) : ($t('admin.usersPage.disabled')) }}
                     </span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.finance.actions') || '操作'" width="120">
+            <el-table-column :label="$t('admin.finance.actions')" width="120">
                 <template #default="{ row }">
-                    <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') || '详情' }}</el-button>
+                    <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') }}</el-button>
                 </template>
             </el-table-column>
         </el-table>
     </ListPage>
 
-    <el-dialog v-model="showBalanceDetail" :title="$t('admin.finance.balanceDetail') || '余额详情'" width="520px">
+    <el-dialog v-model="showBalanceDetail" :title="$t('admin.finance.balanceDetail')" width="520px">
         <el-descriptions v-if="selectedBalance" :column="1" border>
-            <el-descriptions-item :label="$t('admin.finance.userId') || '用户ID'">{{ selectedBalance.id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.balance') || '余额'">{{ formatBalance(selectedBalance.balance_minor, selectedBalance.currency) }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.currency') || '货币'">{{ selectedBalance.currency }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.userId')">{{ selectedBalance.id }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.balance')">{{ formatBalance(selectedBalance.balance_minor, selectedBalance.currency) }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.currency')">{{ selectedBalance.currency }}</el-descriptions-item>
             <el-descriptions-item v-if="balanceBefore !== null" label="余额更新前">{{ formatBalance(balanceBefore, selectedBalance.currency) }}</el-descriptions-item>
             <el-descriptions-item v-if="balanceAfter !== null" label="余额更新后">{{ formatBalance(balanceAfter, selectedBalance.currency) }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.status') || '状态'">
+            <el-descriptions-item :label="$t('admin.finance.status')">
                 <span :class="selectedBalance.status === 'active' ? 'status-text status-text--success' : 'status-text status-text--danger'">
-                    {{ selectedBalance.status === 'active' ? ($t('admin.usersPage.enabled') || '启用') : ($t('admin.usersPage.disabled') || '禁用') }}
+                    {{ selectedBalance.status === 'active' ? ($t('admin.usersPage.enabled')) : ($t('admin.usersPage.disabled')) }}
                 </span>
             </el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.createdAt') || '创建时间'">{{ formatDateTime(selectedBalance.created_at) }}</el-descriptions-item>
-            <el-descriptions-item v-if="selectedBalance.balance_updated_at" label="最后更新">{{ selectedBalance.balance_updated_at ? formatDateTime(selectedBalance.balance_updated_at) : '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.createdAt')">{{ selectedBalance.created_at ? new Date(selectedBalance.created_at).toLocaleString() : '-' }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedBalance.balance_updated_at" label="最后更新">{{ selectedBalance.balance_updated_at ? new Date(selectedBalance.balance_updated_at).toLocaleString() : '-' }}</el-descriptions-item>
         </el-descriptions>
         <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
             <el-button size="small" type="success" :disabled="!selectedBalance" @click="openQuickCharge">
                 <el-icon class="el-icon--left"><Coin /></el-icon>
-                {{ $t('admin.usersPage.charge') || '充值' }}
+                {{ $t('admin.usersPage.charge') }}
             </el-button>
-            <el-button @click="showBalanceDetail = false">{{ $t('common.close') || '关闭' }}</el-button>
+            <el-button @click="showBalanceDetail = false">{{ $t('common.close') }}</el-button>
         </div>
     </el-dialog>
 
@@ -120,7 +120,6 @@ import { useI18n } from 'vue-i18n'
 import { Wallet, Search, RefreshLeft, Coin } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 

@@ -16,14 +16,14 @@
                         <el-input v-model="billFilter.user_id" :placeholder="$t('admin.billing.userId') || 'User ID'" size="default" style="width:180px" clearable @keyup.enter="fetchBills">
                             <template #prefix><el-icon><Search /></el-icon></template>
                         </el-input>
-                        <el-button size="default" @click="fetchBills">{{ $t('common.search') || '搜索' }}</el-button>
-                        <el-button size="default" @click="handleResetBill">{{ $t('common.reset') || '重置' }}</el-button>
+                        <el-button size="default" @click="fetchBills">{{ $t('common.search') }}</el-button>
+                        <el-button size="default" @click="handleResetBill">{{ $t('common.reset') }}</el-button>
                         <el-button size="default" type="success" :loading="exporting" @click="handleExport">
                             <el-icon class="el-icon--left"><Download /></el-icon>
-                            <span>{{ $t('common.export') || '导出' }}</span>
+                            <span>{{ $t('common.export') }}</span>
                         </el-button>
-                        <el-button size="default" type="primary" @click="showCharge = true">{{ $t('admin.billing.charge') || '充值' }}</el-button>
-                        <el-button size="default" type="danger" @click="showRefund = true">{{ $t('admin.billing.refund') || '退款' }}</el-button>
+                        <el-button size="default" type="primary" @click="showCharge = true">{{ $t('admin.billing.charge') }}</el-button>
+                        <el-button size="default" type="danger" @click="showRefund = true">{{ $t('admin.billing.refund') }}</el-button>
                     </div>
                 </div>
             </template>
@@ -48,13 +48,13 @@
                     </template>
                 </el-table-column>
                 <el-table-column :label="$t('admin.billing.time') || 'Time'" width="180">
-                    <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+                    <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}</template>
                 </el-table-column>
             </el-table>
 
             <div v-if="billMeta?.total > billPageSize" class="pagination-bar">
                 <div class="pagination-total">
-                    {{ $t('common.totalPrefix') || '共' }} <strong>{{ billMeta.total ?? 0 }}</strong> {{ $t('common.itemsSuffix') || '条' }}
+                    {{ $t('common.totalPrefix') }} <strong>{{ billMeta.total ?? 0 }}</strong> {{ $t('common.itemsSuffix') }}
                 </div>
                 <el-pagination
                     v-model:current-page="billPage"
@@ -72,7 +72,7 @@
     <el-dialog v-model="showCharge" :title="$t('admin.billing.charge') || 'Charge'" width="520px">
         <el-form ref="chargeForm" :model="chargeData" label-position="top">
             <el-form-item :label="$t('admin.billing.userId') || 'User'" prop="user_id" :rules="[{ required: true, message: '请选择用户' }]">
-                <el-select v-model="chargeData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search') || '搜索用户'" style="width:100%" clearable :loading="searching">
+                <el-select v-model="chargeData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search')" style="width:100%" clearable :loading="searching">
                     <el-option v-for="u in userOptions" :key="u.id" :label="`${u.username} (${u.email})`" :value="u.id" />
                 </el-select>
             </el-form-item>
@@ -92,7 +92,7 @@
     <el-dialog v-model="showRefund" :title="$t('admin.billing.refund') || 'Refund'" width="520px">
         <el-form ref="refundForm" :model="refundData" label-position="top">
             <el-form-item :label="$t('admin.billing.userId') || 'User'" prop="user_id" :rules="[{ required: true, message: '请选择用户' }]">
-                <el-select v-model="refundData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search') || '搜索用户'" style="width:100%" clearable :loading="searching">
+                <el-select v-model="refundData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search')" style="width:100%" clearable :loading="searching">
                     <el-option v-for="u in userOptions" :key="u.id" :label="`${u.username} (${u.email})`" :value="u.id" />
                 </el-select>
             </el-form-item>
@@ -116,7 +116,6 @@ import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { CaretRight, Search, Download, List } from '@element-plus/icons-vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 
@@ -163,22 +162,22 @@ const formatMoney = (minor) => {
 
 const transactionTypeLabel = (type) => {
     const map = {
-        charge: t('admin.billing.typeCharge') || '充值',
-        refund: t('admin.billing.typeRefund') || '退款',
-        payment: t('admin.billing.typePayment') || '支付',
-        order: t('admin.billing.typeOrder') || '订单',
-        deduction: t('admin.billing.typeDeduction') || '扣款',
-        adjust: t('admin.billing.typeAdjust') || '调整',
+        charge: t('admin.billing.typeCharge'),
+        refund: t('admin.billing.typeRefund'),
+        payment: t('admin.billing.typePayment'),
+        order: t('admin.billing.typeOrder'),
+        deduction: t('admin.billing.typeDeduction'),
+        adjust: t('admin.billing.typeAdjust'),
     }
     return map[type] || type || '-'
 }
 
 const transactionStatusLabel = (status) => {
     const map = {
-        completed: t('admin.billing.statusCompleted') || '已完成',
-        pending: t('admin.billing.statusPending') || '待处理',
-        failed: t('admin.billing.statusFailed') || '失败',
-        canceled: t('admin.billing.statusCanceled') || '已取消',
+        completed: t('admin.billing.statusCompleted'),
+        pending: t('admin.billing.statusPending'),
+        failed: t('admin.billing.statusFailed'),
+        canceled: t('admin.billing.statusCanceled'),
     }
     return map[status] || status || '-'
 }

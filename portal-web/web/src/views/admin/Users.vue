@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.usersPage.title') || '用户管理'"
+        :title="$t('admin.usersPage.title')"
         
         i18n-key="admin.usersPage"
         icon-name="User"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filter.email"
-                :placeholder="$t('admin.usersPage.email') || '搜索邮箱'"
+                :placeholder="$t('admin.usersPage.email')"
                 style="width:220px"
                 size="small"
                 clearable
@@ -25,30 +25,30 @@
             </el-input>
             <el-select
                 v-model="filter.status"
-                :placeholder="$t('admin.usersPage.status') || '状态'"
+                :placeholder="$t('admin.usersPage.status')"
                 style="width:140px"
                 size="small"
                 clearable
                 @change="fetchUsers"
             >
-                <el-option :label="$t('admin.usersPage.all') || '全部'" value="" />
-                <el-option :label="$t('admin.usersPage.enabled') || '启用'" value="active" />
-                <el-option :label="$t('admin.usersPage.disabled') || '禁用'" value="suspended" />
+                <el-option :label="$t('admin.usersPage.all')" value="" />
+                <el-option :label="$t('admin.usersPage.enabled')" value="active" />
+                <el-option :label="$t('admin.usersPage.disabled')" value="suspended" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchUsers">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
         <template #actions>
             <el-button size="small" type="primary" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.usersPage.create') || '新建用户' }}</span>
+                <span>{{ $t('admin.usersPage.create') }}</span>
             </el-button>
         </template>
 
@@ -56,81 +56,89 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><User /></el-icon>
-                    <p class="empty-title">{{ $t('admin.usersPage.noData') || '暂无用户' }}</p>
-                    <p class="empty-desc">点击右上角「{{ $t('admin.usersPage.create') || '新建用户' }}」添加第一个用户。</p>
+                    <p class="empty-title">{{ $t('admin.usersPage.noData') }}</p>
+                    <p class="empty-desc">点击右上角「{{ $t('admin.usersPage.create') }}」添加第一个用户。</p>
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="username" :label="$t('admin.usersPage.name') || '用户名'" min-width="140" />
-            <el-table-column prop="email" :label="$t('admin.usersPage.email') || '邮箱'" min-width="220" />
-            <el-table-column prop="role" :label="$t('admin.usersPage.role') || '角色'" width="100">
+            <el-table-column prop="username" :label="$t('admin.usersPage.name')" min-width="140" />
+            <el-table-column prop="email" :label="$t('admin.usersPage.email')" min-width="220" />
+            <el-table-column prop="role" :label="$t('admin.usersPage.role')" width="100">
                 <template #default="{ row }">
                     <el-tag size="small" effect="light">{{ row.role || 'member' }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="status" :label="$t('admin.usersPage.status') || '状态'" width="100">
+            <el-table-column prop="status" :label="$t('admin.usersPage.status')" width="100">
                 <template #default="{ row }">
                     <el-tag :type="row.status === 'active' ? 'success' : (row.status === 'suspended' ? 'warning' : 'info')" size="small" effect="light">{{ statusLabel(row.status) }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="plan_code" :label="$t('admin.usersPage.plan') || '套餐'" width="100">
+            <el-table-column prop="plan_code" :label="$t('admin.usersPage.plan')" width="100">
                 <template #default="{ row }">
                     <el-tag size="small" type="info" effect="plain">{{ row.plan_code || 'free' }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.usersPage.created') || '创建时间'" width="120">
+            <el-table-column :label="$t('admin.usersPage.created')" width="120">
                 <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleDateString() : '-' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('admin.usersPage.balance') || '余额'" width="140">
+            <el-table-column :label="$t('admin.usersPage.balance')" width="140">
                 <template #default="{ row }">
                     <span class="balance-value">{{ formatBalance(row.balance_minor, row.currency) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.usersPage.charge') || '充值'" width="90" align="center">
+            <el-table-column :label="$t('admin.usersPage.charge')" width="90" align="center">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" text @click="openChargeDialog(row)">
-                        {{ $t('admin.usersPage.charge') || '充值' }}
+                        {{ $t('admin.usersPage.charge') }}
                     </el-button>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.usersPage.actions') || '操作'" width="190" fixed="right">
+            <el-table-column :label="$t('admin.usersPage.actions')" width="190" fixed="right">
                 <template #default="{ row }">
-                    <el-button size="small" text type="primary" @click="openEditDialog(row)">
-                        <el-icon><Edit /></el-icon>
-                    </el-button>
-                    <el-button v-if="row.status === 'active'" type="warning" size="small" text @click="handleToggle(row, 'disabled')">
-                        <el-icon><VideoPause /></el-icon>
-                    </el-button>
-                    <el-button v-else type="success" size="small" text @click="handleToggle(row, 'active')">
-                        <el-icon><VideoPlay /></el-icon>
-                    </el-button>
-                    <el-button size="small" type="danger" text @click="handleDelete(row)">
-                        <el-icon><Delete /></el-icon>
-                    </el-button>
+                    <el-tooltip :content="$t('common.edit')" :show-after="500">
+                        <el-button size="small" text type="primary" @click="openEditDialog(row)">
+                            <el-icon><Edit /></el-icon>
+                        </el-button>
+                    </el-tooltip>
+                    <el-tooltip v-if="row.status === 'active'" :content="$t('common.disable')" :show-after="500">
+                        <el-button type="warning" size="small" text @click="handleToggle(row, 'disabled')">
+                            <el-icon><VideoPause /></el-icon>
+                        </el-button>
+                    </el-tooltip>
+                    <el-tooltip v-else :content="$t('common.enable')" :show-after="500">
+                        <el-button type="success" size="small" text @click="handleToggle(row, 'active')">
+                            <el-icon><VideoPlay /></el-icon>
+                        </el-button>
+                    </el-tooltip>
+                    <el-tooltip :content="$t('common.delete')" :show-after="500">
+                        <el-button size="small" type="danger" text @click="handleDelete(row)">
+                            <el-icon><Delete /></el-icon>
+                        </el-button>
+                    </el-tooltip>
                 </template>
             </el-table-column>
         </el-table>
     </ListPage>
 
     <!-- Create/Edit User Dialog -->
-    <el-dialog v-model="showDialog" :title="editingId ? ($t('admin.usersPage.edit') || '编辑用户') : ($t('admin.usersPage.create') || '新建用户')" width="600">
+    <el-dialog v-model="showDialog" :title="editingId ? ($t('admin.usersPage.edit')) : ($t('admin.usersPage.create'))" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item :label="$t('admin.usersPage.name') || '用户名'" prop="username">
-                <el-input v-model="form.username" maxlength="100" :placeholder="$t('admin.usersPage.namePlaceholder') || '输入用户名'" />
+            <el-form-item :label="$t('admin.usersPage.name')" prop="username">
+                <el-input v-model="form.username" maxlength="100" :placeholder="$t('admin.usersPage.namePlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.usersPage.email') || '邮箱'" prop="email">
-                <el-input v-model="form.email" type="email" :placeholder="$t('admin.usersPage.emailPlaceholder') || '输入邮箱地址'" :disabled="!!editingId" />
+            <el-form-item :label="$t('admin.usersPage.email')" prop="email">
+                <el-input v-model="form.email" type="email" :placeholder="$t('admin.usersPage.emailPlaceholder')" :disabled="!!editingId" />
             </el-form-item>
-            <el-form-item :label="$t('admin.usersPage.password') || '密码'" :prop="editingId ? '' : 'password'">
-                <el-input v-model="form.password" type="password" show-password :placeholder="editingId ? ($t('admin.usersPage.passwordLeaveBlank') || '留空保持不变') : ($t('admin.usersPage.passwordPlaceholder') || '输入密码')" />
+            <el-form-item :label="$t('admin.usersPage.password')" :prop="editingId ? '' : 'password'">
+                <el-input v-model="form.password" type="password" show-password :placeholder="editingId ? ($t('admin.usersPage.passwordLeaveBlank')) : ($t('admin.usersPage.passwordPlaceholder'))" />
             </el-form-item>
-            <el-form-item v-if="!editingId" :label="$t('admin.usersPage.confirmPassword') || '确认密码'" prop="password_confirmation">
-                <el-input v-model="form.password_confirmation" type="password" show-password :placeholder="$t('admin.usersPage.confirmPasswordPlaceholder') || '确认密码'" />
+            <el-form-item v-if="!editingId" :label="$t('admin.usersPage.confirmPassword')" prop="password_confirmation">
+                <el-input v-model="form.password_confirmation" type="password" show-password :placeholder="$t('admin.usersPage.confirmPasswordPlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.usersPage.role') || '角色'">
+            <el-form-item :label="$t('admin.usersPage.role')">
                 <el-select v-model="form.role" style="width:100%">
-                    <el-option :label="$t('admin.usersPage.member') || '会员'" value="member" />
-                    <el-option :label="$t('admin.usersPage.admin') || '管理员'" value="admin" />
+                    <el-option :label="$t('admin.usersPage.member')" value="member" />
+                    <el-option :label="$t('admin.usersPage.admin')" value="admin" />
                 </el-select>
             </el-form-item>
         </el-form>
@@ -180,9 +188,9 @@ const formatBalance = (minor, currency) => {
 }
 
 const statusLabel = (status) => {
-    if (status === 'active') return t('admin.usersPage.enabled') || '启用'
-    if (status === 'suspended') return t('admin.usersPage.disabled') || '禁用'
-    if (status === 'closed') return t('admin.usersPage.closed') || '关闭'
+    if (status === 'active') return t('admin.usersPage.enabled')
+    if (status === 'suspended') return t('admin.usersPage.disabled')
+    if (status === 'closed') return t('admin.usersPage.closed')
     return status || '-'
 }
 
@@ -236,6 +244,7 @@ const fetchUsers = async () => {
     } catch {
         users.value = []
         meta.value = null
+        ElMessage.error(t('common.loadFailed'))
     } finally {
         loading.value = false
     }

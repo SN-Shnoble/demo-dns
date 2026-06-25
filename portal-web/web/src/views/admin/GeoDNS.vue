@@ -11,7 +11,7 @@
         <template #actions>
             <el-input
                 v-model="filterRegion"
-                :placeholder="$t('admin.geoDns.filterRegion') || '搜索区域'"
+                :placeholder="$t('admin.geoDns.filterRegion')"
                 size="small"
                 style="width:220px"
                 clearable
@@ -27,11 +27,11 @@
                 :disabled="selected.length === 0"
                 @click="handleBatchDelete"
             >
-                <span>{{ $t('admin.nodes.batchDelete') || '批量删除' }} ({{ selected.length }})</span>
+                <span>{{ $t('admin.nodes.batchDelete') }} ({{ selected.length }})</span>
             </el-button>
             <el-button type="primary" size="small" @click="openCreateDialog">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.geoDns.addServer') || '添加解析节点' }}</span>
+                <span>{{ $t('admin.geoDns.addServer') }}</span>
             </el-button>
         </template>
 
@@ -39,18 +39,18 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Aim /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                     <p class="empty-desc">点击右上角「{{ $t('admin.geoDns.create') }}」添加第一条 GeoDNS 映射。</p>
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
             <el-table-column type="index" width="50" :label="$t('common.index')" />
-            <el-table-column :label="$t('admin.geoDns.schedulerId') || '调度器ID'" :min-width="180">
+            <el-table-column :label="$t('admin.geoDns.schedulerId')" :min-width="180">
                 <template #default="{ row }">
                     <code class="node-code">{{ row.node_code || '—' }}</code>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.geoDns.schedulerAlias') || '调度器别名'" :min-width="160" show-overflow-tooltip>
+            <el-table-column :label="$t('admin.geoDns.schedulerAlias')" :min-width="160" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span>{{ row.node_alias || '—' }}</span>
                 </template>
@@ -66,14 +66,14 @@
                 <template #default="{ row }">
                     <el-tag v-if="row.status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:4px" />
-                        {{ $t('admin.geoDns.online') || '在线' }}
+                        {{ $t('admin.geoDns.online') }}
                     </el-tag>
                     <el-tag v-else-if="row.status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">--</el-tag>
-                    <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
+                    <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="region" :label="$t('admin.geoDns.region')" :min-width="100" />
-            <el-table-column :label="$t('admin.geoDns.dnsNodeCount') || 'DNS节点数'" :min-width="100">
+            <el-table-column :label="$t('admin.geoDns.dnsNodeCount')" :min-width="100">
                 <template #default="{ row }">
                     <span>{{ row.dns_node_count ?? 0 }}</span>
                 </template>
@@ -99,7 +99,7 @@
                     <div style="white-space:nowrap;display:flex;gap:4px;align-items:center">
                         <el-button size="small" text type="primary" @click="openEditDialog(row)">
                             <el-icon><Edit /></el-icon>
-                            <span>{{ $t('common.edit') || '编辑' }}</span>
+                            <span>{{ $t('common.edit') }}</span>
                         </el-button>
                         <el-button
                             v-if="row.install_status !== 'installed'"
@@ -118,12 +118,12 @@
                             @click="handleDeploy(row)"
                         >
                             <el-icon><Refresh /></el-icon>
-                            <span>{{ $t('admin.nodes.redeploy') || '重新部署' }}</span>
+                            <span>{{ $t('admin.nodes.redeploy') }}</span>
                         </el-button>
                         <el-button size="small" text type="danger" @click="handleDelete(row.id)">
                             <el-icon><Delete /></el-icon>
                         </el-button>
-                        <el-tag v-if="row.is_orphan" size="small" type="info" effect="plain" style="white-space:nowrap">{{ $t('admin.geoDns.orphanTag') || '无映射' }}</el-tag>
+                        <el-tag v-if="row.is_orphan" size="small" type="info" effect="plain" style="white-space:nowrap">{{ $t('admin.geoDns.orphanTag') }}</el-tag>
                     </div>
                 </template>
             </el-table-column>
@@ -133,15 +133,15 @@
     <el-dialog v-model="showDialog" :title="editingId ? $t('admin.geoDns.edit') : $t('admin.geoDns.addServer')" width="600">
         <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
             <el-form-item :label="$t('admin.geoDns.region')" prop="region">
-                <el-select v-model="form.region" filterable clearable :placeholder="$t('admin.geoDns.regionPlaceholder') || '选择区域'" style="width:100%">
+                <el-select v-model="form.region" filterable clearable :placeholder="$t('admin.geoDns.regionPlaceholder')" style="width:100%">
                     <el-option v-for="r in regions" :key="r.code" :label="`${r.code} - ${r.name}`" :value="r.code" />
                 </el-select>
             </el-form-item>
-            <el-form-item :label="$t('admin.geoDns.schedulerAlias') || '调度器别名'">
-                <el-input v-model="form.node_alias" :placeholder="$t('admin.geoDns.schedulerAliasPlaceholder') || '可选，留空将自动生成 KR-Scheduler'" />
+            <el-form-item :label="$t('admin.geoDns.schedulerAlias')">
+                <el-input v-model="form.node_alias" :placeholder="$t('admin.geoDns.schedulerAliasPlaceholder')" />
             </el-form-item>
             <el-form-item :label="$t('admin.geoDns.ipAddress')">
-                <el-input v-model="form.public_ipv4" maxlength="45" :placeholder="$t('admin.geoDns.ipPlaceholder') || '例: 10.20.30.40'" />
+                <el-input v-model="form.public_ipv4" maxlength="45" :placeholder="$t('admin.geoDns.ipPlaceholder')" />
             </el-form-item>
             <el-form-item :label="$t('admin.geoDns.enabled')">
                 <el-switch v-model="form.enabled" />
@@ -153,14 +153,14 @@
         </template>
     </el-dialog>
 
-    <el-dialog v-model="showDeployDialog" :title="$t('admin.nodes.deployTitle') || '部署命令'" width="680" :close-on-click-modal="false">
+    <el-dialog v-model="showDeployDialog" :title="$t('admin.nodes.deployTitle')" width="680" :close-on-click-modal="false">
         <el-card shadow="never" class="token-section">
             <template #header>
                 <div class="section-header">
-                    <span>{{ $t('admin.nodes.deployTitle') || '部署命令' }}</span>
+                    <span>{{ $t('admin.nodes.deployTitle') }}</span>
                     <el-button size="small" text type="primary" @click="copyDeployCmd">
                         <el-icon><CopyDocument /></el-icon>
-                        <span>{{ $t('admin.nodes.copyDeployCmd') || '复制命令' }}</span>
+                        <span>{{ $t('admin.nodes.copyDeployCmd') }}</span>
                     </el-button>
                 </div>
             </template>
@@ -168,10 +168,10 @@
         </el-card>
         <div class="token-footer-tip">
             <el-icon><InfoFilled /></el-icon>
-            <span>{{ $t('admin.nodes.deployTip') || '在目标节点服务器上执行此命令完成部署' }}</span>
+            <span>{{ $t('admin.nodes.deployTip') }}</span>
         </div>
         <template #footer>
-            <el-button @click="showDeployDialog = false">{{ $t('common.close') || '关闭' }}</el-button>
+            <el-button @click="showDeployDialog = false">{{ $t('common.close') }}</el-button>
         </template>
     </el-dialog>
 </template>
@@ -196,7 +196,9 @@ const fetchRegions = async () => {
     try {
         const { data } = await client.get('/admin/regions').catch(() => ({ data: { data: [] } }))
         regions.value = (data.data ?? []).filter(r => r.status === 'active')
-    } catch {}
+    } catch {
+        ElMessage.error(t('common.loadFailed'))
+    }
 }
 
 const showDialog = ref(false)
@@ -218,9 +220,9 @@ const deployCmdPreview = computed(() => {
 const copyDeployCmd = async () => {
     try {
         await navigator.clipboard.writeText(deployCmdPreview.value)
-        ElMessage.success(t('admin.nodes.deployCopied') || '部署命令已复制')
+        ElMessage.success(t('admin.nodes.deployCopied'))
     } catch {
-        ElMessage.error(t('admin.nodes.copyFailed') || '复制失败')
+        ElMessage.error(t('admin.nodes.copyFailed'))
     }
 }
 
@@ -237,7 +239,9 @@ const fetchMappings = async () => {
         const { data } = await client.get('/admin/geo-dns', { params }).catch(() => ({ data: { data: [] } }))
         mappings.value = data.data ?? []
         meta.value = data.meta ?? {}
-    } catch {}
+    } catch {
+        ElMessage.error(t('common.loadFailed'))
+    }
 }
 
 const resetForm = () => {
@@ -295,7 +299,7 @@ const handleDeploy = async (row) => {
         deployData.api_key = data.data.api_key || ''
         showDeployDialog.value = true
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || t('admin.nodes.deployFailed') || '生成部署命令失败')
+        ElMessage.error(err.response?.data?.message || t('admin.nodes.deployFailed'))
     }
 }
 

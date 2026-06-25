@@ -1,8 +1,15 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,5 +33,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // 统一 API JSON 错误响应格式：{ error: { code, message } }
+        // 见 api.php 路由 — 所有 API 路由前缀均为 api/*，故统一用 ApiResponse 返回 JSON。
+        $exceptions->render(function (ValidationException $e, Request $request): \Illuminate\Http\JsonResponse {
+            return \App\Helpers\ApiResponse::error('VALIDATION_FAILED', $e->getMessage(), 422);
+        });
+
+        $exceptions->render(function (AuthenticationException $e, Request $request): \Illuminate\Http\JsonResponse {
+            return \App\Helpers\ApiResponse::error('UNAUTHENTICATED', $e->getMessage(), 401);
+        });
+
+        $exceptions->render(function (NotFoundHttpException $e, Request $request): \Illuminate\Http\JsonResponse {
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', $e->getMessage() ?: 'Resource not found', 404);
+        });
+
+        $exceptions->render(function (ModelNotFoundException $e, Request $request): \Illuminate\Http\JsonResponse {
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Resource not found', 404);
+        });
+
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request): \Illuminate\Http\JsonResponse {
+            return \App\Helpers\ApiResponse::error('RATE_LIMITED', 'Too many requests. Please try again later.', 429);
+        });
     })->create();

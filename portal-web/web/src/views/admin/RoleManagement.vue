@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.rbac.title') || '角色权限管理'"
+        :title="$t('admin.rbac.title')"
 
         i18n-key="admin.rbac"
         icon-name="User"
@@ -11,7 +11,7 @@
         <template #actions>
             <el-button size="small" type="primary" @click="showAddRole">
                 <el-icon class="el-icon--left"><Plus /></el-icon>
-                <span>{{ $t('admin.rbac.addRole') || '添加角色' }}</span>
+                <span>{{ $t('admin.rbac.addRole') }}</span>
             </el-button>
         </template>
 
@@ -22,20 +22,20 @@
                         <div class="card-header">
                             <div class="card-title">
                                 <el-icon class="title-icon"><UserFilled /></el-icon>
-                                <span class="title-text">{{ $t('admin.rbac.roles') || '角色列表' }} ({{ roles.length }})</span>
+                                <span class="title-text">{{ $t('admin.rbac.roles') }} ({{ roles.length }})</span>
                             </div>
                         </div>
                     </template>
                     <el-table v-loading="loadingRoles" :data="roles" stripe :empty-text="$t('common.noData')" highlight-current-row @row-click="selectRole">
-                        <el-table-column prop="code" :label="$t('admin.rbac.roleCode') || '角色代码'" width="120">
+                        <el-table-column prop="code" :label="$t('admin.rbac.roleCode')" width="120">
                             <template #default="{ row }">
                                 <el-tag size="small" effect="light">{{ row.code }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column prop="name" :label="$t('admin.rbac.roleName') || '角色名称'" min-width="100" />
-                        <el-table-column :label="$t('admin.rbac.actions') || '操作'" width="80">
+                        <el-table-column prop="name" :label="$t('admin.rbac.roleName')" min-width="100" />
+                        <el-table-column :label="$t('admin.rbac.actions')" width="80">
                             <template #default="{ row }">
-                                <el-button v-if="!row.is_system" size="small" type="danger" text @click.stop="deleteRole(row)">{{ $t('common.delete') || '删除' }}</el-button>
+                                <el-button v-if="!row.is_system" size="small" type="danger" text @click.stop="deleteRole(row)">{{ $t('common.delete') }}</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -48,12 +48,12 @@
                         <div class="card-header">
                             <div class="card-title">
                                 <el-icon class="title-icon is-warning"><Key /></el-icon>
-                                <span class="title-text">{{ $t('admin.rbac.rolePermissions') || '角色权限' }}: {{ selectedRole.name }}</span>
+                                <span class="title-text">{{ $t('admin.rbac.rolePermissions') }}: {{ selectedRole.name }}</span>
                             </div>
                             <div class="header-actions">
                                 <el-button size="small" type="success" :loading="savingPerms" @click="savePermissions">
                                     <el-icon class="el-icon--left"><Check /></el-icon>
-                                    <span>{{ $t('common.save') || '保存' }}</span>
+                                    <span>{{ $t('common.save') }}</span>
                                 </el-button>
                             </div>
                         </div>
@@ -79,15 +79,15 @@
                         </el-checkbox-group>
                     </div>
 
-                    <el-divider content-position="left">{{ $t('admin.rbac.menuRules') || '菜单规则' }}</el-divider>
+                    <el-divider content-position="left">{{ $t('admin.rbac.menuRules') }}</el-divider>
                     <div v-loading="loadingMenuRules">
                         <div class="menu-rules-toolbar">
                             <el-checkbox v-model="menuRulesCheckAll" :indeterminate="menuRulesIndeterminate" @change="handleMenuRulesAll">
-                                {{ $t('admin.rbac.menuRulesAll') || '全选' }}
+                                {{ $t('admin.rbac.menuRulesAll') }}
                             </el-checkbox>
                             <el-button size="small" type="primary" :loading="savingMenuRules" :disabled="selectedRole.is_system" @click="saveMenuRules">
                                 <el-icon class="el-icon--left"><Check /></el-icon>
-                                <span>{{ $t('admin.rbac.menuRulesSave') || '保存菜单规则' }}</span>
+                                <span>{{ $t('admin.rbac.menuRulesSave') }}</span>
                             </el-button>
                         </div>
                         <el-checkbox-group v-model="selectedMenuRules" class="menu-rules-tree">
@@ -109,28 +109,28 @@
                                 </div>
                             </div>
                         </el-checkbox-group>
-                        <p v-if="!menuTree.length" class="empty-hint">{{ $t('admin.rbac.menuRulesEmpty') || '暂无可配置的菜单' }}</p>
+                        <p v-if="!menuTree.length" class="empty-hint">{{ $t('admin.rbac.menuRulesEmpty') }}</p>
                     </div>
                 </el-card>
                 <el-card v-else shadow="never" class="list-card">
                     <div class="empty-state">
                         <el-icon class="empty-icon"><Key /></el-icon>
-                        <p class="empty-title">{{ $t('admin.rbac.selectRole') || '请选择一个角色查看权限' }}</p>
+                        <p class="empty-title">{{ $t('admin.rbac.selectRole') }}</p>
                     </div>
                 </el-card>
             </el-col>
         </el-row>
     </ListPage>
 
-    <el-dialog v-model="showRoleDialog" :title="editingRole ? ($t('common.edit') || '编辑') : ($t('common.add') || '添加')" width="400px">
+    <el-dialog v-model="showRoleDialog" :title="editingRole ? ($t('common.edit')) : ($t('common.add'))" width="400px">
         <el-form :model="roleForm" label-position="top">
-            <el-form-item :label="$t('admin.rbac.roleCode') || '角色代码'" :rules="[{ required: true }]">
+            <el-form-item :label="$t('admin.rbac.roleCode')" :rules="[{ required: true }]">
                 <el-input v-model="roleForm.code" :disabled="!!editingRole" />
             </el-form-item>
-            <el-form-item :label="$t('admin.rbac.roleName') || '角色名称'" :rules="[{ required: true }]">
+            <el-form-item :label="$t('admin.rbac.roleName')" :rules="[{ required: true }]">
                 <el-input v-model="roleForm.name" />
             </el-form-item>
-            <el-form-item :label="$t('admin.rbac.description') || '描述'">
+            <el-form-item :label="$t('admin.rbac.description')">
                 <el-input v-model="roleForm.description" type="textarea" :rows="2" />
             </el-form-item>
         </el-form>
@@ -242,10 +242,10 @@ const handleSaveRole = async () => {
     try {
         if (editingRole.value) {
             await client.put(`/admin/rbac/roles/${editingRole.value.id}`, roleForm)
-            ElMessage.success(t('admin.rbac.updateSuccess') || '更新成功')
+            ElMessage.success(t('admin.rbac.updateSuccess'))
         } else {
             await client.post('/admin/rbac/roles', roleForm)
-            ElMessage.success(t('admin.rbac.createSuccess') || '创建成功')
+            ElMessage.success(t('admin.rbac.createSuccess'))
         }
         showRoleDialog.value = false
         fetchRoles()
@@ -259,7 +259,7 @@ const handleSaveRole = async () => {
 const deleteRole = async (row) => {
     try {
         await client.delete(`/admin/rbac/roles/${row.id}`)
-        ElMessage.success(t('admin.rbac.deleteSuccess') || '删除成功')
+        ElMessage.success(t('admin.rbac.deleteSuccess'))
         if (selectedRole.value?.id === row.id) {
             selectedRole.value = null
             selectedPermissions.value = []
@@ -277,7 +277,7 @@ const savePermissions = async () => {
         await client.put(`/admin/rbac/roles/${selectedRole.value.id}/permissions`, {
             permission_ids: selectedPermissions.value,
         })
-        ElMessage.success(t('admin.rbac.permissionSaved') || '权限已保存')
+        ElMessage.success(t('admin.rbac.permissionSaved'))
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('admin.rbac.saveFailed'))
     } finally {
@@ -374,9 +374,9 @@ const saveMenuRules = async () => {
         await client.put(`/admin/rbac/roles/${selectedRole.value.id}/menu-rules`, {
             nav_keys: selectedMenuRules.value,
         })
-        ElMessage.success(t('admin.rbac.menuRulesSaved') || '菜单规则已保存')
+        ElMessage.success(t('admin.rbac.menuRulesSaved'))
     } catch (err) {
-        ElMessage.error(err.response?.data?.message || (t('admin.rbac.saveFailed') || '保存失败'))
+        ElMessage.error(err.response?.data?.message || (t('admin.rbac.saveFailed')))
     } finally {
         savingMenuRules.value = false
     }

@@ -1,6 +1,6 @@
 <template>
     <ListPage
-        :title="$t('admin.finance.refundRecords') || '退款申请记录'"
+        :title="$t('admin.finance.refundRecords')"
         
         i18n-key="admin.finance.refundRecords"
         icon-name="Wallet"
@@ -15,7 +15,7 @@
         <template #filters>
             <el-input
                 v-model="filterUserId"
-                :placeholder="$t('admin.finance.userId') || '用户ID'"
+                :placeholder="$t('admin.finance.userId')"
                 size="small"
                 style="width:200px"
                 clearable
@@ -28,28 +28,28 @@
                 size="small"
                 style="width:120px"
                 clearable
-                :placeholder="$t('admin.finance.status') || '状态'"
+                :placeholder="$t('admin.finance.status')"
                 @change="fetchRefunds"
             >
-                <el-option value="pending" :label="$t('admin.finance.statusPending') || '待处理'" />
-                <el-option value="succeeded" :label="$t('admin.finance.statusSucceeded') || '已成功'" />
-                <el-option value="failed" :label="$t('admin.finance.statusFailed') || '失败'" />
-                <el-option value="canceled" :label="$t('admin.finance.statusCanceled') || '已取消'" />
+                <el-option value="pending" :label="$t('admin.finance.statusPending')" />
+                <el-option value="succeeded" :label="$t('admin.finance.statusSucceeded')" />
+                <el-option value="failed" :label="$t('admin.finance.statusFailed')" />
+                <el-option value="canceled" :label="$t('admin.finance.statusCanceled')" />
             </el-select>
             <el-button size="small" type="primary" @click="fetchRefunds">
                 <el-icon class="el-icon--left"><Search /></el-icon>
-                <span>{{ $t('common.search') || '搜索' }}</span>
+                <span>{{ $t('common.search') }}</span>
             </el-button>
             <el-button size="small" @click="handleReset">
                 <el-icon class="el-icon--left"><RefreshLeft /></el-icon>
-                <span>{{ $t('common.reset') || '重置' }}</span>
+                <span>{{ $t('common.reset') }}</span>
             </el-button>
         </template>
 
         <template #actions>
             <el-button size="small" type="success" :loading="exporting" @click="handleExport">
                 <el-icon class="el-icon--left"><Download /></el-icon>
-                <span>{{ $t('common.export') || '导出' }}</span>
+                <span>{{ $t('common.export') }}</span>
             </el-button>
         </template>
 
@@ -57,54 +57,54 @@
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Wallet /></el-icon>
-                    <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                    <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                 </div>
             </template>
-            <el-table-column prop="refund_no" :label="$t('admin.finance.refundNo') || '退款号'" width="180" show-overflow-tooltip />
-            <el-table-column prop="user_id" :label="$t('admin.finance.userId') || '用户ID'" width="200" show-overflow-tooltip />
-            <el-table-column prop="payment_id" :label="$t('admin.finance.paymentId') || '支付ID'" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="amount_minor" :label="$t('admin.finance.refundAmount') || '退款金额'" width="140">
+            <el-table-column prop="refund_no" :label="$t('admin.finance.refundNo')" width="180" show-overflow-tooltip />
+            <el-table-column prop="user_id" :label="$t('admin.finance.userId')" width="200" show-overflow-tooltip />
+            <el-table-column prop="payment_id" :label="$t('admin.finance.paymentId')" min-width="200" show-overflow-tooltip />
+            <el-table-column prop="amount_minor" :label="$t('admin.finance.refundAmount')" width="140">
                 <template #default="{ row }">
                     <span class="amount-negative">-{{ formatMoney(row.amount_minor, row.currency) }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="currency" :label="$t('admin.finance.currency') || '货币'" width="80" />
-            <el-table-column prop="status" :label="$t('admin.finance.status') || '状态'" width="100">
+            <el-table-column prop="currency" :label="$t('admin.finance.currency')" width="80" />
+            <el-table-column prop="status" :label="$t('admin.finance.status')" width="100">
                 <template #default="{ row }">
                     <el-tag :type="getStatusType(row.status)" size="small" effect="light">{{ row.status }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="reason" :label="$t('admin.finance.reason') || '原因'" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt') || '申请时间'" width="160">
-                <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
+            <el-table-column prop="reason" :label="$t('admin.finance.reason')" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="created_at" :label="$t('admin.finance.createdAt')" width="160">
+                <template #default="{ row }">{{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('admin.finance.actions') || '操作'" width="160">
+            <el-table-column :label="$t('admin.finance.actions')" width="160">
                 <template #default="{ row }">
-                    <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') || '详情' }}</el-button>
-                    <el-button v-if="row.status === 'pending'" size="small" text type="success" @click="handleApprove(row)">{{ $t('common.approve') || '批准' }}</el-button>
+                    <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') }}</el-button>
+                    <el-button v-if="row.status === 'pending'" size="small" text type="success" @click="handleApprove(row)">{{ $t('common.approve') }}</el-button>
                 </template>
             </el-table-column>
         </el-table>
     </ListPage>
 
-    <el-dialog v-model="showRefundDetail" :title="$t('admin.finance.refundDetail') || '退款详情'" width="550px">
+    <el-dialog v-model="showRefundDetail" :title="$t('admin.finance.refundDetail')" width="550px">
         <el-descriptions v-if="selectedRefund" :column="2" border>
-            <el-descriptions-item :label="$t('admin.finance.refundNo') || '退款号'">{{ selectedRefund.refund_no }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.userId') || '用户ID'">{{ selectedRefund.user_id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.paymentId') || '支付ID'">{{ selectedRefund.payment_id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.refundAmount') || '退款金额'">
+            <el-descriptions-item :label="$t('admin.finance.refundNo')">{{ selectedRefund.refund_no }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.userId')">{{ selectedRefund.user_id }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.paymentId')">{{ selectedRefund.payment_id }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.refundAmount')">
                 <span class="amount-negative">-{{ formatMoney(selectedRefund.amount_minor, selectedRefund.currency) }}</span>
             </el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.currency') || '货币'">{{ selectedRefund.currency }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.status') || '状态'">
+            <el-descriptions-item :label="$t('admin.finance.currency')">{{ selectedRefund.currency }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.status')">
                 <el-tag :type="getStatusType(selectedRefund.status)" size="small">{{ selectedRefund.status }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.reason') || '原因'" :span="2">{{ selectedRefund.reason || '-' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.createdAt') || '申请时间'">{{ formatDateTime(selectedRefund.created_at) }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('admin.finance.refundedAt') || '处理时间'">{{ formatDateTime(selectedRefund.refunded_at) }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.reason')" :span="2">{{ selectedRefund.reason || '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.createdAt')">{{ selectedRefund.created_at ? new Date(selectedRefund.created_at).toLocaleString() : '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.finance.refundedAt')">{{ selectedRefund.refunded_at ? new Date(selectedRefund.refunded_at).toLocaleString() : '-' }}</el-descriptions-item>
         </el-descriptions>
         <template #footer>
-            <el-button @click="showRefundDetail = false">{{ $t('common.close') || '关闭' }}</el-button>
+            <el-button @click="showRefundDetail = false">{{ $t('common.close') }}</el-button>
         </template>
     </el-dialog>
 </template>
@@ -116,7 +116,6 @@ import { useI18n } from 'vue-i18n'
 import { Wallet, Search, RefreshLeft, Download } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 
@@ -200,9 +199,9 @@ const handleExport = async () => {
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
-        ElMessage.success(t('admin.finance.exportSuccess') || '导出成功')
+        ElMessage.success(t('admin.finance.exportSuccess'))
     } catch {
-        ElMessage.error(t('admin.finance.exportFailed') || '导出失败')
+        ElMessage.error(t('admin.finance.exportFailed'))
     } finally {
         exporting.value = false
     }

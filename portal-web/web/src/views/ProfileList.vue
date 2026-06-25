@@ -10,7 +10,7 @@
         </div>
 
         <el-card shadow="never" class="profile-card">
-        <el-table v-loading="loading" :data="profiles" stripe :empty-text="$t('common.noData')">
+        <el-table :data="profiles" stripe>
             <el-table-column :label="$t('profile.name')" min-width="220">
                 <template #default="{ row }">
                     <span class="profile-name-cell">
@@ -80,7 +80,6 @@ import Layout from '@/components/Layout.vue'
 const { t } = useI18n()
 
 const profiles = ref([])
-const loading = ref(false)
 const showDialog = ref(false)
 const saving = ref(false)
 const publishingId = ref(null)
@@ -88,14 +87,11 @@ const formRef = ref(null)
 const form = ref({ name: '', description: '', default_action: 'allow' })
 
 const fetchProfiles = async () => {
-    loading.value = true
     try {
         const { data } = await client.get('/user/profiles')
         profiles.value = data.data
-    } catch (e) {
-        ElMessage.error(e?.response?.data?.message || t('common.loadFailed'))
-    } finally {
-        loading.value = false
+    } catch {
+        ElMessage.error(t('common.loadFailed'))
     }
 }
 
@@ -139,7 +135,7 @@ const handlePublish = async (row) => {
         ElMessage.success(t('profile.publishSuccess'))
         await fetchProfiles()
     } catch (e) {
-        ElMessage.error(e?.response?.data?.message || t('profile.publishFailed'))
+        ElMessage.error(e?.response?.data?.normalizedMessage || t('profile.publishFailed'))
     } finally {
         publishingId.value = null
     }

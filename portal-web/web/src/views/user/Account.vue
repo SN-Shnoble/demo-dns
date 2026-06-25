@@ -147,18 +147,18 @@
         </el-dialog>
 
         <!-- 订阅套餐弹窗 -->
-        <el-dialog v-model="showSubscribeDialog" :title="$t('account.subscription.subscribeTitle') || '选择套餐'" width="800px" top="6vh">
+        <el-dialog v-model="showSubscribeDialog" :title="$t('account.subscription.subscribeTitle')" width="800px" top="6vh">
             <div v-if="selectedPlan" class="subscribe-summary">
                 <div class="summary-row">
-                    <span class="summary-label">{{ $t('account.subscription.summaryPlan') || '套餐' }}</span>
+                    <span class="summary-label">{{ $t('account.subscription.summaryPlan') }}</span>
                     <span class="summary-value">{{ selectedPlan.name }}</span>
                 </div>
                 <div class="summary-row">
-                    <span class="summary-label">{{ $t('account.subscription.summaryCycle') || '计费周期' }}</span>
+                    <span class="summary-label">{{ $t('account.subscription.summaryCycle') }}</span>
                     <span class="summary-value">{{ billingCycleLabel(selectedBillingCycle) }}</span>
                 </div>
                 <div class="summary-row">
-                    <span class="summary-label">{{ $t('account.subscription.summaryTotal') || '应付总额' }}</span>
+                    <span class="summary-label">{{ $t('account.subscription.summaryTotal') }}</span>
                     <span class="summary-value summary-amount">{{ summaryAmount }}</span>
                 </div>
             </div>
@@ -174,10 +174,10 @@
                     <div class="plan-header">
                         <span class="plan-name">{{ plan.name }}</span>
                         <el-tag v-if="plan.code === currentPlanCode" type="success" size="small">
-                            {{ $t('account.subscription.current') || '当前' }}
+                            {{ $t('account.subscription.current') }}
                         </el-tag>
                         <el-tag v-else-if="plan.is_featured" type="primary" size="small">
-                            {{ $t('account.subscription.recommended') || '推荐' }}
+                            {{ $t('account.subscription.recommended') }}
                         </el-tag>
                     </div>
                     <div class="plan-price">{{ formatPrice(plan) }}</div>
@@ -187,7 +187,7 @@
                 </div>
             </div>
             <div v-if="selectedPlan" class="billing-cycle-section">
-                <h4>{{ $t('account.subscription.billingCycle') || '计费周期' }}</h4>
+                <h4>{{ $t('account.subscription.billingCycle') }}</h4>
                 <el-radio-group v-model="selectedBillingCycle">
                     <el-radio
                         v-for="price in activePrices(selectedPlan)"
@@ -209,21 +209,21 @@
                     :disabled="!selectedPlan || selectedPlan.code === currentPlanCode"
                     @click="handleSubscribe"
                 >
-                    {{ $t('account.subscription.confirmSubscribe') || '确认订阅' }}
+                    {{ $t('account.subscription.confirmSubscribe') }}
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- 在线支付弹窗 (Stripe) -->
-        <el-dialog v-model="showPayDialog" :title="$t('account.pay.title') || '在线支付'" width="520px" top="8vh" :close-on-click-modal="false" :before-close="cancelPay">
+        <el-dialog v-model="showPayDialog" :title="$t('account.pay.title')" width="520px" top="8vh" :close-on-click-modal="false" :before-close="cancelPay">
             <div v-if="pendingOrder" class="pay-summary">
-                <p class="pay-tip">{{ $t('account.pay.tip') || '请完成支付，支付成功后将自动激活套餐。' }}</p>
+                <p class="pay-tip">{{ $t('account.pay.tip') }}</p>
                 <div class="pay-row">
-                    <span class="pay-label">{{ $t('account.pay.orderNo') || '订单号' }}</span>
+                    <span class="pay-label">{{ $t('account.pay.orderNo') }}</span>
                     <span class="pay-value">{{ pendingOrder.order_no }}</span>
                 </div>
                 <div class="pay-row">
-                    <span class="pay-label">{{ $t('account.pay.amount') || '应付金额' }}</span>
+                    <span class="pay-label">{{ $t('account.pay.amount') }}</span>
                     <span class="pay-value pay-amount">{{ pendingOrder.amount_label }}</span>
                 </div>
                 <div class="pay-methods">
@@ -315,7 +315,7 @@
                     :loading="paying"
                     @click="confirmPay"
                 >
-                    {{ $t('account.pay.goPay') || '确认支付' }}
+                    {{ $t('account.pay.goPay') }}
                 </el-button>
                 <el-button
                     v-if="selectedPaymentMethod === 'card' && payStep === 'form'"
@@ -619,7 +619,7 @@ const formatPrice = (plan) => {
 
 // 计费周期标签
 const billingCycleLabel = (cycle) => {
-    return cycle === 'yearly' ? t('account.subscription.yearly') || '年付' : t('account.subscription.monthly') || '月付'
+    return cycle === 'yearly' ? t('account.subscription.yearly') : t('account.subscription.monthly')
 }
 
 // 应付金额（按当前选择计费周期）
@@ -651,7 +651,7 @@ const handleSubscribe = async () => {
     ) || (activePrices(selectedPlan.value) || [])[0]
 
     if (!price) {
-        ElMessage.error(t('account.subscription.subscribeFailed') || '订阅失败')
+        ElMessage.error(t('account.subscription.subscribeFailed'))
         return
     }
 
@@ -680,7 +680,7 @@ const handleSubscribe = async () => {
         showSubscribeDialog.value = false
         showPayDialog.value = true
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || err.message || t('account.subscription.subscribeFailed') || '订阅失败')
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.subscription.subscribeFailed'))
     } finally {
         subscribing.value = false
     }
@@ -700,7 +700,7 @@ const confirmPay = async () => {
             await confirmWalletPay()
         }
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed') || '支付失败')
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.pay.failed'))
     } finally {
         paying.value = false
     }
@@ -877,7 +877,7 @@ const handlePaymentSuccess = () => {
     }
 
     payStep.value = 'success'
-    ElMessage.success(t('account.pay.success') || '支付成功')
+    ElMessage.success(t('account.pay.success'))
 
     setTimeout(() => {
         showPayDialog.value = false
@@ -1002,14 +1002,14 @@ const handleRecharge = async () => {
         }
 
         await loadAccountData()
-        ElMessage.success(t('account.recharge.success') || '充值请求已提交')
+        ElMessage.success(t('account.recharge.success'))
         showRechargeDialog.value = false
     } catch (err) {
         const errors = err?.response?.data?.errors
         if (errors && typeof errors === 'object') {
             ElMessage.error(Object.values(errors).flat().join('\n'))
         } else {
-            ElMessage.error(err?.response?.data?.message || err.message || t('account.recharge.failed') || '充值失败')
+            ElMessage.error(err?.response?.data?.message || err.message || t('account.recharge.failed'))
         }
     } finally {
         recharging.value = false
@@ -1019,7 +1019,7 @@ const handleRecharge = async () => {
 // 修改邮箱
 const handleUpdateEmail = async () => {
     if (!emailForm.value.email || !emailForm.value.password) {
-        ElMessage.warning(t('account.email.fillAll') || '请填写完整')
+        ElMessage.warning(t('account.email.fillAll'))
         return
     }
     
@@ -1032,9 +1032,9 @@ const handleUpdateEmail = async () => {
         userInfo.value.email = emailForm.value.email
         showEmailDialog.value = false
         emailForm.value = { email: '', password: '' }
-        ElMessage.success(t('account.email.success') || '邮箱已更新')
+        ElMessage.success(t('account.email.success'))
     } catch (err) {
-        ElMessage.error(err?.response?.data?.message || err.message || t('account.email.failed') || '更新失败')
+        ElMessage.error(err?.response?.data?.message || err.message || t('account.email.failed'))
     } finally {
         updatingEmail.value = false
     }
@@ -1043,12 +1043,12 @@ const handleUpdateEmail = async () => {
 // 修改密码
 const handleUpdatePassword = async () => {
     if (!passwordForm.value.currentPassword || !passwordForm.value.newPassword) {
-        ElMessage.warning(t('account.password.fillAll') || '请填写完整')
+        ElMessage.warning(t('account.password.fillAll'))
         return
     }
     
     if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-        ElMessage.warning(t('account.password.mismatch') || '两次密码不一致')
+        ElMessage.warning(t('account.password.mismatch'))
         return
     }
     
@@ -1060,13 +1060,13 @@ const handleUpdatePassword = async () => {
         })
         showPasswordDialog.value = false
         passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
-        ElMessage.success(t('account.password.success') || '密码已更新')
+        ElMessage.success(t('account.password.success'))
     } catch (err) {
         const errors = err?.response?.data?.errors
         if (errors && typeof errors === 'object') {
             ElMessage.error(Object.values(errors).flat().join('\n'))
         } else {
-            ElMessage.error(err?.response?.data?.message || err.message || t('account.password.failed') || '更新失败')
+            ElMessage.error(err?.response?.data?.message || err.message || t('account.password.failed'))
         }
     } finally {
         updatingPassword.value = false

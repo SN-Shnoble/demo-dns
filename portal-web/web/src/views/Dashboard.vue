@@ -47,7 +47,7 @@
             <!-- Right: Bound IP (IPv4 only, IPv6 hidden per 2026-06-22 request) -->
             <div class="card">
                 <div class="card-header">
-                    <h2>{{ $t('dashboard.boundIpTitle') || '绑定 IP' }}</h2>
+                    <h2>{{ $t('dashboard.boundIpTitle') }}</h2>
                     <span class="badge-endpoint">{{ $t('dashboard.boundIpTag') || 'Bound IPs' }}</span>
                 </div>
                 <div class="card-body">

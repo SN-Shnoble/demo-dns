@@ -241,7 +241,6 @@ const fetchData = async () => {
         Object.assign(form, data.data || form)
         await nextTick()
     } catch {
-        ElMessage.error(t('common.loadFailed'))
     } finally {
         hydrating.value = false
     }

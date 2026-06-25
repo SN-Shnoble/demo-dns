@@ -92,7 +92,7 @@
         <el-table v-loading="loading" :data="logs" stripe style="margin-top:0" @selection-change="onSelectionChange">
             <el-table-column type="selection" width="40" />
             <el-table-column :label="$t('admin.queryLogsPage.time')" width="190" fixed>
-                <template #default="{ row }">{{ formatDateTime(row.queried_at) }}</template>
+                <template #default="{ row }">{{ row.queried_at ? new Date(row.queried_at).toLocaleString() : '-' }}</template>
             </el-table-column>
             <el-table-column label="域名" min-width="220" show-overflow-tooltip>
                 <template #default="{ row }">
@@ -173,7 +173,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, DeleteFilled, Document, Search, RefreshLeft, Download, CopyDocument, User } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 
@@ -211,14 +210,14 @@ const handleBatchDelete = async () => {
             { type: 'warning' },
         )
         await client.post('/admin/query-logs/batch-destroy', { ids: validIds })
-        ElMessage.success(t('admin.queryLogsPage.batchDeleted') || '删除成功')
+        ElMessage.success(t('admin.queryLogsPage.batchDeleted'))
         selected.value = []
         await fetchLogs()
     } catch (e) {
         if (e !== 'cancel' && e?.response?.data?.message) {
             ElMessage.error(e.response.data.message)
         } else if (e !== 'cancel') {
-            ElMessage.error(t('admin.queryLogsPage.batchDeleteFailed') || '删除失败')
+            ElMessage.error(t('admin.queryLogsPage.batchDeleteFailed'))
         }
     }
 }
@@ -226,18 +225,18 @@ const handleBatchDelete = async () => {
 const handleClearAll = async () => {
     try {
         await ElMessageBox.confirm(
-            t('admin.queryLogsPage.clearAllConfirm') || '确定清空所有查询日志？此操作不可撤销。',
-            t('admin.queryLogsPage.clearAll') || '一键清空',
-            { type: 'warning', confirmButtonText: t('admin.queryLogsPage.clearAll') || '一键清空' },
+            t('admin.queryLogsPage.clearAllConfirm'),
+            t('admin.queryLogsPage.clearAll'),
+            { type: 'warning', confirmButtonText: t('admin.queryLogsPage.clearAll') },
         )
         await client.delete('/admin/query-logs')
-        ElMessage.success(t('admin.queryLogsPage.cleared') || '日志已清空')
+        ElMessage.success(t('admin.queryLogsPage.cleared'))
         await fetchLogs()
     } catch (e) {
         if (e !== 'cancel' && e?.response?.data?.message) {
             ElMessage.error(e.response.data.message)
         } else if (e !== 'cancel') {
-            ElMessage.error(t('common.deleteFailed') || '操作失败')
+            ElMessage.error(t('common.deleteFailed'))
         }
     }
 }

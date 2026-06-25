@@ -27,7 +27,7 @@
                         <template #empty>
                             <div class="empty-state">
                                 <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                             </div>
                         </template>
                         <el-table-column type="selection" width="44" />
@@ -101,7 +101,7 @@
                         <template #empty>
                             <div class="empty-state">
                                 <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                             </div>
                         </template>
                         <el-table-column :label="$t('admin.memberCatalogs.id')" prop="id" min-width="140" show-overflow-tooltip />
@@ -160,7 +160,7 @@
                         <template #empty>
                             <div class="empty-state">
                                 <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                             </div>
                         </template>
                         <el-table-column :label="$t('admin.memberCatalogs.id')" prop="key" min-width="160" show-overflow-tooltip />
@@ -209,7 +209,7 @@
                         <template #empty>
                             <div class="empty-state">
                                 <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                             </div>
                         </template>
                         <el-table-column :label="$t('admin.memberCatalogs.name')" prop="name" min-width="160" show-overflow-tooltip />
@@ -263,7 +263,7 @@
                         <template #empty>
                             <div class="empty-state">
                                 <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') || '暂无数据' }}</p>
+                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
                             </div>
                         </template>
                         <el-table-column :label="$t('admin.memberCatalogs.id')" prop="key" min-width="160" show-overflow-tooltip />

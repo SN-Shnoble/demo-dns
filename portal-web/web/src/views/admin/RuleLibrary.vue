@@ -149,6 +149,7 @@ const fetchRules = async () => {
         ruleSources.value = data.data ?? []
         meta.value = data.meta ?? {}
     } catch {
+        ElMessage.error(t('common.loadFailed'))
     } finally {
         loading.value = false
     }

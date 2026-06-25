@@ -39,7 +39,7 @@ final class AdminRbacController
     {
         $role = AdminRole::find($id);
         if (! $role) {
-            return response()->json(['message' => 'Role not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Role not found.', 404);
         }
 
         $permissions = DB::table('admin_role_permissions as rp')
@@ -88,7 +88,7 @@ final class AdminRbacController
         }
 
         if ($role->is_system) {
-            return response()->json(['message' => 'Cannot modify system role.'], 422);
+            return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot modify system role.', 422);
         }
 
         $validated = $request->validate([
@@ -99,7 +99,7 @@ final class AdminRbacController
 
         $role->update(array_filter($validated));
 
-        return response()->json(['data' => $role]);
+        return \App\Helpers\ApiResponse::success($role);
     }
 
     public function createRole(Request $request): JsonResponse
@@ -125,11 +125,11 @@ final class AdminRbacController
     {
         $role = AdminRole::find($id);
         if (! $role) {
-            return response()->json(['message' => 'Role not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Role not found.', 404);
         }
 
         if ($role->is_system) {
-            return response()->json(['message' => 'Cannot delete system role.'], 422);
+            return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot delete system role.', 422);
         }
 
         DB::table('admin_role_permissions')->where('role_id', $id)->delete();
@@ -137,14 +137,14 @@ final class AdminRbacController
         DB::table('admin_user_roles')->where('role_id', $id)->delete();
         $role->delete();
 
-        return response()->json(['message' => 'Role deleted.']);
+        return \App\Helpers\ApiResponse::success(['deleted' => true]);
     }
 
     public function setRolePermissions(Request $request, string $id): JsonResponse
     {
         $role = AdminRole::find($id);
         if (! $role) {
-            return response()->json(['message' => 'Role not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Role not found.', 404);
         }
 
         $validated = $request->validate([
@@ -162,18 +162,18 @@ final class AdminRbacController
             }
         });
 
-        return response()->json(['message' => 'Permissions updated.']);
+        return \App\Helpers\ApiResponse::success(['updated' => true]);
     }
 
     public function setAdminRoles(Request $request, string $adminId): JsonResponse
     {
         $admin = Admin::find($adminId);
         if (! $admin) {
-            return response()->json(['message' => 'Admin not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Admin not found.', 404);
         }
 
         if ($admin->is_super_admin) {
-            return response()->json(['message' => 'Cannot modify super admin roles.'], 422);
+            return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot modify super admin roles.', 422);
         }
 
         $validated = $request->validate([
@@ -193,7 +193,7 @@ final class AdminRbacController
             }
         });
 
-        return response()->json(['message' => 'Admin roles updated.']);
+        return \App\Helpers\ApiResponse::success(['updated' => true]);
     }
 
     /**
@@ -203,7 +203,7 @@ final class AdminRbacController
     {
         $role = AdminRole::find($id);
         if (! $role) {
-            return response()->json(['message' => 'Role not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Role not found.', 404);
         }
 
         $rows = DB::table('admin_role_nav_rules')
@@ -211,7 +211,7 @@ final class AdminRbacController
             ->select(['id', 'admin_role_id', 'nav_key', 'visible'])
             ->get();
 
-        return response()->json(['data' => $rows]);
+        return \App\Helpers\ApiResponse::success($rows);
     }
 
     /**
@@ -221,10 +221,10 @@ final class AdminRbacController
     {
         $role = AdminRole::find($id);
         if (! $role) {
-            return response()->json(['message' => 'Role not found.'], 404);
+            return \App\Helpers\ApiResponse::error('NOT_FOUND', 'Role not found.', 404);
         }
         if ($role->is_system) {
-            return response()->json(['message' => 'Cannot modify system role.'], 422);
+            return \App\Helpers\ApiResponse::error('FORBIDDEN', 'Cannot modify system role.', 422);
         }
 
         $validated = $request->validate([
@@ -246,6 +246,6 @@ final class AdminRbacController
             }
         });
 
-        return response()->json(['message' => 'Menu rules updated.']);
+        return \App\Helpers\ApiResponse::success(['updated' => true]);
     }
 }

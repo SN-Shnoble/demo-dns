@@ -1,28 +1,28 @@
 <template>
     <el-card shadow="never" style="border-radius:6px">
         <el-tabs v-model="activeTab" class="config-tabs">
-            <el-tab-pane :label="$t('admin.basicConfig.title') || '基本设置'" name="basic">
+            <el-tab-pane :label="$t('admin.basicConfig.title')" name="basic">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="160px">
-                        <el-form-item :label="$t('admin.basicConfig.siteName') || '网站名称'">
+                        <el-form-item :label="$t('admin.basicConfig.siteName')">
                             <el-input v-model="config.basic.site_name" placeholder="OcerDNS" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.basicConfig.siteUrl') || '网站地址'">
+                        <el-form-item :label="$t('admin.basicConfig.siteUrl')">
                             <el-input v-model="config.basic.site_url" placeholder="https://example.com" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.basicConfig.siteDescription') || '网站描述'">
+                        <el-form-item :label="$t('admin.basicConfig.siteDescription')">
                             <el-input v-model="config.basic.site_description" type="textarea" :rows="3" />
                         </el-form-item>
                     </el-form>
                 </div>
             </el-tab-pane>
 
-            <el-tab-pane :label="$t('admin.systemConfig.dnsParams') || 'DNS参数'" name="dns">
+            <el-tab-pane :label="$t('admin.systemConfig.dnsParams')" name="dns">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="160px">
                         <el-form-item label="DNS 域名">
                             <el-input v-model="config.dns.dns_domain" placeholder="dns.ocerdns.local" />
-                            <span class="form-hint">{{ $t('admin.systemConfig.dnsDomainHint') || '用于 DoH/DoT 端点域名，会员中心端点展示从此获取' }}</span>
+                            <span class="form-hint">{{ $t('admin.systemConfig.dnsDomainHint') }}</span>
                         </el-form-item>
                         <el-form-item :label="$t('admin.systemConfig.defaultUpstream')">
                             <el-input v-model="config.dns.default_upstream" placeholder="1.1.1.1:53" />
@@ -43,19 +43,19 @@
             <el-tab-pane :label="$t('admin.systemConfig.redis') || 'Redis'" name="redis">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="160px">
-                        <el-form-item :label="$t('admin.systemConfig.host') || '主机'">
+                        <el-form-item :label="$t('admin.systemConfig.host')">
                             <el-input v-model="config.redis.host" placeholder="127.0.0.1" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.port') || '端口'">
+                        <el-form-item :label="$t('admin.systemConfig.port')">
                             <el-input-number v-model="config.redis.port" :min="1" :max="65535" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.password') || '密码'">
+                        <el-form-item :label="$t('admin.systemConfig.password')">
                             <el-input v-model="config.redis.password" type="password" show-password placeholder="" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.database') || '数据库'">
+                        <el-form-item :label="$t('admin.systemConfig.database')">
                             <el-input-number v-model="config.redis.database" :min="0" :max="15" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.timeout') || '超时(ms)'">
+                        <el-form-item :label="$t('admin.systemConfig.timeout')">
                             <el-input-number v-model="config.redis.timeout_ms" :min="100" :max="30000" :step="100" />
                         </el-form-item>
                     </el-form>
@@ -65,22 +65,22 @@
             <el-tab-pane :label="$t('admin.systemConfig.clickhouse') || 'ClickHouse'" name="clickhouse">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="160px">
-                        <el-form-item :label="$t('admin.systemConfig.host') || '主机'">
+                        <el-form-item :label="$t('admin.systemConfig.host')">
                             <el-input v-model="config.clickhouse.host" placeholder="127.0.0.1" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.port') || '端口'">
+                        <el-form-item :label="$t('admin.systemConfig.port')">
                             <el-input-number v-model="config.clickhouse.port" :min="1" :max="65535" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.database') || '数据库'">
+                        <el-form-item :label="$t('admin.systemConfig.database')">
                             <el-input v-model="config.clickhouse.database" placeholder="default" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.username') || '用户名'">
+                        <el-form-item :label="$t('admin.systemConfig.username')">
                             <el-input v-model="config.clickhouse.username" placeholder="default" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.password') || '密码'">
+                        <el-form-item :label="$t('admin.systemConfig.password')">
                             <el-input v-model="config.clickhouse.password" type="password" show-password placeholder="" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.maxExecTime') || '最大执行时间(s)'">
+                        <el-form-item :label="$t('admin.systemConfig.maxExecTime')">
                             <el-input-number v-model="config.clickhouse.max_execution_time" :min="1" :max="3600" />
                         </el-form-item>
                     </el-form>
@@ -91,7 +91,7 @@
             <el-tab-pane :label="$t('admin.systemConfig.stripe') || 'Stripe'" name="payment">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="180px">
-                        <el-form-item :label="$t('admin.systemConfig.stripeMode') || '运行模式'">
+                        <el-form-item :label="$t('admin.systemConfig.stripeMode')">
                             <el-select v-model="config.payment.mode" style="width:100%">
                                 <el-option value="test" label="Test" />
                                 <el-option value="live" label="Live" />
@@ -117,7 +117,7 @@
                         <el-form-item :label="$t('admin.systemConfig.stripeWebhookUrl') || 'Webhook URL'">
                             <el-input v-model="config.payment.webhook_url" placeholder="https://api.example.com/api/v1/stripe/webhook" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.defaultCurrency') || '默认结算货币'">
+                        <el-form-item :label="$t('admin.systemConfig.defaultCurrency')">
                             <el-select v-model="config.payment.default_currency" style="width:100%">
                                 <el-option value="USD" label="USD" />
                                 <el-option value="EUR" label="EUR" />
@@ -128,32 +128,32 @@
                 </div>
             </el-tab-pane>
 
-            <el-tab-pane :label="$t('admin.systemConfig.mailServer') || '邮箱服务器'" name="mail">
+            <el-tab-pane :label="$t('admin.systemConfig.mailServer')" name="mail">
                 <div style="max-width:600px">
                     <el-form label-position="left" label-width="160px">
-                        <el-form-item :label="$t('admin.systemConfig.mailDriver') || '邮件驱动'">
+                        <el-form-item :label="$t('admin.systemConfig.mailDriver')">
                             <el-select v-model="config.mail.driver" style="width:100%">
                                 <el-option value="smtp" label="SMTP" />
                                 <el-option value="mailgun" label="Mailgun" />
                                 <el-option value="ses" label="AWS SES" />
                             </el-select>
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.smtpHost') || 'SMTP主机'">
+                        <el-form-item :label="$t('admin.systemConfig.smtpHost')">
                             <el-input v-model="config.mail.smtp_host" placeholder="smtp.example.com" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.smtpPort') || 'SMTP端口'">
+                        <el-form-item :label="$t('admin.systemConfig.smtpPort')">
                             <el-input-number v-model="config.mail.smtp_port" :min="1" :max="65535" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.smtpUsername') || '用户名'">
+                        <el-form-item :label="$t('admin.systemConfig.smtpUsername')">
                             <el-input v-model="config.mail.smtp_username" placeholder="" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.smtpPassword') || '密码'">
+                        <el-form-item :label="$t('admin.systemConfig.smtpPassword')">
                             <el-input v-model="config.mail.smtp_password" type="password" show-password placeholder="" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.fromAddress') || '发件人地址'">
+                        <el-form-item :label="$t('admin.systemConfig.fromAddress')">
                             <el-input v-model="config.mail.from_address" placeholder="noreply@example.com" />
                         </el-form-item>
-                        <el-form-item :label="$t('admin.systemConfig.fromName') || '发件人名称'">
+                        <el-form-item :label="$t('admin.systemConfig.fromName')">
                             <el-input v-model="config.mail.from_name" placeholder="OcerDNS" />
                         </el-form-item>
                     </el-form>

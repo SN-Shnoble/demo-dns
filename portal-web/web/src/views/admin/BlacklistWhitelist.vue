@@ -1,7 +1,7 @@
 <template>
     <ListPage
-        :title="$t('admin.blacklistWhitelist.title') || '黑白名单'"
-        :desc="$t('admin.blacklistWhitelist.desc') || '查看所有会员 Profile 的黑名单 / 白名单规则汇总'"
+        :title="$t('admin.blacklistWhitelist.title')"
+        :desc="$t('admin.blacklistWhitelist.desc')"
         icon-name="List"
         :total="rows.length"
         :show-pagination="false"
@@ -9,41 +9,41 @@
     >
         <template #actions>
             <el-radio-group v-model="filter.type" @change="fetchAll">
-                <el-radio-button value="all">{{ $t('admin.blacklistWhitelist.all') || '全部' }}</el-radio-button>
-                <el-radio-button value="deny">{{ $t('admin.blacklistWhitelist.deny') || '黑名单' }}</el-radio-button>
-                <el-radio-button value="allow">{{ $t('admin.blacklistWhitelist.allow') || '白名单' }}</el-radio-button>
+                <el-radio-button value="all">{{ $t('admin.blacklistWhitelist.all') }}</el-radio-button>
+                <el-radio-button value="deny">{{ $t('admin.blacklistWhitelist.deny') }}</el-radio-button>
+                <el-radio-button value="allow">{{ $t('admin.blacklistWhitelist.allow') }}</el-radio-button>
             </el-radio-group>
             <el-input
                 v-model="filter.keyword"
-                :placeholder="$t('admin.blacklistWhitelist.searchPlaceholder') || '搜索域名 / 会员'"
+                :placeholder="$t('admin.blacklistWhitelist.searchPlaceholder')"
                 clearable
                 style="width: 240px"
                 @keyup.enter="fetchAll"
             />
-            <el-button @click="fetchAll">{{ $t('common.search') || '查询' }}</el-button>
+            <el-button @click="fetchAll">{{ $t('common.search') }}</el-button>
         </template>
 
         <el-table v-loading="loading" :data="filteredRows" stripe style="margin-top:12px">
             <template #empty>
                 <div class="empty-state">
                     <el-icon class="empty-icon"><List /></el-icon>
-                    <p class="empty-title">{{ $t('admin.blacklistWhitelist.noData') || '暂无黑白名单规则' }}</p>
+                    <p class="empty-title">{{ $t('admin.blacklistWhitelist.noData') }}</p>
                 </div>
             </template>
-            <el-table-column :label="$t('admin.blacklistWhitelist.type') || '类型'" width="100" align="center">
+            <el-table-column :label="$t('admin.blacklistWhitelist.type')" width="100" align="center">
                 <template #default="{ row }">
                     <el-tag :type="row.action === 'deny' ? 'danger' : 'success'" size="small" effect="light">
-                        {{ row.action === 'deny' ? ($t('admin.blacklistWhitelist.deny') || '黑名单') : ($t('admin.blacklistWhitelist.allow') || '白名单') }}
+                        {{ row.action === 'deny' ? ($t('admin.blacklistWhitelist.deny')) : ($t('admin.blacklistWhitelist.allow')) }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.blacklistWhitelist.domain') || '域名'" min-width="240" show-overflow-tooltip>
+            <el-table-column :label="$t('admin.blacklistWhitelist.domain')" min-width="240" show-overflow-tooltip>
                 <template #default="{ row }"><code>{{ row.domain }}</code></template>
             </el-table-column>
-            <el-table-column :label="$t('admin.blacklistWhitelist.matchType') || '匹配方式'" width="120">
+            <el-table-column :label="$t('admin.blacklistWhitelist.matchType')" width="120">
                 <template #default="{ row }">{{ row.match_type || 'exact' }}</template>
             </el-table-column>
-            <el-table-column :label="$t('admin.blacklistWhitelist.owner') || '所属会员'" min-width="200" show-overflow-tooltip>
+            <el-table-column :label="$t('admin.blacklistWhitelist.owner')" min-width="200" show-overflow-tooltip>
                 <template #default="{ row }">
                     <div class="user-cell">
                         <span class="cell-primary">{{ row.username || row.user_email || '—' }}</span>
@@ -51,16 +51,16 @@
                     </div>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.blacklistWhitelist.enabled') || '启用'" width="80" align="center">
+            <el-table-column :label="$t('admin.blacklistWhitelist.enabled')" width="80" align="center">
                 <template #default="{ row }">
                     <el-tag :type="row.enabled ? 'success' : 'info'" size="small" effect="plain">
-                        {{ row.enabled ? ($t('common.yes') || '是') : ($t('common.no') || '否') }}
+                        {{ row.enabled ? ($t('common.yes')) : ($t('common.no')) }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.blacklistWhitelist.createdAt') || '创建时间'" min-width="180">
+            <el-table-column :label="$t('admin.blacklistWhitelist.createdAt')" min-width="180">
                 <template #default="{ row }">
-                    {{ formatDateTime(row.created_at) }}
+                    {{ row.created_at ? new Date(row.created_at).toLocaleString() : '—' }}
                 </template>
             </el-table-column>
         </el-table>
@@ -74,7 +74,6 @@ import { List } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
-import { formatDateTime } from '@/composables/useDateFormat'
 
 const { t } = useI18n()
 const loading = ref(false)
