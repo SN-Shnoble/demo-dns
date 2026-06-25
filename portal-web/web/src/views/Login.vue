@@ -47,6 +47,7 @@ import { useI18n } from 'vue-i18n'
 import { User, Lock } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import AuthShell from '@/components/AuthShell.vue'
+import { redirectToConsole } from '@/composables/usePostAuthRedirect'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -88,34 +89,13 @@ const handleLogin = async () => {
         if (user.role === 'admin') {
             await router.push('/admin')
         } else {
-            await redirectToConsole()
+            await redirectToConsole(router)
         }
     } catch (err) {
         ElMessage.error(err.response?.data?.message || t('auth.loginFailed'))
     } finally {
         loading.value = false
     }
-}
-
-async function redirectToConsole() {
-    const savedId = localStorage.getItem('current_profile_id')
-    try {
-        const { data } = await client.get('/user/profiles')
-        const list = data.data || []
-        const target = list.find(p => (p.profile_id || p.id) === savedId) || list[0]
-        if (target) {
-            const key = target.profile_id || target.id
-            localStorage.setItem('current_profile_id', key)
-            await router.push(`/user/${key}`)
-            return
-        }
-    } catch (_) {
-        if (savedId) {
-            await router.push(`/user/${savedId}`)
-            return
-        }
-    }
-    await router.push('/user/profiles')
 }
 </script>
 

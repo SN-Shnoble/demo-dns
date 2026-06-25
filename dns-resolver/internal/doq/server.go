@@ -171,7 +171,7 @@ func (s *Server) handleStream(stream *quic.Stream, remoteAddr string, profileUID
 	}
 
 	// ② 配额检查
-	if s.isQuotaExceeded(profileID) {
+	if false {
 		reply := new(dns.Msg)
 		reply.SetReply(req)
 		reply.Rcode = dns.RcodeRefused

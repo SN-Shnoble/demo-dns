@@ -491,7 +491,10 @@
     "profilesNotFound": "{count} not found",
     "nameRequired": "Please enter a profile name",
     "created": "Created",
-    "createFailed": "Failed to create"
+    "createFailed": "Failed to create",
+    "publish": "Publish",
+    "publishSuccess": "Profile published",
+    "publishFailed": "Failed to publish"
   },
   "profileDetail": {
     "title": "Profile Detail",
@@ -1756,6 +1759,8 @@
     "noData": "No Data",
     "saveSuccess": "Saved successfully",
     "batchDeleteConfirm": "Delete {count} selected?",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "enable": "Enable",
+    "disable": "Disable"
   }
 }

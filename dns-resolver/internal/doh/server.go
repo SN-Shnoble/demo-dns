@@ -5,13 +5,11 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -88,103 +86,9 @@ func upstreamAddr(addr string) string {
 	return addr + ":53"
 }
 
-// activeConfig mirrors the UDP-side schema; DoH only needs profile_id →
-// block_response to keep both servers' blocked-query response consistent.
-type activeConfig struct {
-	Profiles []struct {
-		ProfileID     string         `json:"profile_id"`
-		BlockResponse string         `json:"block_response"`
-		Quota         map[string]any `json:"quota"`
-		Parental      map[string]any `json:"parental"`
-		Devices       []struct {
-			DeviceID string `json:"device_id"`
-			SourceIP string `json:"source_ip"`
-		} `json:"devices"`
-	} `json:"profiles"`
-}
-
 var profileUIDPattern = regexp.MustCompile(`^[0-9a-f]{6}$`)
 
-func (s *Server) loadActiveConfig() (*activeConfig, error) {
-	if s.cfg.ControlPlane.ProfilesPath == "" {
-		log.Printf("doh: loadActiveConfig: ProfilesPath is empty")
-		return &activeConfig{}, nil
-	}
-	path := filepath.Join(s.cfg.ControlPlane.ProfilesPath, "active.json")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		log.Printf("doh: loadActiveConfig: cannot read %s: %v", path, err)
-		return &activeConfig{}, err
-	}
-	cfg := &activeConfig{}
-	if err := json.Unmarshal(data, cfg); err != nil {
-		log.Printf("doh: loadActiveConfig: json unmarshal error: %v", err)
-		return nil, err
-	}
-	log.Printf("doh: loadActiveConfig: loaded %d profiles from %s", len(cfg.Profiles), path)
-	return cfg, nil
-}
-
-// blockResponseFor returns the configured block_response for the given
-// profile UID. Unknown profiles never fall back to another user's config.
-func (s *Server) blockResponseFor(profileUID string) string {
-	cfg, err := s.loadActiveConfig()
-	if err != nil || len(cfg.Profiles) == 0 {
-		return blockresponse.ModeNXDomain
-	}
-
-	for _, p := range cfg.Profiles {
-		if p.ProfileID == profileUID {
-			if p.BlockResponse != "" {
-				return p.BlockResponse
-			}
-			return blockresponse.ModeNXDomain
-		}
-	}
-
-	return blockresponse.ModeNXDomain
-}
-
-func (s *Server) resolveRuntimeProfile(remoteAddr string, requestedProfile string) (profileID string, blockResponse string, deviceID string, safeSearch bool, ok bool) {
-	cfg, err := s.loadActiveConfig()
-	if err != nil {
-		log.Printf("doh: resolveRuntimeProfile: loadActiveConfig error: %v", err)
-		return "", blockresponse.ModeNXDomain, "", false, false
-	}
-	if len(cfg.Profiles) == 0 {
-		log.Printf("doh: resolveRuntimeProfile: no profiles in active.json (requestedProfile=%s)", requestedProfile)
-		return "", blockresponse.ModeNXDomain, "", false, false
-	}
-
-	clientIP := remoteIPFromAddr(remoteAddr)
-	clientIPText := ""
-	if clientIP != nil {
-		clientIPText = clientIP.String()
-	}
-
-	for _, profile := range cfg.Profiles {
-		if profile.ProfileID == "" {
-			continue
-		}
-
-		if requestedProfile != "" {
-			if profile.ProfileID != requestedProfile {
-				continue
-			}
-			return profile.ProfileID, firstNonEmpty(profile.BlockResponse, blockresponse.ModeNXDomain), "", boolFromMap(profile.Parental, "safe_search") || boolFromMap(profile.Parental, "force_safe_search"), true
-		}
-
-		for _, device := range profile.Devices {
-			if device.SourceIP == "" || device.SourceIP != clientIPText {
-				continue
-			}
-
-			return profile.ProfileID, firstNonEmpty(profile.BlockResponse, blockresponse.ModeNXDomain), device.DeviceID, boolFromMap(profile.Parental, "safe_search") || boolFromMap(profile.Parental, "force_safe_search"), true
-		}
-	}
-
-	return "", blockresponse.ModeNXDomain, "", false, false
-}
+// isValidProfileUID checks if a string looks like a valid profile UID.
 
 // Handler returns the HTTP handler for DoH endpoints.
 func (s *Server) Handler() http.Handler {
@@ -326,7 +230,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			firstSeen = seen
 		}
 
-		// P1: 去端口化客户端 IP，防止将 127.0.0.1:55309 记录为设备标识
+		// P1: 去端口化客户端 IP
 		clientAddr = remoteIPFromAddr(r.RemoteAddr).String()
 
 		// P0: 按需加载 Profile（内存/磁盘 MISS 时从 Portal 拉取）
@@ -336,36 +240,18 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			}
 		}
 
-		resolvedProfileUID, blockMode, runtimeDeviceID, safeSearchEnabled, ok := s.resolveRuntimeProfile(r.RemoteAddr, profileUID)
-		if !ok {
-			http.Error(w, "profile not found", http.StatusForbidden)
-			s.metrics.IncErrors()
-			return
-		}
-		profileUID = resolvedProfileUID
-
-		// P0: 检查配额状态 — quota_status=exceeded 时拒绝解析
-		if s.isQuotaExceeded(profileUID) {
-			http.Error(w, "quota exceeded", http.StatusForbidden)
-			s.metrics.IncErrors()
-			return
-		}
-
 		// Extract device info from headers
 		deviceUID, deviceType = resolver.ExtractDeviceFromHeaders(map[string]string{
 			"X-Device-ID":   r.Header.Get("X-Device-ID"),
 			"X-Device-Type": r.Header.Get("X-Device-Type"),
 		})
-		if deviceUID == "" {
-			deviceUID = runtimeDeviceID
-		}
 
 		// Build resolution context
 		ctx := &resolver.ResolutionContext{
-			ProfileUID:        resolvedProfileUID,
+			ProfileUID:        profileUID,
 			DeviceUID:         deviceUID,
 			DeviceType:        deviceType,
-			SafeSearchEnabled: safeSearchEnabled,
+			SafeSearchEnabled: false,
 			ClientIP:          remoteIPFromAddr(r.RemoteAddr),
 			Domain:            domain,
 			QueryType:         queryType,
@@ -378,15 +264,9 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 		if decision.Action == "BLOCK" {
 			s.metrics.IncBlocked()
 
-			// Reuse the shared blockresponse package so DoH replies
-			// follow the same profile-configured policy (nxdomain /
-			// refused / zero_ip) as the UDP server. Without this,
-			// DoH used to hardcode NXDOMAIN regardless of profile
-			// configuration, which made the two protocols behave
-			// differently for the same client.
 			reply := new(dns.Msg)
 			reply.SetReply(msg)
-			blockresponse.ApplyTo(reply, msg.Question[0], blockMode)
+			blockresponse.ApplyTo(reply, msg.Question[0], blockresponse.ModeNXDomain)
 
 			packed, err := reply.Pack()
 			if err != nil {
@@ -402,7 +282,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 				// Log the blocked query
 				elapsed := time.Since(startTime).Milliseconds()
 				s.logBuffer.Append(logging.LogEntry{
-					ProfileUID:     resolvedProfileUID,
+					ProfileUID:     profileUID,
 					DeviceUID:      deviceUID,
 					DeviceType:     deviceType,
 					Domain:         domain,
@@ -419,7 +299,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			}
 
 			log.Printf("[BLOCK] %s reason=%s category=%s profile=%s device=%s",
-				domain, decision.Reason, decision.Category, resolvedProfileUID, deviceUID)
+				domain, decision.Reason, decision.Category, profileUID, deviceUID)
 			return
 		}
 
@@ -452,7 +332,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			if firstSeen {
 				elapsed := time.Since(startTime).Milliseconds()
 				s.logBuffer.Append(logging.LogEntry{
-					ProfileUID:     resolvedProfileUID,
+					ProfileUID:     profileUID,
 					DeviceUID:      deviceUID,
 					Domain:         domain,
 					Action:         "REWRITE",
@@ -512,44 +392,6 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 			Protocol:       "doh",
 		})
 	}
-}
-
-func (s *Server) isQuotaExceeded(profileID string) bool {
-	cfg, err := s.loadActiveConfig()
-	if err != nil {
-		return false
-	}
-	for _, p := range cfg.Profiles {
-		if p.ProfileID == profileID {
-			if p.Quota == nil {
-				return false
-			}
-			status, _ := p.Quota["quota_status"].(string)
-			return status == "exceeded"
-		}
-	}
-	return false
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
-}
-
-func boolFromMap(values map[string]any, key string) bool {
-	if values == nil {
-		return false
-	}
-	raw, ok := values[key]
-	if !ok {
-		return false
-	}
-	boolean, ok := raw.(bool)
-	return ok && boolean
 }
 
 // dohDedupFingerprint returns a stable per-(client,qname,qtype) fingerprint

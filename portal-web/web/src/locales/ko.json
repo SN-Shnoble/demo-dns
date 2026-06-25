@@ -492,7 +492,10 @@
     "failedToDeleteProfiles": "프로필 삭제 실패",
     "batchDeleteProfiles": "프로필 일괄 삭제",
     "deletedProfiles": "{count}개의 프로필이 삭제되었습니다",
-    "profilesNotFound": "프로필을 찾을 수 없습니다"
+    "profilesNotFound": "프로필을 찾을 수 없습니다",
+    "publish": "게시",
+    "publishSuccess": "프로필이 게시되었습니다",
+    "publishFailed": "게시 실패"
   },
   "profileDetail": {
     "title": "프로필 세부 정보",
@@ -1737,6 +1740,8 @@
     "noData": "데이터 없음",
     "saveSuccess": "저장 성공",
     "batchDeleteConfirm": "선택한 {count}개를 삭제하시겠습니까?",
-    "loading": "로딩 중..."
+    "loading": "로딩 중...",
+    "enable": "활성화",
+    "disable": "비활성화"
   }
 }
