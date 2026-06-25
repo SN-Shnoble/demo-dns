@@ -62,13 +62,12 @@
                 </template>
             </el-table-column>
             <el-table-column :label="$t('admin.geoDns.onlineStatus')" :min-width="100">
-                <!-- 4 档: online / degraded / offline / not_installed -->
+                <!-- 仅显示在线/离线 -->
                 <template #default="{ row }">
                     <el-tag v-if="row.status === 'online'" type="success" size="small" effect="dark" style="white-space:nowrap">
                         <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;margin-right:4px" />
                         {{ $t('admin.geoDns.online') || '在线' }}
                     </el-tag>
-                    <el-tag v-else-if="row.status === 'degraded'" type="warning" size="small" effect="dark" style="white-space:nowrap">降级</el-tag>
                     <el-tag v-else-if="row.status === 'not_installed'" type="info" size="small" effect="plain" style="white-space:nowrap">--</el-tag>
                     <el-tag v-else type="danger" size="small" effect="dark" style="white-space:nowrap">{{ $t('admin.geoDns.offline') || '离线' }}</el-tag>
                 </template>
@@ -88,7 +87,7 @@
             <el-table-column :label="$t('admin.geoDns.heartbeat')" :min-width="180">
                 <template #default="{ row }">
                     <div style="display:flex;flex-direction:column;line-height:1.3">
-                        <span :class="row.status === 'online' ? '' : (row.status === 'offline' ? 'hb-stale' : (row.status === 'degraded' ? 'hb-warn' : 'hb-none'))">
+                        <span :class="row.status === 'online' ? '' : 'hb-stale'">
                             {{ row.node_last_seen_ago || (row.node_last_heartbeat_at ? formatTime(row.node_last_heartbeat_at) : '从未心跳') }}
                         </span>
                         <span v-if="row.node_last_heartbeat_at" class="hb-exact">{{ formatTime(row.node_last_heartbeat_at) }}</span>
@@ -366,7 +365,5 @@ onUnmounted(() => {
 
 /* Heartbeat freshness (2026-06-22 单一事实源) */
 .hb-stale { color: #f56c6c; font-weight: 500; }
-.hb-warn  { color: #e6a23c; font-weight: 500; }
-.hb-none  { color: #94a3b8; }
 .hb-exact { color: #94a3b8; font-size: 12px; }
 </style>

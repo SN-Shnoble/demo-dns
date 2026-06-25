@@ -75,7 +75,7 @@ class Node extends Model
     // 新设计：status 列已 drop，所有"在线/离线/降级"都从这里实时计算：
     //   - getHeartbeatStaleSeconds()  阈值（统一 90 秒）
     //   - isOnline() / isDegraded()   布尔谓词（用于 Query Builder、告警）
-    //   - runtimeStatus()             4 档字符串（用于 JSON 响应、UI）
+    //   - runtimeStatus()             3 档字符串（用于 JSON 响应、UI）
     // 任何时候任何人读，结论都一致；无需 cron、无需 MarkOfflineCommand。
     // =========================================================================
 
@@ -92,9 +92,10 @@ class Node extends Model
         try {
             $exists = Redis::exists("node:{$this->id}:heartbeat");
             if ($exists) {
-                return true;
+                return true; // Redis 有 key → 在线
             }
-            // Redis key 不存在 → 心跳超时，但可能 Redis 数据丢失，需 fallback 到 MySQL
+            // Redis 正常但 key 不存在 → 心跳 TTL 已过，确认为离线
+            return false;
         } catch (\Throwable $e) {
             // Redis 不可用时静默 fallback 到 MySQL
             Log::debug('Redis unavailable for isOnline check, fallback to MySQL', [
@@ -103,25 +104,14 @@ class Node extends Model
             ]);
         }
 
-        // MySQL fallback：last_heartbeat_at 在 90 秒内 → 在线
+        // MySQL fallback：Redis 宕机时查 last_heartbeat_at
         if (! $this->last_heartbeat_at) {
             return false;
         }
         return $this->last_heartbeat_at->gt(now()->subSeconds($this->getHeartbeatStaleSeconds()));
     }
 
-    /** 漏 1 拍（>1 倍阈值但 ≤2 倍）：黄。 */
-    public function isDegraded(): bool
-    {
-        if (! $this->last_heartbeat_at) {
-            return false;
-        }
-        $threshold = $this->getHeartbeatStaleSeconds();
-        $age = $this->last_heartbeat_at->diffInSeconds(now());
-        return $age > $threshold && $age <= $threshold * 2;
-    }
-
-    /** 4 档语义：未装 / 离线 / 降级 / 在线。 */
+    /** 3 档语义：未装 / 离线 / 在线。 */
     public function runtimeStatus(): string
     {
         if ($this->install_status !== 'installed') {
@@ -129,9 +119,6 @@ class Node extends Model
         }
         if ($this->isOnline()) {
             return 'online';
-        }
-        if ($this->isDegraded()) {
-            return 'degraded';
         }
         return 'offline';
     }
@@ -152,15 +139,6 @@ class Node extends Model
         return $query->where('install_status', 'installed')
             ->whereNotNull('last_heartbeat_at')
             ->where('last_heartbeat_at', '>', now()->subSeconds($threshold));
-    }
-
-    public function scopeDegraded(Builder $query): Builder
-    {
-        $threshold = $this->getHeartbeatStaleSeconds();
-        return $query->where('install_status', 'installed')
-            ->whereNotNull('last_heartbeat_at')
-            ->where('last_heartbeat_at', '<=', now()->subSeconds($threshold))
-            ->where('last_heartbeat_at', '>', now()->subSeconds($threshold * 2));
     }
 
     public function scopeOffline(Builder $query): Builder

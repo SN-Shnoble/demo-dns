@@ -69,10 +69,12 @@
         </el-card>
     </div>
 
-    <el-dialog v-model="showCharge" :title="$t('admin.billing.charge') || 'Charge'" width="480px">
+    <el-dialog v-model="showCharge" :title="$t('admin.billing.charge') || 'Charge'" width="520px">
         <el-form ref="chargeForm" :model="chargeData" label-position="top">
-            <el-form-item :label="$t('admin.billing.userId') || 'User ID'" prop="user_id" :rules="[{ required: true }]">
-                <el-input v-model="chargeData.user_id" />
+            <el-form-item :label="$t('admin.billing.userId') || 'User'" prop="user_id" :rules="[{ required: true, message: '请选择用户' }]">
+                <el-select v-model="chargeData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search') || '搜索用户'" style="width:100%" clearable :loading="searching">
+                    <el-option v-for="u in userOptions" :key="u.id" :label="`${u.username} (${u.email})`" :value="u.id" />
+                </el-select>
             </el-form-item>
             <el-form-item :label="$t('admin.billing.amount') || 'Amount (CNY)'" prop="amount_minor" :rules="[{ required: true }]">
                 <el-input-number v-model="chargeAmount" :min="1" :precision="2" style="width:100%" />
@@ -87,10 +89,12 @@
         </template>
     </el-dialog>
 
-    <el-dialog v-model="showRefund" :title="$t('admin.billing.refund') || 'Refund'" width="480px">
+    <el-dialog v-model="showRefund" :title="$t('admin.billing.refund') || 'Refund'" width="520px">
         <el-form ref="refundForm" :model="refundData" label-position="top">
-            <el-form-item :label="$t('admin.billing.userId') || 'User ID'" prop="user_id" :rules="[{ required: true }]">
-                <el-input v-model="refundData.user_id" />
+            <el-form-item :label="$t('admin.billing.userId') || 'User'" prop="user_id" :rules="[{ required: true, message: '请选择用户' }]">
+                <el-select v-model="refundData.user_id" filterable remote :remote-method="searchUsers" :placeholder="$t('common.search') || '搜索用户'" style="width:100%" clearable :loading="searching">
+                    <el-option v-for="u in userOptions" :key="u.id" :label="`${u.username} (${u.email})`" :value="u.id" />
+                </el-select>
             </el-form-item>
             <el-form-item :label="$t('admin.billing.amount') || 'Amount (CNY)'" prop="amount_minor" :rules="[{ required: true }]">
                 <el-input-number v-model="refundAmount" :min="1" :precision="2" style="width:100%" />
@@ -132,6 +136,24 @@ const refundForm = ref(null)
 
 const chargeData = reactive({ user_id: '', description: '' })
 const refundData = reactive({ user_id: '', description: '' })
+const userOptions = ref([])
+const searching = ref(false)
+
+const searchUsers = async (query) => {
+    if (!query || query.length < 1) {
+        userOptions.value = []
+        return
+    }
+    searching.value = true
+    try {
+        const { data } = await client.get('/admin/users', { params: { email: query, per_page: 20 } })
+        userOptions.value = (data.data ?? []).map(u => ({ id: u.uid || u.id, username: u.username, email: u.email }))
+    } catch {
+        userOptions.value = []
+    } finally {
+        searching.value = false
+    }
+}
 
 const formatMoney = (minor) => {
     if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'

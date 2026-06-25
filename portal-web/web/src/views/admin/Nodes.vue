@@ -109,7 +109,7 @@
             <el-table-column :label="t('admin.nodes.heartbeat')" min-width="180">
                 <template #default="{ row }">
                     <div style="display:flex;flex-direction:column;line-height:1.3">
-                        <span :class="row.runtime_status === 'online' ? '' : (row.runtime_status === 'offline' ? 'hb-stale' : (row.runtime_status === 'degraded' ? 'hb-warn' : 'hb-none'))">
+                        <span :class="row.runtime_status === 'online' ? '' : 'hb-stale'">
                             {{ row.last_seen_ago || (row.last_heartbeat_at ? formatTime(row.last_heartbeat_at) : '从未心跳') }}
                         </span>
                         <span v-if="row.last_heartbeat_at" class="hb-exact">{{ formatTime(row.last_heartbeat_at) }}</span>
@@ -489,7 +489,6 @@ onMounted(() => {
 /* Heartbeat column */
 .hb-col { display: flex; flex-direction: column; line-height: 1.3; }
 .hb-stale { color: var(--color-danger); font-weight: 500; }
-.hb-warn  { color: #e6a23c; font-weight: 500; }
 .hb-none  { color: var(--color-text-muted); }
 .hb-exact { color: var(--color-text-muted); font-size: 12px; }
 
