@@ -38,6 +38,10 @@ final class AdminUserController
             $query->where('u.username', 'like', "%{$name}%");
         }
 
+        if ($planCode = $request->input('plan_code')) {
+            $query->where('u.plan_code', $planCode);
+        }
+
         if ($status = $request->input('status')) {
             $query->where('u.status', $status);
         }
@@ -115,7 +119,7 @@ final class AdminUserController
         $validator = Validator::make($request->all(), [
             'username' => 'nullable|string|max:100',
             'name' => 'nullable|string|max:100',
-            'email' => 'sometimes|email|unique:users,email,' . $userId,
+            'email' => 'sometimes|email|unique:users,email,' . $userId . ',uid',
             'password' => 'sometimes|string|min:8|confirmed',
         ]);
 

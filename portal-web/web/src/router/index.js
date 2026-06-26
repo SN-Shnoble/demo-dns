@@ -27,7 +27,14 @@ import AdminLayout from '@/components/AdminLayout.vue'
 import AdminDashboard from '@/views/admin/Dashboard.vue'
 import AdminNodes from '@/views/admin/Nodes.vue'
 import AdminGeoDNS from '@/views/admin/GeoDNS.vue'
-import AdminRules from '@/views/admin/RuleLibrary.vue'
+import AdminRules from '@/views/admin/Rules.vue'
+import AdminRuleItems from '@/views/admin/RuleItems.vue'
+import AdminRuleCategories from '@/views/admin/RuleCategories.vue'
+import AdminBrands from '@/views/admin/Brands.vue'
+import AdminSecurityData from '@/views/admin/SecurityData.vue'
+import AdminSecurityDataItem from '@/views/admin/SecurityDataItem.vue'
+import AdminProtectionPolicies from '@/views/admin/ProtectionPolicies.vue'
+import AdminPublishCenter from '@/views/admin/PublishCenter.vue'
 import AdminSystemConfig from '@/views/admin/SystemConfig.vue'
 import AdminAuditLogs from '@/views/admin/AuditLogs.vue'
 import AdminQueryLogs from '@/views/admin/QueryLogs.vue'
@@ -99,6 +106,13 @@ const routes = [
             { path: 'geo-dns', name: 'AdminGeoDNS', component: AdminGeoDNS },
             { path: 'region-manage', name: 'AdminRegionManage', component: AdminRegionManage },
             { path: 'rules', name: 'AdminRules', component: AdminRules },
+            { path: 'rules/items', name: 'AdminRuleItems', component: AdminRuleItems },
+            { path: 'rule-categories', name: 'AdminRuleCategories', component: AdminRuleCategories },
+            { path: 'brands', name: 'AdminBrands', component: AdminBrands },
+            { path: 'security-data', name: 'AdminSecurityData', component: AdminSecurityData },
+            { path: 'security-data/:group', name: 'AdminSecurityDataItem', component: AdminSecurityDataItem },
+            { path: 'protection-policies', name: 'AdminProtectionPolicies', component: AdminProtectionPolicies },
+            { path: 'publish-center', name: 'AdminPublishCenter', component: AdminPublishCenter },
             { path: 'query-logs', name: 'AdminQueryLogs', component: AdminQueryLogs },
             { path: 'alerts', name: 'AdminAlerts', component: AdminAlerts },
             { path: 'users', name: 'AdminUsers', component: AdminUsers },

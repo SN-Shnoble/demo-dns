@@ -7,7 +7,7 @@
                         <div class="admin-brand__mark">A</div>
                         <div>
                             <strong>{{ $t('admin.title') }}</strong>
-                            <span>Operations Console</span>
+                            <span>{{ $t('admin.dashboard.consoleSubtitle') }}</span>
                         </div>
                     </router-link>
 
@@ -215,6 +215,13 @@ const titleMap = {
     AdminGeoDNS: 'nav.geoDns',
     AdminRegionManage: 'nav.regionManage',
     AdminRules: 'nav.ruleLibrary',
+    AdminRuleItems: 'admin.rules.title',
+    AdminRuleCategories: 'admin.ruleCategories.title',
+    AdminBrands: 'admin.brands.title',
+    AdminSecurityData: 'admin.securityData.title',
+    AdminSecurityDataItem: 'admin.securityData.title',
+    AdminProtectionPolicies: 'admin.protectionPolicies.title',
+    AdminPublishCenter: 'admin.publishCenter.title',
     AdminQueryLogs: 'admin.queryLogs',
     AdminAlerts: 'admin.alerts',
     AdminUsers: 'admin.users',
@@ -351,9 +358,9 @@ const handleCommand = (cmd) => {
 const clearCache = async () => {
     try {
         await client.post('/admin/clear-cache')
-        ElMessage.success('Cache cleared')
+        ElMessage.success(t('admin.dashboard.cacheCleared'))
     } catch {
-        ElMessage.error('Failed to clear cache')
+        ElMessage.error(t('admin.dashboard.cacheClearFailed'))
     }
 }
 </script>

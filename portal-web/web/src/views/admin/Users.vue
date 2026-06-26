@@ -57,17 +57,12 @@
                 <div class="empty-state">
                     <el-icon class="empty-icon"><User /></el-icon>
                     <p class="empty-title">{{ $t('admin.usersPage.noData') }}</p>
-                    <p class="empty-desc">点击右上角「{{ $t('admin.usersPage.create') }}」添加第一个用户。</p>
+                    <p class="empty-desc">{{ $t('admin.usersPage.emptyDesc2') }}</p>
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
             <el-table-column prop="username" :label="$t('admin.usersPage.name')" min-width="140" />
             <el-table-column prop="email" :label="$t('admin.usersPage.email')" min-width="220" />
-            <el-table-column prop="role" :label="$t('admin.usersPage.role')" width="100">
-                <template #default="{ row }">
-                    <el-tag size="small" effect="light">{{ row.role || 'member' }}</el-tag>
-                </template>
-            </el-table-column>
             <el-table-column prop="status" :label="$t('admin.usersPage.status')" width="100">
                 <template #default="{ row }">
                     <el-tag :type="row.status === 'active' ? 'success' : (row.status === 'suspended' ? 'warning' : 'info')" size="small" effect="light">{{ statusLabel(row.status) }}</el-tag>
@@ -123,12 +118,6 @@
             <el-form-item v-if="!editingId" :label="$t('admin.usersPage.confirmPassword')" prop="password_confirmation">
                 <el-input v-model="form.password_confirmation" type="password" show-password :placeholder="$t('admin.usersPage.confirmPasswordPlaceholder')" />
             </el-form-item>
-            <el-form-item :label="$t('admin.usersPage.role')">
-                <el-select v-model="form.role" style="width:100%">
-                    <el-option :label="$t('admin.usersPage.member')" value="member" />
-                    <el-option :label="$t('admin.usersPage.admin')" value="admin" />
-                </el-select>
-            </el-form-item>
         </el-form>
         <template #footer>
             <el-button @click="showDialog = false">{{ t('common.cancel') }}</el-button>
@@ -174,7 +163,6 @@ const form = reactive({
     email: '',
     password: '',
     password_confirmation: '',
-    role: 'member',
 })
 
 const rules = {
@@ -224,7 +212,6 @@ const resetForm = () => {
     form.email = ''
     form.password = ''
     form.password_confirmation = ''
-    form.role = 'member'
 }
 
 const openCreateDialog = () => {
@@ -239,7 +226,6 @@ const openEditDialog = (row) => {
     form.email = row.email
     form.password = ''
     form.password_confirmation = ''
-    form.role = row.role || 'member'
     showDialog.value = true
 }
 
@@ -253,7 +239,6 @@ const handleSave = async () => {
             const payload = {
                 username: form.username,
                 email: form.email,
-                role: form.role,
             }
             if (form.password) {
                 payload.password = form.password
@@ -266,7 +251,6 @@ const handleSave = async () => {
                 email: form.email,
                 password: form.password,
                 password_confirmation: form.password_confirmation,
-                role: form.role,
             })
             ElMessage.success(t('admin.usersPage.createSuccess') || 'User created successfully')
         }

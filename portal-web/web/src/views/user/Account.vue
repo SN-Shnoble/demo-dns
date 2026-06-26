@@ -48,32 +48,50 @@
             </div>
 
             <!-- 订阅对话框 -->
-            <el-dialog v-model="showSubscriptionDialog" :title="$t('subscription.selectPlan')" width="600px" destroy-on-close>
-                <div v-if="!sub || sub.status === 'pending'">
-                    <el-radio-group v-model="selectedPlan" class="plan-list">
-                        <el-radio v-for="p in plans" :key="p.code" :value="p.code" border class="plan-radio">
-                            <div class="plan-info">
-                                <strong>{{ p.name }}</strong>
-                                <p>{{ p.description }}</p>
-                                <div class="plan-prices">
-                                    <el-radio-group v-model="selectedCycle" size="small">
-                                        <el-radio-button
-                                            v-for="price in p.prices"
-                                            :key="price.billing_cycle"
-                                            :value="price.billing_cycle"
-                                        >
-                                            {{ price.billing_cycle === 'yearly' ? $t('subscription.yearly') : $t('subscription.monthly') }}
-                                            {{ formatMoney(price.amount_minor, price.currency) }}
-                                        </el-radio-button>
-                                    </el-radio-group>
-                                </div>
+            <el-dialog v-model="showSubscriptionDialog" :title="$t('subscription.selectPlan')" width="880px" destroy-on-close>
+                <div v-if="!sub || sub.status === 'pending'" class="plan-dialog-body">
+                    <!-- 全局周期切换 -->
+                    <div class="billing-toggle">
+                        <el-radio-group v-model="selectedCycle" size="large">
+                            <el-radio-button value="monthly">
+                                <span class="cycle-label">{{ $t('subscription.monthly') }}</span>
+                            </el-radio-button>
+                            <el-radio-button value="yearly">
+                                <span class="cycle-label">{{ $t('subscription.yearly') }}</span>
+                                <span class="save-badge">{{ $t('subscription.save') }} 20%</span>
+                            </el-radio-button>
+                        </el-radio-group>
+                    </div>
+                    <!-- 三列套餐卡片 -->
+                    <div class="plan-grid">
+                        <div
+                            v-for="p in plans"
+                            :key="p.code"
+                            class="plan-col"
+                            :class="{ selected: selectedPlan === p.code }"
+                            @click="selectedPlan = p.code"
+                        >
+                            <div class="plan-col-name">{{ p.name }}</div>
+                            <div class="plan-col-price">
+                                <span class="price-main">{{ formatMoney(getPrice(p, selectedCycle).amount_minor, getPrice(p, selectedCycle).currency) }}</span>
+                                <span class="price-unit">/{{ selectedCycle === 'yearly' ? $t('subscription.year') : $t('subscription.month') }}</span>
                             </div>
-                        </el-radio>
-                    </el-radio-group>
+                            <p class="plan-col-desc">{{ p.description }}</p>
+                            <ul v-if="p.features && p.features.length" class="plan-features">
+                                <li v-for="(feat, idx) in p.features" :key="idx">{{ feat }}</li>
+                            </ul>
+                            <div v-if="selectedCycle === 'yearly'" class="price-equiv">
+                                ≈ {{ formatMoney(Math.round(getPrice(p, 'yearly').amount_minor / 12), getPrice(p, 'yearly').currency) }}/{{ $t('subscription.month') }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="dialog-footer">
                         <el-button @click="showSubscriptionDialog = false">{{ $t('common.cancel') }}</el-button>
-                        <el-button type="primary" :loading="creating" :disabled="!selectedPlan" @click="createSubscription">
-                            {{ $t('subscription.createSubscription') }}
+                        <el-button v-if="!canUpgrade" type="info" disabled>
+                            {{ $t('subscription.noUpgrade') }}
+                        </el-button>
+                        <el-button v-else type="primary" :loading="creating || paying" @click="handleSubscribe">
+                            {{ $t('subscription.continueSubscription') }}
                         </el-button>
                     </div>
                 </div>
@@ -174,6 +192,52 @@ const formatMoney = (minor, currency = 'USD') => {
     return `${currency} ${(Number(minor) / 100).toFixed(2)}`
 }
 
+const getPrice = (plan, cycle) => {
+    const price = plan.prices?.find(p => p.billing_cycle === cycle)
+    return price || { amount_minor: 0, currency: 'USD' }
+}
+
+const getPlanSortOrder = (planCode) => {
+    const plan = plans.value.find(p => p.code === planCode)
+    return plan?.sort_order ?? 0
+}
+
+const canUpgrade = computed(() => {
+    if (!selectedPlan.value) return false
+    const currentPlan = currentSubscription.value?.plan_code || usageData.value.plan_code || 'free'
+    const currentSort = getPlanSortOrder(currentPlan)
+    const selectedSort = getPlanSortOrder(selectedPlan.value)
+    // 只有选择更高等级套餐时才允许升级
+    return selectedSort > currentSort
+})
+
+const handleSubscribe = async () => {
+    creating.value = true
+    try {
+        // 1. 创建订阅
+        const { data } = await client.post('/user/subscriptions', {
+            plan_code: selectedPlan.value,
+            billing_cycle: selectedCycle.value,
+        })
+        sub.value = data.data
+        await loadAccountData()
+
+        // 2. 直接跳转支付
+        paying.value = true
+        const checkoutData = await client.post(`/user/subscriptions/${sub.value.id}/checkout`)
+        currentTx.value = checkoutData.data.data
+        if (checkoutData.data.data.redirect_url) {
+            window.open(checkoutData.data.data.redirect_url, '_blank')
+        }
+        ElMessage.info(t('subscription.checkoutSuccess'))
+    } catch (e) {
+        ElMessage.error(e.response?.data?.message || t('subscription.checkoutFailed'))
+    } finally {
+        creating.value = false
+        paying.value = false
+    }
+}
+
 const fetchPlans = async () => {
     try {
         const { data } = await client.get('/user/plans')
@@ -191,8 +255,12 @@ const openSubscriptionDialog = async () => {
     // 检查当前订阅状态
     try {
         const { data } = await client.get('/user/subscription')
+        // 只有非 free 套餐的 active/pending 订阅才显示升级成功界面
+        // free 套餐用户应显示套餐选择列表以便购买付费套餐
         if (data.data && (data.data.status === 'active' || data.data.status === 'pending')) {
-            sub.value = data.data
+            if (data.data.plan_code && data.data.plan_code !== 'free') {
+                sub.value = data.data
+            }
         }
     } catch {}
     showSubscriptionDialog.value = true
@@ -335,15 +403,82 @@ onMounted(loadAccountData)
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .setting-info { flex: 1; min-width: 0; }
 .setting-desc { margin: 0 0 4px; font-size: 14px; }
-.plan-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-.plan-radio { width: 100%; padding: 12px; }
-.plan-info p { color: #64748b; margin: 4px 0; font-size: 14px; }
-.plan-prices { margin-top: 8px; }
-.dialog-footer { margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; }
+.plan-dialog-body { padding: 0; }
+.billing-toggle { display: flex; justify-content: center; margin-bottom: 28px; }
+.billing-toggle :deep(.el-radio-group) { background: #f1f5f9; padding: 4px; border-radius: 10px; }
+.billing-toggle :deep(.el-radio-button) { border: none; }
+.billing-toggle :deep(.el-radio-button__inner) {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: none;
+    min-width: 120px;
+}
+.billing-toggle :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.cycle-label { font-size: 15px; font-weight: 600; color: #475569; }
+.cycle-price { font-size: 14px; font-weight: 700; color: #0f172a; }
+.cycle-price.discount { color: #22c55e; }
+.save-badge {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+.plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.plan-col {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.plan-col::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.plan-col:hover { border-color: #93c5fd; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08); }
+.plan-col:hover::before { opacity: 1; }
+.plan-col.selected { border-color: #2563eb; background: linear-gradient(180deg, #eff6ff 0%, #fff 100%); box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12); }
+.plan-col.selected::before { opacity: 1; }
+.plan-col-name { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 6px; text-align: center; }
+.plan-col-price { display: flex; align-items: baseline; justify-content: center; gap: 2px; margin-bottom: 10px; }
+.price-main { font-size: 28px; font-weight: 800; color: #0f172a; }
+.price-unit { font-size: 13px; color: #94a3b8; }
+.plan-col-desc { font-size: 13px; color: #64748b; margin: 0 0 10px; line-height: 1.5; text-align: center; }
+.plan-features { margin: 0 0 10px; padding: 0 0 0 18px; font-size: 12px; color: #475569; line-height: 1.8; flex: 1; }
+.plan-features li { margin-bottom: 2px; }
+.price-equiv { font-size: 12px; color: #22c55e; text-align: center; margin-top: auto; font-weight: 500; }
+.dialog-footer { margin-top: 28px; display: flex; justify-content: center; gap: 12px; }
+.dialog-footer .el-button { min-width: 140px; }
 .pay-section { margin-top: 16px; }
 .pay-actions { margin-top: 16px; display: flex; gap: 12px; }
 .active-section { margin-top: 16px; }
 @media (max-width: 900px) {
     .account-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .plan-grid { grid-template-columns: 1fr; }
 }
 </style>

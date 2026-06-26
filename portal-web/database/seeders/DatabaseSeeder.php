@@ -48,5 +48,9 @@ class DatabaseSeeder extends Seeder
 
         // Seed admin menu rules (so AdminLayout can load them from DB)
         $this->call(AdminMenuRuleSeeder::class);
+
+        // Seed rule categories and brands (Phase 1 data fill)
+        $this->call(RuleCategorySeeder::class);
+        $this->call(BrandSeeder::class);
     }
 }

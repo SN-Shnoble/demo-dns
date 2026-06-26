@@ -141,19 +141,26 @@ final class SubscriptionService
 
     /**
      * 进入 past_due：默认 7 天宽限期。
+     * 保持当前套餐，但同步 users.plan_code。
      */
     public function markPastDue(int $userId, int $graceDays = 7): void
     {
         $now = now();
+        $currentPlanCode = DB::table('subscriptions')->where('user_id', $userId)->value('plan_code') ?? 'free';
+
         DB::table('subscriptions')->where('user_id', $userId)->update([
             'status' => self::STATUS_PAST_DUE,
             'grace_until' => $now->copy()->addDays($graceDays),
             'updated_at' => $now,
         ]);
+
+        // 同步 users.plan_code
+        User::whereKey($userId)->update(['plan_code' => $currentPlanCode]);
     }
 
     /**
      * 进入 suspended：超过 grace 期，强制停服。
+     * 降级为 Free 并同步。
      */
     public function markSuspended(int $userId): void
     {
@@ -163,6 +170,9 @@ final class SubscriptionService
             'suspended_at' => $now,
             'updated_at' => $now,
         ]);
+
+        // 降级为 Free 并同步
+        $this->setPlan($userId, 'free');
     }
 
     /**

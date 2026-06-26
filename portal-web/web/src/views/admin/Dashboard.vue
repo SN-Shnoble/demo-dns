@@ -1,9 +1,9 @@
 <template>
     <div class="dashboard-content">
         <PageHeader
-            eyebrow="Operations Snapshot"
+            eyebrow=""
             :title="$t('nav.dashboard')"
-            description="Track resolver fleet health, policy release status and 24-hour query activity from one operational dashboard."
+            description=""
         />
         <el-row :gutter="16" style="margin-bottom:24px">
             <el-col v-for="s in stats" :key="s.label" :xs="12" :sm="12" :md="6">

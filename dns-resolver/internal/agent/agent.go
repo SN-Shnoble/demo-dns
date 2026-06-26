@@ -25,6 +25,7 @@ import (
 	"ocer-dns/dns-resolver/internal/config"
 	"ocer-dns/dns-resolver/internal/matching"
 	"ocer-dns/dns-resolver/internal/metrics"
+	"ocer-dns/dns-resolver/internal/resolver"
 )
 
 // deviceIndexEntry 记录设备 IP 到 Profile 的映射。
@@ -41,11 +42,12 @@ type Credentials struct {
 }
 
 type Agent struct {
-	cfg     *config.Config
-	engine  *matching.Engine
-	metrics *metrics.Metrics
-	client  *http.Client
-	pCache  *cache.ProfileCache
+	cfg             *config.Config
+	engine          *matching.Engine
+	resolutionLayer *resolver.ProfileResolutionLayer
+	metrics         *metrics.Metrics
+	client          *http.Client
+	pCache          *cache.ProfileCache
 
 	mu             sync.RWMutex
 	cred           Credentials
@@ -77,7 +79,7 @@ type heartbeatEnvelope struct {
 
 // New 使用 console 预签发的 APIKey / Secret 构造 Agent。
 // 调用方必须先确保 cfg 已通过 config.Validate() 校验。
-func New(cfg *config.Config, engine *matching.Engine, collector *metrics.Metrics) *Agent {
+func New(cfg *config.Config, engine *matching.Engine, resolutionLayer *resolver.ProfileResolutionLayer, collector *metrics.Metrics) *Agent {
 	timeout := 5 * time.Second
 	if cfg.ControlPlane.RequestTimeoutSec > 0 {
 		timeout = time.Duration(cfg.ControlPlane.RequestTimeoutSec) * time.Second
@@ -96,10 +98,11 @@ func New(cfg *config.Config, engine *matching.Engine, collector *metrics.Metrics
 	)
 
 	return &Agent{
-		cfg:     cfg,
-		engine:  engine,
-		metrics: collector,
-		pCache:  pc,
+		cfg:             cfg,
+		engine:          engine,
+		resolutionLayer: resolutionLayer,
+		metrics:         collector,
+		pCache:          pc,
 		cred: Credentials{
 			NodeID: strings.TrimSpace(cfg.ControlPlane.NodeID),
 		},
@@ -343,6 +346,21 @@ func (a *Agent) loadProfileIntoEngine(profileID string, data json.RawMessage, ve
 			security, parental)
 		log.Printf("Engine rules loaded: profile=%s allow=%d allow_wild=%d deny=%d deny_wild=%d security_cats=%d parental_cats=%d",
 			p.ProfileID, len(allowExact), len(allowWild), len(denyExact), len(denyWild), len(security), len(parental))
+
+		// Load security algorithm config (IDN Homograph, DGA, Typosquatting, DNS Rebinding)
+		if p.Security != nil {
+			secMap := make(map[string]any, len(p.Security)+4)
+			for k, v := range p.Security {
+				secMap[k] = v
+			}
+			// Merge privacy settings for CNAME Tracker (disguised trackers)
+			if p.Privacy != nil {
+				if v, ok := p.Privacy["block_disguised_trackers"]; ok {
+					secMap["block_disguised_trackers"] = v
+				}
+			}
+			a.resolutionLayer.LoadSecurityConfig(p.ProfileID, secMap)
+		}
 
 		// 记录版本到 localProfiles（供心跳上报）
 		a.mu.Lock()

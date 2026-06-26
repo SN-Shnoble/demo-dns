@@ -135,7 +135,7 @@ func main() {
 	metricsCollector := metrics.New()
 
 	// Initialize agent with console-issued credentials (no registration flow)
-	agt := agent.New(cfg, engine, metricsCollector)
+	agt := agent.New(cfg, engine, resolutionLayer, metricsCollector)
 
 	// 2026-06-24: 启动前强校验 — 凭据文件必须可读且非空。
 	// api_key 已移出 yaml,改读 api_key_path 文件;文件缺失/空直接拒绝启动,

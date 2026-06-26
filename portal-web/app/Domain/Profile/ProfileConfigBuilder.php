@@ -2,6 +2,8 @@
 
 namespace App\Domain\Profile;
 
+use App\Models\Brand;
+
 final class ProfileConfigBuilder
 {
     /**
@@ -23,7 +25,15 @@ final class ProfileConfigBuilder
             'version' => (int) ($profile['version'] ?? $profile['draft_version'] ?? 0) + 1,
             'default_action' => $profile['default_action'] ?? 'allow',
             'block_response' => $profile['block_response'] ?? 'nxdomain',
-            'security' => $featureSettings['security'] ?? ['enabled' => true],
+            'security' => array_merge(
+                $featureSettings['security'] ?? ['enabled' => true],
+                [
+                    'brand_domains' => Brand::where('enabled', true)
+                        ->whereNotNull('domain')
+                        ->pluck('domain')
+                        ->toArray(),
+                ],
+            ),
             'adblock' => [
                 'enabled' => (bool) ($profile['adblock_enabled'] ?? false),
             ],

@@ -15,6 +15,7 @@ import (
 	"ocer-dns/dns-resolver/internal/dnscache"
 	"ocer-dns/dns-resolver/internal/logging"
 	"ocer-dns/dns-resolver/internal/metrics"
+	"ocer-dns/dns-resolver/internal/rules"
 
 	"github.com/miekg/dns"
 )
@@ -183,6 +184,70 @@ func (h *Handler) Handle(
 	}
 
 	h.dnsCache.Set(context.Background(), cacheKey, upstreamReply)
+
+	// ⑤ DNS Rebinding 后置检测（需要上游响应中的 IP）
+	rebindEnabled, rebindWhitelist := h.resolutionLayer.GetDNSRebindConfig(profileID)
+	if rebindEnabled && upstreamReply != nil {
+		for _, rr := range upstreamReply.Answer {
+			if a, ok := rr.(*dns.A); ok {
+				res := rules.CheckDNSRebinding(domain, a.A, rebindWhitelist)
+				if res.Blocked {
+					h.metrics.IncBlocked()
+					blockresponse.ApplyTo(reply, question, blockResponse)
+					if firstSeen {
+						h.appendLog(profileID, deviceID, deviceType, domain, "BLOCK", "dns_rebind", "security", clientIP, queryType, protocol, reply.Rcode, startedAt)
+					}
+					log.Printf("[SECURITY] profile=%s domain=%s blocked=dns_rebind ip=%s reason=%s",
+						profileID, domain, res.IP.String(), res.Reason)
+					return &Result{
+						Reply: reply, Action: "BLOCK", Reason: "dns_rebind", Category: "security",
+						ProfileID: profileID, DeviceID: deviceID, Domain: domain, QueryType: queryType, Rcode: reply.Rcode,
+					}
+				}
+			}
+			if aaaa, ok := rr.(*dns.AAAA); ok {
+				res := rules.CheckDNSRebinding(domain, aaaa.AAAA, rebindWhitelist)
+				if res.Blocked {
+					h.metrics.IncBlocked()
+					blockresponse.ApplyTo(reply, question, blockResponse)
+					if firstSeen {
+						h.appendLog(profileID, deviceID, deviceType, domain, "BLOCK", "dns_rebind", "security", clientIP, queryType, protocol, reply.Rcode, startedAt)
+					}
+					log.Printf("[SECURITY] profile=%s domain=%s blocked=dns_rebind ip=%s reason=%s",
+						profileID, domain, res.IP.String(), res.Reason)
+					return &Result{
+						Reply: reply, Action: "BLOCK", Reason: "dns_rebind", Category: "security",
+						ProfileID: profileID, DeviceID: deviceID, Domain: domain, QueryType: queryType, Rcode: reply.Rcode,
+					}
+				}
+			}
+		}
+	}
+
+	// ⑥ CNAME Tracker 后置检测：检查上游响应中的 CNAME 记录是否指向已知跟踪服务。
+	// 对应 UI 中的"拦截伪装过的第三方跟踪器"功能。
+	cnameTrackerEnabled := h.resolutionLayer.GetDisguisedTrackersConfig(profileID)
+	if cnameTrackerEnabled && upstreamReply != nil {
+		for _, rr := range upstreamReply.Answer {
+			if cname, ok := rr.(*dns.CNAME); ok {
+				res := rules.CheckCNAMETracker(cname.Target)
+				if res.Blocked {
+					h.metrics.IncBlocked()
+					blockresponse.ApplyTo(reply, question, blockResponse)
+					if firstSeen {
+						h.appendLog(profileID, deviceID, deviceType, domain, "BLOCK", "cname_tracker", "privacy", clientIP, queryType, protocol, reply.Rcode, startedAt)
+					}
+					log.Printf("[PRIVACY] profile=%s domain=%s blocked=cname_tracker cname=%s provider=%s",
+						profileID, domain, res.CNAME, res.Provider)
+					return &Result{
+						Reply: reply, Action: "BLOCK", Reason: "cname_tracker", Category: "privacy",
+						ProfileID: profileID, DeviceID: deviceID, Domain: domain, QueryType: queryType, Rcode: reply.Rcode,
+					}
+				}
+			}
+		}
+	}
+
 	h.metrics.IncAllowed()
 	if firstSeen {
 		h.appendLog(profileID, deviceID, deviceType, domain, "ALLOW", "default", "", clientIP, queryType, protocol, upstreamReply.Rcode, startedAt)

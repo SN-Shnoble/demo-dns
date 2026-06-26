@@ -1,7 +1,7 @@
 <template>
     <ListPage
         :title="$t('admin.ruleLibrary.title')"
-        
+        :desc="$t('admin.ruleLibrary.desc')"
         i18n-key="admin.ruleLibrary"
         icon-name="Collection"
         :total="meta?.total ?? 0"
@@ -38,7 +38,7 @@
                 <div class="empty-state">
                     <el-icon class="empty-icon"><Collection /></el-icon>
                     <p class="empty-title">{{ $t('dashboard.noData') || 'No rule sources' }}</p>
-                    <p class="empty-desc">点击右上角「{{ $t('admin.ruleLibrary.create') }}」添加第一个规则源。</p>
+                    <p class="empty-desc">{{ $t('admin.ruleLibrary.emptyDesc2') }}</p>
                 </div>
             </template>
             <el-table-column type="selection" width="48" />
@@ -262,7 +262,7 @@ onMounted(fetchRules)
 
 <style scoped>
 .empty-state { padding: 40px 0; text-align: center; color: #64748b; }
-.empty-icon { font-size: 48px; color: #cbd5e1; margin-bottom: 12px; }
-.empty-title { font-size: 16px; font-weight: 600; color: #475569; margin: 0 0 4px; }
-.empty-desc { font-size: 13px; color: #94a3b8; margin: 0; }
+.empty-icon { font-size: 48px; color: #cbd5e1; }
+.empty-title { margin-top: 12px; font-size: 14px; }
+.empty-desc { margin-top: 4px; font-size: 12px; }
 </style>

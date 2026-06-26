@@ -531,3 +531,4 @@ Resolver：
 - dns-resolver/internal/matching/engine.go
 ```
 
+/user/account 这个页面点击订阅 弹窗显示错了，应该显示订阅的套餐列表，可选订阅时间，调用后台套餐表数据的。界面美观。 当前套餐 所在的面板，显示当前的真实套餐。

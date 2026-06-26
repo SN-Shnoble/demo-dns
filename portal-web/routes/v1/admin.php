@@ -20,6 +20,12 @@ use App\Http\Controllers\Api\V1\Admin\AdminRbacController;
 use App\Http\Controllers\Api\V1\Admin\AdminAdminsController;
 use App\Http\Controllers\Api\V1\Admin\AdminRegionController;
 use App\Http\Controllers\Api\V1\Admin\AdminRuleController;
+use App\Http\Controllers\Api\V1\Admin\AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\AdminBrandController;
+use App\Http\Controllers\Api\V1\Admin\AdminRuleItemController;
+use App\Http\Controllers\Api\V1\Admin\AdminSecurityDataController;
+use App\Http\Controllers\Api\V1\Admin\AdminProtectionPolicyController;
+use App\Http\Controllers\Api\V1\Admin\AdminPublishCenterController;
 use App\Http\Controllers\Api\V1\Admin\AdminStatsController;
 use App\Http\Controllers\Api\V1\Admin\AdminSystemConfigController;
 use App\Http\Controllers\Api\V1\Admin\AdminTeamController;
@@ -217,7 +223,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
     // Rule Library
     Route::middleware('permission:admin.rules.read')->group(function (): void {
         Route::get('rules', [AdminRuleController::class, 'index']);
+        // Rule Items (dns_rule_items) — must be declared before rules/{id}
+        // to avoid Laravel's greedy match treating "items" as a rule id.
+        Route::get('rules/items', [AdminRuleItemController::class, 'index']);
         Route::get('rules/{id}', [AdminRuleController::class, 'show']);
+        // Rule Categories
+        Route::get('rule-categories', [AdminCategoryController::class, 'index']);
+        Route::get('rule-categories/options', [AdminCategoryController::class, 'options']);
+        // Brands
+        Route::get('brands', [AdminBrandController::class, 'index']);
+        Route::get('brands/export', [AdminBrandController::class, 'export']);
     });
     Route::middleware('permission:admin.rules.write')->group(function (): void {
         Route::post('rules', [AdminRuleController::class, 'store']);
@@ -225,6 +240,49 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
         Route::delete('rules/{id}', [AdminRuleController::class, 'destroy']);
         Route::post('rules/{name}/sync', [AdminRuleController::class, 'sync']);
         Route::post('rules/batch-destroy', [AdminRuleController::class, 'batchDestroy']);
+        // Rule Items
+        Route::delete('rules/items/{id}', [AdminRuleItemController::class, 'destroy']);
+        Route::post('rules/items/batch-delete', [AdminRuleItemController::class, 'batchDestroy']);
+        Route::post('rules/items/import', [AdminRuleItemController::class, 'import']);
+        // Rule Categories
+        Route::post('rule-categories', [AdminCategoryController::class, 'store']);
+        Route::put('rule-categories/{id}', [AdminCategoryController::class, 'update']);
+        Route::delete('rule-categories/{id}', [AdminCategoryController::class, 'destroy']);
+        // Brands
+        Route::post('brands', [AdminBrandController::class, 'store']);
+        Route::put('brands/{id}', [AdminBrandController::class, 'update']);
+        Route::delete('brands/{id}', [AdminBrandController::class, 'destroy']);
+        Route::post('brands/import', [AdminBrandController::class, 'import']);
+    });
+
+    // Security Data (DDNS / Parked / TLD / AllowList / BlockList)
+    Route::middleware('permission:admin.rules.read')->group(function (): void {
+        Route::get('security-data/summary', [AdminSecurityDataController::class, 'summary']);
+        Route::get('security-data/{group}', [AdminSecurityDataController::class, 'index']);
+    });
+    Route::middleware('permission:admin.rules.write')->group(function (): void {
+        Route::post('security-data/{group}', [AdminSecurityDataController::class, 'store']);
+        Route::delete('security-data/{group}/{id}', [AdminSecurityDataController::class, 'destroy']);
+        Route::post('security-data/{group}/import', [AdminSecurityDataController::class, 'batchImport']);
+    });
+
+    // Protection Policies
+    Route::middleware('permission:admin.system_config.read')->group(function (): void {
+        Route::get('protection-policies', [AdminProtectionPolicyController::class, 'show']);
+        Route::get('protection-policies/export', [AdminProtectionPolicyController::class, 'export']);
+    });
+    Route::middleware('permission:admin.system_config.write')->group(function (): void {
+        Route::put('protection-policies', [AdminProtectionPolicyController::class, 'update']);
+        Route::post('protection-policies/import', [AdminProtectionPolicyController::class, 'import']);
+    });
+
+    // Publish Center
+    Route::middleware('permission:admin.publishes.read')->group(function (): void {
+        Route::get('publish-center/versions', [AdminPublishCenterController::class, 'versions']);
+    });
+    Route::middleware('permission:admin.publishes.write')->group(function (): void {
+        Route::post('publish-center/sync-all', [AdminPublishCenterController::class, 'syncAll']);
+        Route::post('publish-center/rollback/{versionId}', [AdminPublishCenterController::class, 'rollback']);
     });
 
     // Policy (UI.md #61/#62/#63) — 策略闭环
