@@ -51,29 +51,29 @@
                     <span class="badge-endpoint">{{ $t('dashboard.boundIpTag') || 'Bound IPs' }}</span>
                 </div>
                 <div class="card-body">
-                    <!-- IPv4 (Bound IP) -->
-                    <div class="endpoint-block">
-                        <div class="endpoint-label">
-                            {{ $t('dashboard.endpointIpv4') }}
-                            <span class="endpoint-hint">{{ $t('dashboard.endpointIpv4Hint') }}</span>
-                        </div>
-                        <div v-if="boundIpv4" class="code-row">
-                            <div class="code">{{ boundIpv4 }}</div>
-                            <button class="copy-btn" @click="copyText(boundIpv4)">{{ $t('dashboard.copy') }}</button>
-                        </div>
-                        <div v-else class="code-row">
-                            <div class="code">—</div>
+                    <!-- 设备列表 -->
+                    <div class="endpoint-block" v-if="recentDevices.length">
+                        <div class="endpoint-label">{{ $t('dashboard.boundDeviceIps') || 'Devices' }}</div>
+                        <div class="device-list">
+                            <div v-for="(d, i) in recentDevices" :key="i" class="device-row">
+                                <div class="device-info">
+                                    <span class="device-icon">
+                                        <svg v-if="d.device_type === 'desktop' || d.device_type === 'Windows' || d.device_type === 'macOS'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                                        <svg v-else-if="d.device_type === 'mobile' || d.device_type === 'iOS' || d.device_type === 'Android'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                                        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                                    </span>
+                                    <span class="device-name">{{ d.name || d.device_type || 'Unknown Device' }}</span>
+                                </div>
+                                <div class="device-meta">
+                                    <span class="device-ip">{{ d.source_ip || '—' }}</span>
+                                    <span class="device-time" v-if="d.last_seen_at">{{ formatLastSeen(d.last_seen_at) }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 已绑定的设备 IP -->
-                    <div class="endpoint-block" v-if="recentDevices.length">
-                        <div class="endpoint-label">{{ $t('dashboard.boundDeviceIps') }}</div>
-                        <div class="bound-ip-list">
-                            <div v-for="(d, i) in recentDevices" :key="i" class="bound-ip-row">
-                                <span class="bound-ip-device">{{ d.name }}</span>
-                                <span class="bound-ip-addr">{{ d.source_ip || '—' }}</span>
-                            </div>
+                    <div v-else class="endpoint-block">
+                        <div class="code-row">
+                            <div class="code">—</div>
                         </div>
                     </div>
                 </div>
@@ -228,6 +228,21 @@ function formatNumber(n) {
     if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
     if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
     return String(n)
+}
+
+function formatLastSeen(isoString) {
+    if (!isoString) return ''
+    const date = new Date(isoString)
+    const now = new Date()
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+    if (minutes < 1) return '刚刚'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return date.toLocaleDateString()
 }
 
 function buildChartBars(data) {
@@ -576,7 +591,56 @@ watch(currentProfileId, fetchData)
 }
 .mt-6 { margin-top: 6px; }
 
-/* ========== Bound IP Device List ========== */
+/* ========== Device List ========== */
+.device-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.device-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--color-bg-secondary, #f8fafc);
+    transition: all 0.15s ease;
+}
+.device-row:hover {
+    background: #f1f5f9;
+}
+.device-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.device-icon {
+    color: var(--color-text-muted, #64748b);
+    display: flex;
+    align-items: center;
+}
+.device-name {
+    color: var(--color-text, #0f172a);
+    font-weight: 600;
+    font-size: 13px;
+}
+.device-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.device-ip {
+    color: var(--color-text-muted, #64748b);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+.device-time {
+    color: #94a3b8;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* ========== Bound IP Device List (deprecated) ========== */
 .bound-ip-list {
     display: grid;
     gap: 0;

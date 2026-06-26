@@ -264,9 +264,12 @@ final class AdminPublishController
         $search = $request->input('search', '');
 
         $query = \App\Models\Profile::with(['user:uid,username,email'])
-            ->leftJoin('profile_versions', 'profile_versions.target_profile_id', '=', 'profiles.id')
-            ->select('profiles.*', \Illuminate\Support\Facades\DB::raw('COUNT(dns_profile_versions.id) as profile_versions_count'))
-            ->groupBy('profiles.id')
+            ->select('profiles.*')
+            ->withCount([
+                'versions as profile_versions_count' => function ($q): void {
+                    $q->select(\Illuminate\Support\Facades\DB::raw('COUNT(*)'));
+                },
+            ])
             ->orderByDesc('profiles.created_at');
 
         if ($search !== '') {
@@ -293,8 +296,8 @@ final class AdminPublishController
             'status' => $profile['status'],
             'published_at' => $profile['published_at'],
             'created_at' => $profile['created_at'],
-            'has_published_config' => ($profile['config_versions_count'] ?? 0) > 0,
-            'config_versions_count' => $profile['config_versions_count'] ?? 0,
+            'has_published_config' => ($profile['profile_versions_count'] ?? 0) > 0,
+            'profile_versions_count' => $profile['profile_versions_count'] ?? 0,
         ])->all();
 
         return response()->json([

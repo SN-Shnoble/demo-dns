@@ -128,6 +128,24 @@ func runInstall(args []string) error {
 		return fmt.Errorf("write config failed: %w", err)
 	}
 
+	// 2026-06-26: install 时清理 profile 缓存目录，确保从 portal 拉取全新配置。
+	// 场景：数据库重装后版本号重置，旧缓存版本号可能高于服务端，导致配置不更新。
+	// install 是节点"重新开始"的信号，此时清缓存是最合理的安全边界。
+	cacheDir := cfg.ControlPlane.ProfilesCacheDir
+	if cacheDir == "" {
+		cacheDir = cfg.ControlPlane.ProfilesPath
+	}
+	if cacheDir != "" {
+		if err := os.RemoveAll(cacheDir); err != nil {
+			fmt.Printf("⚠ clear cache dir %s: %v (continuing anyway)\n", cacheDir, err)
+		} else {
+			fmt.Printf("✔ cache cleared: %s\n", cacheDir)
+		}
+		if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+			fmt.Printf("⚠ create cache dir %s: %v (continuing anyway)\n", cacheDir, err)
+		}
+	}
+
 	// 2026-06-22: 预创建 log buffer 目录，避免 systemd-tmpfiles 清理 /tmp
 	// 默认路径 /var/lib/ocer-dns/log-buffer，macOS 需在 yaml 改写
 	if cfg.Logging.BufferPath != "" {
