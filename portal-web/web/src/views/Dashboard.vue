@@ -44,37 +44,31 @@
                 </div>
             </div>
 
-            <!-- Right: 已绑定的 IP (IPv4 only, IPv6 hidden per 2026-06-22 request) -->
+            <!-- Right: 已绑定的 IP → 设备访问记录 -->
             <div class="card">
                 <div class="card-header">
                     <h2>{{ $t('dashboard.boundIpTitle') }}</h2>
-                    <span class="badge-endpoint">{{ $t('dashboard.boundIpTag') || 'Bound IPs' }}</span>
                 </div>
                 <div class="card-body">
                     <!-- 设备列表 -->
-                    <div class="endpoint-block" v-if="recentDevices.length">
-                        <div class="endpoint-label">{{ $t('dashboard.boundDeviceIps') || 'Devices' }}</div>
-                        <div class="device-list">
-                            <div v-for="(d, i) in recentDevices" :key="i" class="device-row">
-                                <div class="device-info">
-                                    <span class="device-icon">
-                                        <svg v-if="d.device_type === 'desktop' || d.device_type === 'Windows' || d.device_type === 'macOS'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
-                                        <svg v-else-if="d.device_type === 'mobile' || d.device_type === 'iOS' || d.device_type === 'Android'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-                                        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
-                                    </span>
-                                    <span class="device-name">{{ d.name || d.device_type || 'Unknown Device' }}</span>
-                                </div>
-                                <div class="device-meta">
+                    <div class="device-list" v-if="recentDevices.length">
+                        <div v-for="(d, i) in recentDevices" :key="i" class="device-card">
+                            <div class="device-icon-wrap">
+                                <svg v-if="d.device_type === 'desktop' || d.device_type === 'Windows' || d.device_type === 'macOS'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                                <svg v-else-if="d.device_type === 'mobile' || d.device_type === 'iOS' || d.device_type === 'Android'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+                                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+                            </div>
+                            <div class="device-info-wrap">
+                                <div class="device-name">{{ d.name || d.device_type || 'Unknown Device' }}</div>
+                                <div class="device-meta-row">
                                     <span class="device-ip">{{ d.source_ip || '—' }}</span>
                                     <span class="device-time" v-if="d.last_seen_at">{{ formatLastSeen(d.last_seen_at) }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div v-else class="endpoint-block">
-                        <div class="code-row">
-                            <div class="code">—</div>
-                        </div>
+                    <div v-else class="empty-state">
+                        <span>—</span>
                     </div>
                 </div>
             </div>

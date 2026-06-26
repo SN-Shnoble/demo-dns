@@ -1,13 +1,59 @@
-<br />
-
-修复 /user/b543d4  \*\*Top 访问域名  Top 拦截域名 调用真是的接口显示 \*\*
-
-最近7天查看详情跳转 /user/b543d4/logs 查询日志页面，查询日志 改成日志
-
-隐藏绑定域名 **绑定 IP 面板 。最近接入设备 面板 移动绑定IP 面板的位置**
-
-管理设备 点击 跳转 到设备管理列表 /user/devices
-
-<br />
-
-/admin/menu-config 菜单编辑 图标保存没效果，修复下 
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:176: log\_buffer: sendBatch url=<https://test-dns.ocerlinkdata.com/api/v1/node/dns-resolver/query-logs> status=200 body={"data":{"accepted":true,"batch\_id":"batch\_1782472037287686800","received\_count":27,"duplicate":false,"content\_sha256":"sha256:6c23f1c5e72bd6d0f2205022f1ae932d3b0d147a2cf1cee34eeb2d8d146cfcb9"}}
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:138: log\_buffer: Flush sent ok size=27
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=27
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=28
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=29
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=30
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=31
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=32
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=33
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=34
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=35
+Jun 26 11:07:22 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:22 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=36
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=37
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com](http://www.deepseek.com). action=BLOCK entries\_len=38
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 server.go:357: \[BLOCK] [www.deepseek.com](http://www.deepseek.com). reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW reason=default
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=39
+Jun 26 11:07:23 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:23 buffer.go:93: log\_buffer: Append domain=[www.deepseek.com.lan](http://www.deepseek.com.lan). action=ALLOW entries\_len=40
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 buffer.go:93: log\_buffer: Append domain=platform.deepseek.com. action=BLOCK entries\_len=41
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 server.go:357: \[BLOCK] platform.deepseek.com. reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 buffer.go:93: log\_buffer: Append domain=platform.deepseek.com. action=BLOCK entries\_len=42
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 server.go:357: \[BLOCK] platform.deepseek.com. reason=blocklist category= profile=439db5 device=
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=platform.deepseek.com.lan. action=ALLOW reason=default
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 agent.go:373: Engine rules loaded: profile=439db5 allow=0 allow\_wild=0 block=0 block\_wild=3 adblock=0 security\_cats=0 parental\_cats=0
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 resolver.go:216: \[RESOLVER] profile=439db5 device= domain=platform.deepseek.com.lan. action=ALLOW reason=default
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 buffer.go:93: log\_buffer: Append domain=platform.deepseek.com.lan. action=ALLOW entries\_len=43
+Jun 26 11:07:25 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:25 buffer.go:93: log\_buffer: Append domain=platform.deepseek.com.lan. action=ALLOW entries\_len=44
+Jun 26 11:07:27 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:27 buffer.go:131: log\_buffer: Flush sending batch size=44
+Jun 26 11:07:27 10.1.12.24 dns-resolver\[165350]: 2026/06/26 11:07:27 buffer.go:157: log\_buffer: sendBatch body={"batch\_id":"batch\_1782472047287572807","items":\[{"profile\_id":"439db5","device\_id":"","query\_name":"gator.volces.com.","action":"ALLOW","reason":"default","category":"","client\_ip":"116.204.170.209","query\_type":"A","rcode":0,"latency\_ms":2,"queried\_at":1782472038,"protocol":"doh"},{"profile\_id":"439db5","device\_id":"","query\_name":"gator.volces.com.","action":"ALLOW","reason":"default","category":"","client\_ip":"116.204.170.209","query\_type":"HTTPS","rcode":0,"latency\_ms":3,"queried\_at":178247

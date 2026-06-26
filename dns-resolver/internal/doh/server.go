@@ -221,7 +221,7 @@ func (s *Server) resolveDNS(w http.ResponseWriter, r *http.Request, profileUID s
 	var deviceType string
 
 	if len(msg.Question) > 0 {
-		domain = msg.Question[0].Name
+		domain = strings.TrimSuffix(msg.Question[0].Name, ".")
 		queryType = dns.TypeToString[msg.Question[0].Qtype]
 
 		// Dedup before the resolution pipeline so log buffer + control plane
