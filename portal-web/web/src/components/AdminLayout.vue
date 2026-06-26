@@ -281,11 +281,11 @@ const resolveMenuLabel = (key) => {
     return key
 }
 
-// 独立一级菜单：groupKey 为 null 的菜单项，渲染在分组列表之前
+// 独立一级菜单：groupKey 为 null 的菜单项，渲染在分组列表之前（不受 visible 字段影响）
 const topMenuItems = computed(() => {
     const mainMenu = menuConfig.value.mainMenu || []
     return mainMenu
-        .filter(m => m.groupKey == null && m.visible)
+        .filter(m => m.groupKey == null)
         .sort((a, b) => a.sort - b.sort)
         .map(m => ({
             id: m.id,
@@ -295,17 +295,17 @@ const topMenuItems = computed(() => {
         }))
 })
 
-// 多级菜单树：仅含父级菜单及其可见子菜单
+// 多级菜单树：仅含父级菜单及其子菜单（不受 visible 字段影响）
 const navTree = computed(() => {
     const mainMenu = menuConfig.value.mainMenu || []
     const subMenu = menuConfig.value.subMenu || []
 
     return mainMenu
-        .filter(m => m.groupKey != null && m.visible)
+        .filter(m => m.groupKey != null)
         .sort((a, b) => a.sort - b.sort)
         .map(main => {
             const children = subMenu
-                .filter(s => s.parentId === main.id && s.visible)
+                .filter(s => s.parentId === main.id)
                 .sort((a, b) => a.sort - b.sort)
                 .map(child => ({
                     id: child.id,

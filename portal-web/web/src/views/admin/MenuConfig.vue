@@ -337,14 +337,12 @@ const dispatchMenuConfig = () => {
 
 const handleVisibleChange = async (row) => {
     const previousVisible = !row.visible
-    // 仅更新本地数据状态（el-switch v-model 会自动反映到 UI）
-    if (row.parentId) {
-        const item = subMenuItems.value.find(i => i.id === row.id)
-        if (item) item.visible = row.visible
-    } else {
-        const item = mainMenuItems.value.find(i => i.id === row.id)
-        if (item) item.visible = row.visible
+    // 统一查找并更新本地数据状态（el-switch v-model 会自动反映到 UI）
+    let item = mainMenuItems.value.find(i => i.id === row.id)
+    if (!item) {
+        item = subMenuItems.value.find(i => i.id === row.id)
     }
+    if (item) item.visible = row.visible
 
     try {
         await client.put('/admin/menu-config/visibility', {
@@ -355,13 +353,7 @@ const handleVisibleChange = async (row) => {
     } catch {
         // 回滚本地状态
         row.visible = previousVisible
-        if (row.parentId) {
-            const item = subMenuItems.value.find(i => i.id === row.id)
-            if (item) item.visible = previousVisible
-        } else {
-            const item = mainMenuItems.value.find(i => i.id === row.id)
-            if (item) item.visible = previousVisible
-        }
+        if (item) item.visible = previousVisible
         ElMessage.error(t('admin.menuConfig.saveFailed'))
     }
 }
