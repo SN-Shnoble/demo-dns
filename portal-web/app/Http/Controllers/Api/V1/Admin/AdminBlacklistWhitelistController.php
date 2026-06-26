@@ -20,7 +20,7 @@ final class AdminBlacklistWhitelistController extends Controller
         $keyword = trim((string) $request->query('keyword', ''));
 
         $query = ProfileRule::query()
-            ->with(['profile:id,profile_id,name,user_id', 'profile.user:id,uid_code,email,username']);
+            ->with(['profile:id,profile_id,name,user_id', 'profile.user:uid,email,username']);
 
         if ($type === 'allow' || $type === 'deny') {
             $query->where('action', $type);
@@ -30,8 +30,7 @@ final class AdminBlacklistWhitelistController extends Controller
             $query->where(function ($q) use ($keyword): void {
                 $q->where('domain', 'like', "%{$keyword}%")
                     ->orWhereHas('profile.user', function ($u) use ($keyword): void {
-                        $u->where('uid_code', 'like', "%{$keyword}%")
-                            ->orWhere('email', 'like', "%{$keyword}%");
+                        $u->where('email', 'like', "%{$keyword}%");
                     });
             });
         }

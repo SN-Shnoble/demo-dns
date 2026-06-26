@@ -28,13 +28,13 @@ final class AdminMemberPolicyController extends Controller
 
         if ($keyword !== '') {
             $query->where(function ($q) use ($keyword): void {
-                $q->where('uid_code', 'like', "%{$keyword}%")
+                $q->where('uid', 'like', "%{$keyword}%")
                     ->orWhere('email', 'like', "%{$keyword}%")
                     ->orWhere('username', 'like', "%{$keyword}%");
             });
         }
 
-        $users = $query->get(['uid', 'uid_code', 'email', 'username', 'created_at']);
+        $users = $query->get(['uid', 'email', 'username', 'created_at']);
 
         $rows = $users->map(function (User $u): array {
             $profile = Profile::query()->where('user_id', $u->uid)->orderByDesc('id')->first();
@@ -42,7 +42,7 @@ final class AdminMemberPolicyController extends Controller
 
             return [
                 'user_id' => $u->uid,
-                'user_uid' => $u->uid_code,
+                'user_uid' => $u->uid,
                 'email' => $u->email,
                 'profile_count' => $u->profiles_count ?? 0,
                 'security' => $settings['security_level'] ?? 'standard',
