@@ -36,7 +36,7 @@ final class ConfigPullController
             ],
         ]);
 
-        return response()->json(['data' => [
+        $data = [
             'version'   => (int) (ProfileVersion::max('version') ?? 0),
             'upstreams' => [$this->defaultUpstream()],
             'plans'     => $plans,
@@ -45,7 +45,14 @@ final class ConfigPullController
                 'max_qps'        => (int) config('dns.max_qps', 1000),
                 'rate_limit_rps' => (int) config('dns.rate_limit_rps', 100),
             ],
-        ]]);
+        ];
+
+        // 2026-06-27: 为 Global Config 补充 checksum 和 generated_at，
+        // Resolver 端会校验 checksum 字段以确认配置完整性。
+        $data['generated_at'] = now()->toIso8601String();
+        $data['checksum'] = hash('sha256', json_encode($data));
+
+        return response()->json(['data' => $data]);
     }
 
     /**
