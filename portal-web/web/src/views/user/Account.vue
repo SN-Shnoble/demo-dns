@@ -31,6 +31,30 @@
                     </div>
                 </div>
 
+                <div class="card profile-card">
+                    <div class="card-header">
+                        <el-icon class="card-icon"><User /></el-icon>
+                        <h3>{{ $t('account.profile.title') }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="profile-avatar">
+                            <el-avatar :size="64">
+                                {{ (userInfo.username || 'U').charAt(0).toUpperCase() }}
+                            </el-avatar>
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-row">
+                                <span class="profile-label">{{ $t('account.profile.username') }}</span>
+                                <span class="profile-value">{{ userInfo.username || '-' }}</span>
+                            </div>
+                            <div class="profile-row">
+                                <span class="profile-label">{{ $t('account.profile.email') }}</span>
+                                <span class="profile-value">{{ userInfo.email || '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <el-icon class="card-icon"><Lock /></el-icon>
@@ -48,8 +72,9 @@
             </div>
 
             <!-- 订阅对话框 -->
-            <el-dialog v-model="showSubscriptionDialog" :title="$t('subscription.selectPlan')" width="880px" destroy-on-close>
-                <div v-if="!sub || sub.status === 'pending'" class="plan-dialog-body">
+            <el-dialog v-model="showSubscriptionDialog" :title="dialogTitle" width="880px" destroy-on-close>
+                <!-- 第一步：选择套餐 — 仅无订阅时显示 -->
+                <div v-if="!sub" class="plan-dialog-body">
                     <!-- 全局周期切换 -->
                     <div class="billing-toggle">
                         <el-radio-group v-model="selectedCycle" size="large">
@@ -94,8 +119,9 @@
                         </div>
                     </div>
                     <div class="dialog-footer">
-                        <el-button @click="showSubscriptionDialog = false">{{ $t('common.cancel') }}</el-button>
+                        <el-button size="default" @click="showSubscriptionDialog = false">{{ $t('common.cancel') }}</el-button>
                         <el-button
+                            size="default"
                             :type="subscriptionState.disabled ? 'info' : 'primary'"
                             :disabled="subscriptionState.disabled"
                             :loading="creating || paying"
@@ -105,6 +131,7 @@
                         </el-button>
                     </div>
                 </div>
+                <!-- 第二步：支付 — 订阅已创建待支付 -->
                 <div v-if="sub && sub.status === 'pending'" class="pay-section">
                     <el-descriptions :column="2" border>
                         <el-descriptions-item :label="$t('subscription.subscriptionNo')">{{ sub.subscription_no }}</el-descriptions-item>
@@ -113,10 +140,11 @@
                         <el-descriptions-item :label="$t('subscription.amount')">{{ formatMoney(sub.amount_minor, sub.currency) }}</el-descriptions-item>
                     </el-descriptions>
                     <div class="pay-actions">
-                        <el-button type="success" :loading="paying" @click="startPayment">
+                        <el-button size="default" @click="resetDialog">{{ $t('common.cancel') }}</el-button>
+                        <el-button type="success" size="default" :loading="paying" @click="startPayment">
                             {{ $t('subscription.payNow') }}
                         </el-button>
-                        <el-button v-if="currentTx" type="warning" :loading="mocking" @click="mockPay">
+                        <el-button v-if="currentTx" type="warning" size="default" :loading="mocking" @click="mockPay">
                             {{ $t('subscription.mockPaySuccess') }}
                         </el-button>
                     </div>
@@ -163,7 +191,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Coin, Lock } from '@element-plus/icons-vue'
+import { Coin, Lock, User } from '@element-plus/icons-vue'
 import client from '@/api/client'
 import Layout from '@/components/Layout.vue'
 
@@ -229,6 +257,21 @@ const disabledPlans = computed(() => {
 const handlePlanClick = (code) => {
     if (disabledPlans.value.includes(code)) return
     selectedPlan.value = code
+}
+
+// 对话框标题：按步骤切换
+const dialogTitle = computed(() => {
+    if (sub.value && sub.value.status === 'active') return t('subscription.activeSuccess')
+    if (sub.value && sub.value.status === 'pending') return t('subscription.paySubscription')
+    return t('subscription.selectPlan')
+})
+
+// 重置对话框，回到选择套餐
+const resetDialog = () => {
+    sub.value = null
+    currentTx.value = null
+    selectedPlan.value = ''
+    showSubscriptionDialog.value = false
 }
 
 // 订阅对话框按钮状态：subscribe=立即订阅, upgrade=升级, current=当前套餐, noUpgrade=无需升级
@@ -445,6 +488,18 @@ onMounted(loadAccountData)
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .setting-info { flex: 1; min-width: 0; }
 .setting-desc { margin: 0 0 4px; font-size: 14px; }
+
+/* 个人信息卡片 */
+.profile-card { grid-column: 1 / -1; }
+.profile-card .card-body { display: flex; align-items: center; gap: 24px; }
+.profile-avatar { flex-shrink: 0; }
+.profile-avatar .el-avatar { background: linear-gradient(135deg, #2563eb, #3b82f6); color: #fff; font-size: 24px; font-weight: 600; }
+.profile-info { flex: 1; min-width: 0; }
+.profile-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+.profile-row:last-child { border-bottom: none; }
+.profile-label { width: 80px; font-size: 13px; color: #64748b; flex-shrink: 0; }
+.profile-value { font-size: 14px; color: #0f172a; font-weight: 500; }
+
 .plan-dialog-body { padding: 0; }
 .billing-toggle { display: flex; justify-content: center; margin-bottom: 28px; }
 .billing-toggle :deep(.el-radio-group) { background: #f1f5f9; padding: 4px; border-radius: 10px; }
@@ -532,7 +587,8 @@ onMounted(loadAccountData)
 .dialog-footer { margin-top: 28px; display: flex; justify-content: center; gap: 12px; }
 .dialog-footer .el-button { min-width: 140px; }
 .pay-section { margin-top: 16px; }
-.pay-actions { margin-top: 16px; display: flex; gap: 12px; }
+.pay-actions { margin-top: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.pay-actions .el-button { min-width: 120px; }
 .active-section { margin-top: 16px; }
 @media (max-width: 900px) {
     .account-grid { grid-template-columns: 1fr; }

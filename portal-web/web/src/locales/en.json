@@ -598,6 +598,11 @@
       "plan": "Current Plan",
       "subscribe": "Subscribe"
     },
+    "profile": {
+      "title": "Profile",
+      "username": "Username",
+      "email": "Email"
+    },
     "referral": {
       "title": "Referral Link",
       "desc": "Share the link below with others and you will receive 30% of their subscription amount for 12 consecutive months.",

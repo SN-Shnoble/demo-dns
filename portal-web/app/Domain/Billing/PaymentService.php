@@ -156,6 +156,10 @@ final class PaymentService
      */
     public function mockPaymentSuccess(string $transactionId): PaymentTransaction
     {
+        if (app()->environment('production')) {
+            throw new RuntimeException('Mock payment is forbidden in production.');
+        }
+
         $tx = PaymentTransaction::findOrFail($transactionId);
         if ($tx->status === PaymentTransaction::STATUS_SUCCESS) {
             return $tx;
