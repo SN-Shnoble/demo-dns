@@ -590,6 +590,9 @@
       "upgrade": "仅需 {price}/月，即可获得不限量的查询。",
       "upgradeBtn": "升级套餐"
     },
+    "subscription": {
+      "plan": "当前套餐"
+    },
     "referral": {
       "title": "推广链接",
       "desc": "将以下链接分享给他人，你将会连续 12 个月收到他人所有订阅金额中的 30%。",
@@ -1580,6 +1583,13 @@
       "startedAt": "开始时间",
       "currentPeriodStart": "当前周期开始",
       "currentPeriodEnd": "当前周期结束",
+      "cancelledAt": "取消时间",
+      "expiredAt": "过期时间",
+      "cancelSubscription": "取消续费",
+      "resumeSubscription": "恢复续费",
+      "cancelSuccess": "已取消续费",
+      "resumeSuccess": "已恢复自动续费",
+      "operationFailed": "操作失败",
       "userEmail": "用户邮箱",
       "paymentFlows": "支付流水",
       "paymentFlowsDesc": "查看所有支付交易流水"
@@ -1833,6 +1843,16 @@
     "createFailed": "订阅创建失败",
     "checkoutSuccess": "支付会话已创建",
     "checkoutFailed": "创建支付会话失败",
-    "mockPayFailed": "模拟支付失败"
+    "mockPayFailed": "模拟支付失败",
+    "autoRenew": "自动续费",
+    "renewing": "自动续费中",
+    "cancelledAtPeriodEnd": "周期结束后取消",
+    "currentPeriodEnd": "当前周期结束",
+    "cancelSubscription": "取消续费",
+    "resumeSubscription": "恢复续费",
+    "cancelSuccess": "已取消续费",
+    "cancelFailed": "取消续费失败",
+    "resumeSuccess": "已恢复自动续费",
+    "resumeFailed": "恢复自动续费失败"
   }
 }

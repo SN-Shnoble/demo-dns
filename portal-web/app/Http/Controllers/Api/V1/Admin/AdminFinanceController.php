@@ -283,4 +283,42 @@ final class AdminFinanceController
 
         return response()->json(['data' => $items]);
     }
+
+    /** POST /admin/finance/subscriptions/{id}/cancel */
+    public function subscriptionCancel(string $id): JsonResponse
+    {
+        $sub = \App\Models\Subscription::findOrFail($id);
+
+        $sub->update([
+            'cancel_at_period_end' => true,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => $sub->id,
+                'cancel_at_period_end' => true,
+                'message' => '订阅已取消，当前周期结束后自动降级',
+            ],
+        ]);
+    }
+
+    /** POST /admin/finance/subscriptions/{id}/resume */
+    public function subscriptionResume(string $id): JsonResponse
+    {
+        $sub = \App\Models\Subscription::findOrFail($id);
+
+        $sub->update([
+            'cancel_at_period_end' => false,
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => $sub->id,
+                'cancel_at_period_end' => false,
+                'message' => '订阅已恢复自动续费',
+            ],
+        ]);
+    }
 }

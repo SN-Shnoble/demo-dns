@@ -107,6 +107,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin.only', 'permission:ad
         Route::get('finance/payment-flows', [AdminFinanceController::class, 'paymentFlows']);
         Route::get('finance/payment-flows/export', [AdminFinanceController::class, 'paymentFlowExport']);
     });
+    Route::middleware('permission:admin.finance.write')->group(function (): void {
+        Route::post('finance/subscriptions/{id}/cancel', [AdminFinanceController::class, 'subscriptionCancel']);
+        Route::post('finance/subscriptions/{id}/resume', [AdminFinanceController::class, 'subscriptionResume']);
+    });
 
     // RBAC
     Route::middleware('permission:admin.rbac.read')->group(function (): void {

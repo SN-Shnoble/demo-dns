@@ -593,6 +593,9 @@
       "upgrade": "Get unlimited queries for just {price}/month.",
       "upgradeBtn": "Upgrade Plan"
     },
+    "subscription": {
+      "plan": "Current Plan"
+    },
     "referral": {
       "title": "Referral Link",
       "desc": "Share the link below with others and you will receive 30% of their subscription amount for 12 consecutive months.",
@@ -1583,6 +1586,13 @@
       "startedAt": "Started At",
       "currentPeriodStart": "Current Period Start",
       "currentPeriodEnd": "Current Period End",
+      "cancelledAt": "Cancelled At",
+      "expiredAt": "Expired At",
+      "cancelSubscription": "Cancel",
+      "resumeSubscription": "Resume",
+      "cancelSuccess": "Subscription cancelled",
+      "resumeSuccess": "Subscription resumed",
+      "operationFailed": "Operation failed",
       "userEmail": "User Email",
       "paymentFlows": "Payment Flows",
       "paymentFlowsDesc": "View all payment transactions"
@@ -1838,6 +1848,16 @@
     "createFailed": "Failed to create subscription",
     "checkoutSuccess": "Payment session created",
     "checkoutFailed": "Failed to create payment session",
-    "mockPayFailed": "Mock payment failed"
+    "mockPayFailed": "Mock payment failed",
+    "autoRenew": "Auto Renew",
+    "renewing": "Auto-renewing",
+    "cancelledAtPeriodEnd": "Cancels at period end",
+    "currentPeriodEnd": "Current Period End",
+    "cancelSubscription": "Cancel Subscription",
+    "resumeSubscription": "Resume Subscription",
+    "cancelSuccess": "Subscription cancelled",
+    "cancelFailed": "Failed to cancel subscription",
+    "resumeSuccess": "Subscription resumed",
+    "resumeFailed": "Failed to resume subscription"
   }
 }

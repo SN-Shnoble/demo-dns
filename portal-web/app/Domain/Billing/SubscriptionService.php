@@ -111,6 +111,19 @@ final class SubscriptionService
     }
 
     /**
+     * 恢复订阅，取消取消标记（cancel_at_period_end=false）。
+     * 用户反悔后可重新开启自动续费。
+     */
+    public function resume(string $subscriptionId): void
+    {
+        $sub = Subscription::findOrFail($subscriptionId);
+        $sub->update([
+            'cancel_at_period_end' => false,
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
      * 到期后降级为 Free。
      */
     public function markExpired(int $userId): void

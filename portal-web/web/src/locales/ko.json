@@ -594,6 +594,9 @@
       "upgrade": "{price}/월만으로 무제한 查询를 이용하세요.",
       "upgradeBtn": "플랜 업그레이드"
     },
+    "subscription": {
+      "plan": "현재 플랜"
+    },
     "referral": {
       "title": "추천 링크",
       "desc": "아래 링크를 다른 사람과 공유하면 12개월 동안 구독 금액의 30%를 받습니다.",
@@ -1551,6 +1554,13 @@
       "startedAt": "시작 시간",
       "currentPeriodStart": "현재 기간 시작",
       "currentPeriodEnd": "현재 기간 종료",
+      "cancelledAt": "취소 시간",
+      "expiredAt": "만료 시간",
+      "cancelSubscription": "구독 취소",
+      "resumeSubscription": "구독 재개",
+      "cancelSuccess": "구독이 취소되었습니다",
+      "resumeSuccess": "구독이 재개되었습니다",
+      "operationFailed": "작업 실패",
       "userEmail": "사용자 이메일",
       "paymentFlows": "결제 내역",
       "paymentFlowsDesc": "모든 결제 거래 내역 보기"
@@ -1819,6 +1829,16 @@
     "createFailed": "구독 생성에 실패했습니다",
     "checkoutSuccess": "결제 세션이 생성되었습니다",
     "checkoutFailed": "결제 세션 생성에 실패했습니다",
-    "mockPayFailed": "모의 결제에 실패했습니다"
+    "mockPayFailed": "모의 결제에 실패했습니다",
+    "autoRenew": "자동 갱신",
+    "renewing": "자동 갱신 중",
+    "cancelledAtPeriodEnd": "기간 종료 시 취소",
+    "currentPeriodEnd": "현재 기간 종료",
+    "cancelSubscription": "구독 취소",
+    "resumeSubscription": "구독 재개",
+    "cancelSuccess": "구독이 취소되었습니다",
+    "cancelFailed": "구독 취소에 실패했습니다",
+    "resumeSuccess": "구독이 재개되었습니다",
+    "resumeFailed": "구독 재개에 실패했습니다"
   }
 }

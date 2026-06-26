@@ -181,6 +181,24 @@ final class SubscriptionController
         ]);
     }
 
+    /** POST /api/v1/user/subscriptions/{id}/resume — 恢复续费 */
+    public function resume(string $id): JsonResponse
+    {
+        $sub = Subscription::findOrFail($id);
+        $this->authorizeSubscription($sub);
+
+        $service = new SubscriptionService();
+        $service->resume((string) $sub->id);
+
+        return response()->json([
+            'data' => [
+                'id' => $sub->id,
+                'cancel_at_period_end' => false,
+                'message' => '已恢复自动续费，订阅将在当前周期结束后自动续约',
+            ],
+        ]);
+    }
+
     /** GET /api/v1/user/subscriptions/current — 当前订阅 */
     public function current(): JsonResponse
     {

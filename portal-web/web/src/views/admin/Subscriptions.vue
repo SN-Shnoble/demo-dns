@@ -121,9 +121,25 @@
                     {{ row.created_at ? new Date(row.created_at).toLocaleString() : '-' }}
                 </template>
             </el-table-column>
-            <el-table-column :label="$t('admin.finance.actions')" width="100" fixed="right">
+            <el-table-column :label="$t('admin.finance.actions')" width="220" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" text type="primary" @click="showDetail(row)">{{ $t('common.detail') }}</el-button>
+                    <el-button
+                        v-if="row.status === 'active' && !row.cancel_at_period_end"
+                        size="small"
+                        text
+                        type="danger"
+                        :loading="operatingId === row.id"
+                        @click="handleAdminCancel(row)"
+                    >{{ $t('admin.finance.cancelSubscription') }}</el-button>
+                    <el-button
+                        v-if="row.status === 'active' && row.cancel_at_period_end"
+                        size="small"
+                        text
+                        type="success"
+                        :loading="operatingId === row.id"
+                        @click="handleAdminResume(row)"
+                    >{{ $t('admin.finance.resumeSubscription') }}</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -177,6 +193,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { Key, Search, RefreshLeft } from '@element-plus/icons-vue'
 import ListPage from '@/components/ListPage.vue'
 import client from '@/api/client'
@@ -194,6 +211,7 @@ const filterStatus = ref('')
 const filterQuotaStatus = ref('')
 const showSubDetail = ref(false)
 const selectedSub = ref(null)
+const operatingId = ref(null)
 
 const getStatusType = (status) => {
     const map = {
@@ -241,6 +259,32 @@ const showDetail = async (row) => {
         showSubDetail.value = true
     } catch {
         // silent
+    }
+}
+
+const handleAdminCancel = async (row) => {
+    operatingId.value = row.id
+    try {
+        await client.post(`/admin/finance/subscriptions/${row.id}/cancel`)
+        ElMessage.success(t('admin.finance.cancelSuccess'))
+        await fetchSubscriptions()
+    } catch {
+        ElMessage.error(t('admin.finance.operationFailed'))
+    } finally {
+        operatingId.value = null
+    }
+}
+
+const handleAdminResume = async (row) => {
+    operatingId.value = row.id
+    try {
+        await client.post(`/admin/finance/subscriptions/${row.id}/resume`)
+        ElMessage.success(t('admin.finance.resumeSuccess'))
+        await fetchSubscriptions()
+    } catch {
+        ElMessage.error(t('admin.finance.operationFailed'))
+    } finally {
+        operatingId.value = null
     }
 }
 

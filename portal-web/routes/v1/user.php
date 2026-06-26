@@ -116,6 +116,7 @@ Route::prefix('user')->middleware(['auth:api', 'user.only'])->group(function ():
         Route::get('{id}', [SubscriptionController::class, 'show']);
         Route::post('{id}/checkout', [SubscriptionController::class, 'checkout']);
         Route::post('{id}/cancel', [SubscriptionController::class, 'cancel']);
+        Route::post('{id}/resume', [SubscriptionController::class, 'resume']);
     });
 
     Route::get('payment-transactions/{id}/status', [SubscriptionController::class, 'paymentTransactionStatus']);

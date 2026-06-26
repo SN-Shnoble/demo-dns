@@ -49,7 +49,7 @@
       </div>
     </el-card>
 
-    <!-- 激活后 -->
+    <!-- 激活后 + 管理续费 -->
     <el-card v-if="sub && sub.status === 'active'" class="active-card">
       <template #header>{{ $t('subscription.activeTitle') }}</template>
       <el-result
@@ -58,7 +58,29 @@
         :sub-title="$t('subscription.activeSuccessDesc')"
       >
         <template #extra>
-          <el-button type="primary" @click="$router.push('/user')">{{ $t('subscription.goDashboard') }}</el-button>
+          <el-descriptions :column="2" border style="margin-bottom:16px">
+            <el-descriptions-item :label="$t('subscription.planCode')">{{ sub.plan_code }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('subscription.status')">
+              <el-tag type="success" size="small">{{ $t('subscription.activeTitle') }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('subscription.billingCycle')">{{ sub.billing_cycle }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('subscription.amount')">{{ formatMoney(sub.amount_minor, sub.currency) }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('subscription.currentPeriodEnd')">{{ sub.current_period_end ? new Date(sub.current_period_end).toLocaleString() : '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('subscription.autoRenew')">
+              <el-tag :type="sub.cancel_at_period_end ? 'warning' : 'success'" size="small">
+                {{ sub.cancel_at_period_end ? $t('subscription.cancelledAtPeriodEnd') : $t('subscription.renewing') }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+          <div class="manage-actions">
+            <el-button v-if="!sub.cancel_at_period_end" type="danger" plain :loading="cancelling" @click="handleCancel">
+              {{ $t('subscription.cancelSubscription') }}
+            </el-button>
+            <el-button v-else type="success" plain :loading="resuming" @click="handleResume">
+              {{ $t('subscription.resumeSubscription') }}
+            </el-button>
+            <el-button type="primary" @click="$router.push('/user')">{{ $t('subscription.goDashboard') }}</el-button>
+          </div>
         </template>
       </el-result>
     </el-card>
@@ -81,6 +103,8 @@ const currentTx = ref(null)
 const creating = ref(false)
 const paying = ref(false)
 const mocking = ref(false)
+const cancelling = ref(false)
+const resuming = ref(false)
 
 const formatMoney = (minor, currency = 'USD') => {
   if (minor === null || minor === undefined || Number.isNaN(Number(minor))) return '-'
@@ -139,6 +163,32 @@ const mockPay = async () => {
     ElMessage.error(e.response?.data?.message || t('subscription.mockPayFailed'))
   } finally {
     mocking.value = false
+  }
+}
+
+const handleCancel = async () => {
+  cancelling.value = true
+  try {
+    const { data } = await client.post(`/user/subscriptions/${sub.value.id}/cancel`)
+    sub.value = { ...sub.value, cancel_at_period_end: true }
+    ElMessage.success(data.data?.message || t('subscription.cancelSuccess'))
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || t('subscription.cancelFailed'))
+  } finally {
+    cancelling.value = false
+  }
+}
+
+const handleResume = async () => {
+  resuming.value = true
+  try {
+    const { data } = await client.post(`/user/subscriptions/${sub.value.id}/resume`)
+    sub.value = { ...sub.value, cancel_at_period_end: false }
+    ElMessage.success(data.data?.message || t('subscription.resumeSuccess'))
+  } catch (e) {
+    ElMessage.error(e.response?.data?.message || t('subscription.resumeFailed'))
+  } finally {
+    resuming.value = false
   }
 }
 
