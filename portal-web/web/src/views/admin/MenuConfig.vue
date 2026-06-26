@@ -62,7 +62,7 @@
                         </el-button-group>
                     </template>
                 </el-table-column>
-                <el-table-column :label="$t('common.actions')" width="180" align="center">
+                <el-table-column :label="$t('common.actions')" width="220" align="center">
                     <template #default="{ row }">
                         <el-button size="small" text type="primary" @click="editMenu(row)">
                             <el-icon><Edit /></el-icon>
@@ -337,6 +337,7 @@ const dispatchMenuConfig = () => {
 
 const handleVisibleChange = async (row) => {
     const previousVisible = !row.visible
+    // 仅更新本地数据状态（el-switch v-model 会自动反映到 UI）
     if (row.parentId) {
         const item = subMenuItems.value.find(i => i.id === row.id)
         if (item) item.visible = row.visible
@@ -344,14 +345,15 @@ const handleVisibleChange = async (row) => {
         const item = mainMenuItems.value.find(i => i.id === row.id)
         if (item) item.visible = row.visible
     }
-    dispatchMenuConfig()
 
     try {
         await client.put('/admin/menu-config/visibility', {
             id: row.id,
             visible: row.visible,
         })
+        // 不派发 menu-config-updated 事件，左侧导航保持不变，仅刷新后生效
     } catch {
+        // 回滚本地状态
         row.visible = previousVisible
         if (row.parentId) {
             const item = subMenuItems.value.find(i => i.id === row.id)
@@ -360,20 +362,50 @@ const handleVisibleChange = async (row) => {
             const item = mainMenuItems.value.find(i => i.id === row.id)
             if (item) item.visible = previousVisible
         }
-        dispatchMenuConfig()
         ElMessage.error(t('admin.menuConfig.saveFailed'))
     }
 }
 
 const editMenu = (menu) => {
-    editingMenu.value = { ...menu }
+    editingMenu.value = {
+        ...menu,
+        menuKey: menu.id,
+        _isNew: false,
+        _isSub: !!menu.parentId,
+        permissionCode: menu.permissionCode || '',
+    }
     dialogTitle.value = t('admin.menuConfig.editMenu')
     dialogVisible.value = true
 }
 
-const saveMenu = () => {
-    const { id, parentId, labelKey, path, icon, visible, sort } = editingMenu.value
-    if (parentId) {
+const saveMenu = async () => {
+    const { menuKey, _isNew, _isSub, parentId, labelKey, path, icon, visible, sort, permissionCode, id } = editingMenu.value
+
+    if (_isNew) {
+        // 新增 — 调用 POST API
+        try {
+            await client.post('/admin/menu-config', {
+                menu_key: menuKey,
+                labelKey,
+                path,
+                icon: icon || null,
+                visible,
+                sort,
+                parentId: _isSub ? parentId : null,
+                permission_code: permissionCode || null,
+            })
+            ElMessage.success(t('admin.menuConfig.createSuccess'))
+            dialogVisible.value = false
+            // 重新加载菜单列表
+            await loadMenuConfig()
+        } catch (err) {
+            ElMessage.error(err.response?.data?.error?.message || t('admin.menuConfig.saveFailed'))
+        }
+        return
+    }
+
+    // 编辑 — 本地更新后通过 PUT 保存
+    if (_isSub) {
         const item = subMenuItems.value.find(i => i.id === id)
         if (item) {
             item.labelKey = labelKey
@@ -381,6 +413,8 @@ const saveMenu = () => {
             item.icon = icon
             item.visible = visible
             item.sort = sort
+            item.parentId = parentId
+            item.permissionCode = permissionCode
         }
     } else {
         const item = mainMenuItems.value.find(i => i.id === id)
@@ -390,17 +424,21 @@ const saveMenu = () => {
             item.icon = icon
             item.visible = visible
             item.sort = sort
+            item.permissionCode = permissionCode
         }
     }
     dialogVisible.value = false
-    // 派发事件通知 AdminLayout 更新菜单
-    window.dispatchEvent(new CustomEvent('menu-config-updated', {
-        detail: {
+    dispatchMenuConfig()
+    // 调用 PUT API 持久化
+    try {
+        await client.put('/admin/menu-config', {
             mainMenu: mainMenuItems.value,
             subMenu: subMenuItems.value,
-        }
-    }))
-    ElMessage.success(t('admin.menuConfig.saveSuccess'))
+        })
+        ElMessage.success(t('admin.menuConfig.saveSuccess'))
+    } catch {
+        ElMessage.error(t('admin.menuConfig.saveFailed'))
+    }
 }
 
 const handleSave = async () => {
@@ -422,6 +460,10 @@ const handleSave = async () => {
 }
 
 onMounted(async () => {
+    await loadMenuConfig()
+})
+
+const loadMenuConfig = async () => {
     // 完全依赖后端 dns_admin_menu_rule 表，失败则保持空列表
     try {
         const response = await client.get('/admin/menu-config')
@@ -439,6 +481,7 @@ onMounted(async () => {
                     visible: item.visible !== false,
                     sort: item.sort || 0,
                     parentId: null,
+                    permissionCode: item.permissionCode || '',
                 })
 
                 if (Array.isArray(item.children)) {
@@ -451,6 +494,7 @@ onMounted(async () => {
                             visible: child.visible !== false,
                             sort: child.sort || 0,
                             parentId: child.parentId,
+                            permissionCode: child.permissionCode || '',
                         })
                     })
                 }
@@ -463,7 +507,7 @@ onMounted(async () => {
     } catch (err) {
         console.warn('Failed to load menu config from API; list will be empty until API responds.', err)
     }
-})
+}
 </script>
 
 <style scoped>
