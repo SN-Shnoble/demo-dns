@@ -128,11 +128,7 @@
             <el-form-item :label="$t('admin.adminUsers.email')" prop="email">
                 <el-input v-model="form.email" :disabled="!!editingAdmin" />
             </el-form-item>
-            <el-form-item
-                v-if="!editingAdmin"
-                :label="$t('admin.adminUsers.password')"
-                prop="password"
-            >
+            <el-form-item :label="$t('admin.adminUsers.password')" prop="password">
                 <el-input v-model="form.password" type="password" show-password :placeholder="$t('admin.adminUsers.passwordPlaceholder')" />
             </el-form-item>
             <el-form-item :label="$t('admin.adminUsers.status')">
@@ -203,7 +199,6 @@ const formRules = {
         { type: 'email', message: () => t('admin.adminUsers.emailInvalid'), trigger: 'blur' },
     ],
     password: [
-        { required: true, message: () => t('common.required'), trigger: 'blur' },
         { min: 8, message: () => t('admin.adminUsers.passwordMin'), trigger: 'blur' },
     ],
 }
@@ -298,9 +293,11 @@ const handleSubmit = async () => {
     saving.value = true
     try {
         if (editingAdmin.value) {
-            await client.put(`/admin/admins/${editingAdmin.value.id}`, {
-                status: form.status,
-            })
+            const payload = { status: form.status }
+            if (form.password) {
+                payload.password = form.password
+            }
+            await client.put(`/admin/admins/${editingAdmin.value.id}`, payload)
             ElMessage.success(t('admin.adminUsers.updateSuccess'))
         } else {
             await client.post('/admin/admins', {

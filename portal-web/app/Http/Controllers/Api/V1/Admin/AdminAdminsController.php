@@ -126,6 +126,7 @@ final class AdminAdminsController
 
         $validator = Validator::make($request->all(), [
             'status' => 'sometimes|in:active,disabled',
+            'password' => 'sometimes|string|min:8',
         ]);
 
         if ($validator->fails()) {
@@ -141,6 +142,10 @@ final class AdminAdminsController
         if ($request->has('status')) {
             $admin->status = $request->input('status');
             $dirty['status'] = $admin->status;
+        }
+        if ($request->has('password')) {
+            $admin->password = Hash::make($request->input('password'));
+            $dirty['password'] = true;
         }
         $admin->save();
 
