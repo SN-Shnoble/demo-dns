@@ -185,7 +185,7 @@ func Default() *Config {
 			ProfileCacheDisk:   20000,
 			ProfileEvictTTLMin: 30,
 			ProfileDiskTTLDays: 7,
-			VersionCheckMinutes: 5,
+			VersionCheckMinutes: 2,
 		},
 		NATS: NATSConfig{
 			Endpoints: []string{"nats://localhost:4222"},

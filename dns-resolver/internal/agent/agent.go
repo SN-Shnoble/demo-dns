@@ -55,6 +55,8 @@ type Agent struct {
 	lastLogFlushAt string
 	globalVersion  int64
 	deviceIndex    map[string]deviceIndexEntry // source_ip → {profileID, deviceID}
+
+	lastProfileCheckAt time.Time // 上次 profile 版本检查时间，用于心跳触发的频率控制
 }
 
 type heartbeatRequest struct {
@@ -150,7 +152,7 @@ func (a *Agent) StartConfigSync(ctx context.Context, interval time.Duration) {
 	defer ticker.Stop()
 	defer checkTicker.Stop()
 
-	// 启动时：拉取 Global Config + 加载磁盘缓存到 Engine
+	// 启动时：拉取 Global Config + 加载磁盘缓存到 Engine + 立即检查版本
 	a.pullGlobalConfig()
 	a.pCache.LoadFromDiskOnStartup()
 	// 将磁盘缓存的 Profile 加载到 Engine，填充 deviceIndex
@@ -159,6 +161,8 @@ func (a *Agent) StartConfigSync(ctx context.Context, interval time.Duration) {
 			log.Printf("Startup: failed to load profile %s into engine: %v", pid, err)
 		}
 	}
+	// 启动后立即检查一次 Profile 版本，避免 5 分钟空窗期
+	a.checkProfiles()
 
 	// 启动 evictor（每 5 分钟）
 	go a.evictLoop()
@@ -531,6 +535,13 @@ func (a *Agent) sendHeartbeat() {
 			a.globalVersion, envelope.Data.LatestConfigVersion)
 		a.globalVersion = envelope.Data.LatestConfigVersion
 		go a.pullGlobalConfig() // 异步拉取，不阻塞心跳循环
+	}
+
+	// 2026-06-26: 心跳成功后触发 Profile 版本检查（频率控制：至少间隔 10 秒）
+	// 确保用户发布配置变更后秒级生效，无需等待 5 分钟
+	if time.Since(a.lastProfileCheckAt) > 10*time.Second {
+		a.lastProfileCheckAt = time.Now()
+		go a.checkProfiles()
 	}
 }
 
