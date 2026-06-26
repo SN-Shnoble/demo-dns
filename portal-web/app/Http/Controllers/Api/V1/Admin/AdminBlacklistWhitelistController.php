@@ -23,7 +23,8 @@ final class AdminBlacklistWhitelistController extends Controller
             ->with(['profile:id,profile_id,name,user_id', 'profile.user:uid,email,username']);
 
         if ($type === 'allow' || $type === 'deny') {
-            $query->where('action', $type);
+            $mapped = $type === 'allow' ? 'allowlist' : 'denylist';
+            $query->where('list_type', $mapped);
         }
 
         if ($keyword !== '') {
@@ -35,13 +36,29 @@ final class AdminBlacklistWhitelistController extends Controller
             });
         }
 
-        $rows = $query->orderByDesc('id')->limit(1000)->get();
+        $perPage = (int) ($request->query('per_page', 20));
+        $perPage = max(1, min(100, $perPage));
+        $paginator = $query->orderByDesc('id')->paginate($perPage);
+        $items = collect($paginator->items());
 
-        $data = $rows->map(function (ProfileRule $r): array {
-            $user = $r->profile?->user;
+        // 聚合用户信息
+        $userIds = $items
+            ->map(fn (ProfileRule $r) => $r->profile?->user_id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $userMap = \App\Models\User::query()
+            ->whereIn('uid', $userIds)
+            ->get(['uid', 'username', 'email'])
+            ->keyBy('uid');
+
+        $data = $items->map(function (ProfileRule $r) use ($userMap): array {
+            $user = $r->profile?->user ?: ($r->profile && $r->profile->user_id ? $userMap->get($r->profile->user_id) : null);
 
             return [
                 'id' => $r->id,
+                'list_type' => $r->list_type,
                 'action' => $r->action,
                 'domain' => $r->domain,
                 'match_type' => $r->match_type ?? 'exact',
@@ -53,6 +70,13 @@ final class AdminBlacklistWhitelistController extends Controller
             ];
         });
 
-        return response()->json(['data' => $data->values()]);
+        return response()->json([
+            'data' => $data->values(),
+            'meta' => [
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+                'page' => $paginator->currentPage(),
+            ],
+        ]);
     }
 }

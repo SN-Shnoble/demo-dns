@@ -303,6 +303,7 @@ func (a *Agent) loadProfileIntoEngine(profileID string, data json.RawMessage, ve
 	var p config.ProfileConfig
 	if err := json.Unmarshal(data, &p); err == nil && p.ProfileID != "" {
 		var allowExact, allowWild, denyExact, denyWild []string
+		var adblockExact, adblockWild []string
 		security := make(map[string][]string)
 		parental := make(map[string][]string)
 		for _, r := range p.Rules {
@@ -315,18 +316,31 @@ func (a *Agent) loadProfileIntoEngine(profileID string, data json.RawMessage, ve
 			}
 			// list_type 格式：allowlist / denylist / category:<top>:<sub>
 			// category top: security → security[<sub>]; parental → parental[<sub>];
-			//              privacy → security[<sub>] (复用 security 桶)
+			//              privacy → adblock[<sub>] (广告/跟踪器归入 adblock 桶)
+			//              无 sub 的扁平分类（如 category:privacy）也路由到对应桶
 			if strings.HasPrefix(r.ListType, "category:") {
-				parts := strings.SplitN(strings.TrimPrefix(r.ListType, "category:"), ":", 2)
-				if len(parts) != 2 {
-					continue
+				rest := strings.TrimPrefix(r.ListType, "category:")
+				parts := strings.SplitN(rest, ":", 2)
+				top := parts[0]
+				sub := ""
+				if len(parts) == 2 {
+					sub = parts[1]
 				}
-				top, sub := parts[0], parts[1]
 				switch top {
-				case "security", "privacy":
-					security[sub] = append(security[sub], d)
+				case "security":
+					if sub != "" {
+						security[sub] = append(security[sub], d)
+					} else {
+						security["default"] = append(security["default"], d)
+					}
+				case "privacy":
+					adblockExact = append(adblockExact, d)
 				case "parental":
-					parental[sub] = append(parental[sub], d)
+					if sub != "" {
+						parental[sub] = append(parental[sub], d)
+					} else {
+						parental["default"] = append(parental["default"], d)
+					}
 				}
 				continue
 			}
@@ -348,10 +362,10 @@ func (a *Agent) loadProfileIntoEngine(profileID string, data json.RawMessage, ve
 		a.engine.LoadProfileRules(p.ProfileID,
 			allowExact, allowWild,
 			denyExact, denyWild,
-			nil, nil,
+			adblockExact, adblockWild,
 			security, parental)
-		log.Printf("Engine rules loaded: profile=%s allow=%d allow_wild=%d deny=%d deny_wild=%d security_cats=%d parental_cats=%d",
-			p.ProfileID, len(allowExact), len(allowWild), len(denyExact), len(denyWild), len(security), len(parental))
+		log.Printf("Engine rules loaded: profile=%s allow=%d allow_wild=%d deny=%d deny_wild=%d adblock=%d security_cats=%d parental_cats=%d",
+			p.ProfileID, len(allowExact), len(allowWild), len(denyExact), len(denyWild), len(adblockExact), len(security), len(parental))
 
 		// Load security algorithm config (IDN Homograph, DGA, Typosquatting, DNS Rebinding)
 		if p.Security != nil {

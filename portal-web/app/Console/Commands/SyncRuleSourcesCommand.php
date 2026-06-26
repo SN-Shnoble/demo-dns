@@ -211,10 +211,28 @@ class SyncRuleSourcesCommand extends Command
             }
 
             // 删除本 source 的旧数据中已不存在的（避免脏数据）
+            // 分批删除以避免 MySQL 预处理语句占位符上限（65535）
+            $keepDomains = array_map('strtolower', $domains);
+            $chunkSize = 50000;
+            $allDomainChunks = array_chunk($keepDomains, $chunkSize);
             DB::table('rule_items')
                 ->where('rule_source_id', $source->id)
-                ->whereNotIn('domain', array_map('strtolower', array_slice($domains, 0, 100000)))
+                ->whereNotIn('domain', $allDomainChunks[0] ?? [])
                 ->delete();
+            // 如果还有第二批域名，用 AND NOT IN 补上
+            for ($ci = 1; $ci < count($allDomainChunks); $ci++) {
+                $existing = DB::table('rule_items')
+                    ->where('rule_source_id', $source->id)
+                    ->whereIn('domain', $allDomainChunks[$ci])
+                    ->pluck('domain')
+                    ->toArray();
+                if (!empty($existing)) {
+                    DB::table('rule_items')
+                        ->where('rule_source_id', $source->id)
+                        ->whereNotIn('domain', $existing)
+                        ->delete();
+                }
+            }
 
             DB::commit();
         } catch (\Throwable $e) {

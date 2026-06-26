@@ -8,82 +8,6 @@
         @refresh="fetchAll"
     >
         <el-tabs v-model="activeTab" class="catalog-tabs">
-            <!-- 黑名单 Tab：用户 deny 规则 -->
-            <el-tab-pane :label="$t('admin.memberCatalogs.tabDenyList')" name="denylist">
-                <el-card shadow="never">
-                    <template #header>
-                        <div class="rules-head">
-                            <strong>{{ $t('admin.memberCatalogs.rulesTitle') }}</strong>
-                            <div class="rules-filters">
-                                <el-input v-model="ruleFilter.domain" :placeholder="$t('admin.memberCatalogs.searchDomain')" clearable style="width: 220px" @keyup.enter="fetchRules" />
-                                <el-button @click="fetchRules">{{ $t('common.search') }}</el-button>
-                                <el-button type="danger" plain :disabled="selectedRules.length === 0" @click="batchDeleteRules">
-                                    {{ $t('common.batchDelete') }}
-                                </el-button>
-                            </div>
-                        </div>
-                    </template>
-                    <el-table :data="rules" stripe @selection-change="selectedRules = $event">
-                        <template #empty>
-                            <div class="empty-state">
-                                <el-icon class="empty-icon"><Grid /></el-icon>
-                                <p class="empty-title">{{ $t('dashboard.noData') }}</p>
-                            </div>
-                        </template>
-                        <el-table-column type="selection" width="44" />
-                        <el-table-column :label="$t('admin.memberCatalogs.user')" min-width="180" show-overflow-tooltip>
-                            <template #default="{ row }">
-                                <div class="user-cell">
-                                    <span class="cell-primary">{{ row.username || row.user_email || '-' }}</span>
-                                    <span v-if="row.user_id" class="cell-sub">uid: {{ row.user_id }}</span>
-                                </div>
-                            </template>
-                        </el-table-column>
-                        <el-table-column :label="$t('admin.memberCatalogs.profileId')" width="160" show-overflow-tooltip>
-                            <template #default="{ row }">
-                                <div class="profile-cell">
-                                    <span class="cell-primary">{{ row.profile_id || row.profile_id || '-' }}</span>
-                                    <span v-if="row.profile_name" class="cell-sub">{{ row.profile_name }}</span>
-                                </div>
-                            </template>
-                        </el-table-column>
-                        <el-table-column :label="$t('admin.memberCatalogs.type')" width="90">
-                            <template #default="{ row }">
-                                <el-tag size="small" :type="row.list_type === 'deny' || row.list_type === 'denylist' ? 'danger' : 'success'" effect="light">
-                                    {{ row.list_type === 'allow' || row.list_type === 'allowlist' ? $t('admin.memberCatalogs.allow') : $t('admin.memberCatalogs.deny') }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column :label="$t('admin.memberCatalogs.domain')" min-width="220" prop="domain" show-overflow-tooltip />
-                        <el-table-column :label="$t('admin.memberCatalogs.matchType')" width="100" prop="match_type" />
-                        <el-table-column :label="$t('admin.memberCatalogs.enabled')" width="80">
-                            <template #default="{ row }">{{ row.enabled ? $t('common.yes') : $t('common.no') }}</template>
-                        </el-table-column>
-                        <el-table-column :label="$t('common.actions')" width="80" fixed="right">
-                            <template #default="{ row }">
-                                <el-button text type="danger" @click="deleteRule(row.id)">{{ $t('common.delete') }}</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                    <div v-if="rulesMeta" class="pagination-bar">
-                        <div class="pagination-total">
-                            {{ $t('common.totalPrefix') }} <strong>{{ rulesMeta.total }}</strong> {{ $t('common.itemsSuffix') }}
-                        </div>
-                        <el-pagination
-                            v-model:current-page="rulesPage"
-                            v-model:page-size="rulesPerPage"
-                            :page-sizes="[10, 20, 50, 100]"
-                            :total="rulesMeta.total"
-                            layout="sizes, prev, pager, next"
-                            background
-                            size="small"
-                            @size-change="(s) => { rulesPerPage = s; rulesPage = 1; fetchRules() }"
-                            @current-change="() => fetchRules()"
-                        />
-                    </div>
-                </el-card>
-            </el-tab-pane>
-
             <!-- 设备型号 Tab：标准列表格式 + 分页 -->
             <el-tab-pane :label="$t('admin.memberCatalogs.tabDeviceModels')" name="device_models">
                 <el-card shadow="never">
@@ -346,7 +270,7 @@ import client from '@/api/client'
 
 const { t } = useI18n()
 
-const activeTab = ref('denylist')
+const activeTab = ref('device_models')
 const saving = ref(false)
 
 const catalogs = reactive({

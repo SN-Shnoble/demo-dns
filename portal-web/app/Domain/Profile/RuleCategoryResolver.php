@@ -63,12 +63,18 @@ final class RuleCategoryResolver
                 continue;
             }
 
+            try {
+                $normalized = DomainNormalizer::normalize($domain);
+            } catch (\InvalidArgumentException) {
+                continue; // 跳过无效 IDN 域名
+            }
+
             $out[] = [
                 'rule_id' => '',
                 'list_type' => 'category:' . $itemCat,
                 'match_type' => 'exact',
                 'domain' => $domain,
-                'normalized_domain' => DomainNormalizer::normalize($domain),
+                'normalized_domain' => $normalized,
                 'action' => 'block',
                 'category' => $itemCat,
                 'enabled' => true,
