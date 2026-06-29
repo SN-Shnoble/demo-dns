@@ -23,6 +23,7 @@ final class TeamController
                 'id' => $team->id,
                 'name' => $team->name,
                 'identifier' => $team->slug,
+                'identifier' => $team->slug,
                 'description' => $team->description,
                 'member_count' => $team->member_count,
                 'max_members' => $team->max_members,
